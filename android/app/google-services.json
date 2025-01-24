@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "857700626576",
+    "project_id": "footconnect-f8524",
+    "storage_bucket": "footconnect-f8524.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:857700626576:android:27c5657164c128c23aa815",
+        "android_client_info": {
+          "package_name": "com.app.footconnect0"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRw-t_92nSa69BzaHbKVUCkjKkqoAGQUw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
