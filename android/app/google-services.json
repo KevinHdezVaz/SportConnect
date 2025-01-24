@@ -12,7 +12,20 @@
           "package_name": "com.app.footconnect0"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "857700626576-h6sm2r7d7cujhb8vvsi9pibjfbknhavt.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.app.footconnect0",
+            "certificate_hash": "4830c044e3db168d4c593379fe6f48c69919d3fb"
+          }
+        },
+        {
+          "client_id": "857700626576-imvia3bh79r0emf9ppjtpbt6g48limth.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCRw-t_92nSa69BzaHbKVUCkjKkqoAGQUw"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "857700626576-imvia3bh79r0emf9ppjtpbt6g48limth.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "857700626576-o9cbf6mc1bga1juvhmmm2nqligce0rtq.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.userAuthCrudd10"
+              }
+            }
+          ]
         }
       }
     }

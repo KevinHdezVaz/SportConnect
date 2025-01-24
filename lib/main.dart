@@ -48,7 +48,7 @@ class MyApp extends StatelessWidget {
         themeMode: themeProvider.currentTheme,
         theme: lightTheme,
         darkTheme: darkTheme,
-        home: const IntroScreen(),
+        home:   IntroScreen(),
       ),
     );
   }

@@ -2,7 +2,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:user_auth_crudd10/auth/forget_pass_page.dart';
+import 'package:user_auth_crudd10/services/functions/user_data_store.dart';
+import 'package:user_auth_crudd10/services/settings/theme_data.dart';
 
 class LoginPage extends StatefulWidget {
   final VoidCallback showLoginPage;
@@ -20,6 +23,7 @@ class _LoginPageState extends State<LoginPage> {
   //textControllers
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   //login logic
   Future signIn() async {
@@ -46,6 +50,38 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+Future<UserCredential?> signInWithGoogle() async {
+ try {
+   final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+   if (googleUser == null) return null;
+
+   final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+   final credential = GoogleAuthProvider.credential(
+     accessToken: googleAuth.accessToken,
+     idToken: googleAuth.idToken,
+   );
+
+   final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+   
+   if (userCredential.additionalUserInfo?.isNewUser ?? false) {
+     await storeUserData(
+       googleUser.displayName ?? '',
+       '', // year
+       googleUser.email ?? '',
+     );
+   }
+
+   return userCredential;
+ } catch (e) {
+   ScaffoldMessenger.of(context).showSnackBar(
+     SnackBar(
+       content: Text("Error: $e"),
+       backgroundColor: Colors.red[200],
+     ),
+   );
+   return null;
+ }
+}
   //dispose
   @override
   void dispose() {
@@ -56,8 +92,12 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    
+
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Theme.of(context).colorScheme.primary,
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -71,34 +111,21 @@ class _LoginPageState extends State<LoginPage> {
                   padding: const EdgeInsets.fromLTRB(0, 0, 100, 0),
                   child: Image.asset('assets/images/grad1.png'),
                 ),
-                Positioned(
-                  top: 60,
-                  left: 150,
-                  // child: Image.asset('assets/images/intro_logo.png'),
-                  child: Text(
-                    'PerpPDF',
-                    style: GoogleFonts.lato(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.deepPurple[500],
-                    ),
-                  ),
-                ),
 
                 //container
                 Positioned(
-                  top: 120,
+                  top: 80,
                   left: 10,
                   right: 10,
                   bottom: 0,
                   child: Padding(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
                     child: Container(
-                      // height: MediaQuery.of(context).size.height *
-                      //     0.9, //chnage old was 700
+                      height: MediaQuery.of(context).size.height *
+                          0.9, //chnage old was 700
 
-                      width: 250,
+                      width: 100,
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(12),
@@ -113,13 +140,13 @@ class _LoginPageState extends State<LoginPage> {
                             height: 20,
                           ),
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 15),
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
                             child: Text(
-                              "Enter your email and password to log in",
+                              "Ingresa tu correo y contraseña o crea una cuenta.",
                               style: GoogleFonts.lato(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w400,
-                                color: Colors.grey[600],
+                                color: Colors.black,
                               ),
                             ),
                           ),
@@ -130,7 +157,7 @@ class _LoginPageState extends State<LoginPage> {
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 15),
                             child: TextField(
-                              cursorColor: Colors.white,
+                              cursorColor: lightTheme.primaryColor,
                               controller: _emailController,
                               decoration: InputDecoration(
                                 enabledBorder: OutlineInputBorder(
@@ -143,15 +170,18 @@ class _LoginPageState extends State<LoginPage> {
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: const BorderSide(
-                                    color: Colors.purpleAccent,
+                                    color: Colors.black,
                                     width: 0.8,
                                   ),
                                 ),
-                                labelText: " Email ",
+                                labelText: "Correo",
                                 labelStyle: TextStyle(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .secondary),
+                                    color:
+                                        Theme.of(context).colorScheme.primary),
+                              ),
+                              style: const TextStyle(
+                                color: Colors
+                                    .black, // Cambia el color del texto aquí
                               ),
                             ),
                           ),
@@ -162,7 +192,7 @@ class _LoginPageState extends State<LoginPage> {
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 15),
                             child: TextField(
-                              cursorColor: Colors.white,
+                              cursorColor: lightTheme.primaryColor,
                               controller: _passwordController,
                               obscureText: isObscure,
                               decoration: InputDecoration(
@@ -176,15 +206,14 @@ class _LoginPageState extends State<LoginPage> {
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: const BorderSide(
-                                    color: Colors.purpleAccent,
+                                    color: Colors.black,
                                     width: 0.8,
                                   ),
                                 ),
-                                labelText: " Password ",
+                                labelText: " Contraseña ",
                                 labelStyle: TextStyle(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .secondary),
+                                    color:
+                                        Theme.of(context).colorScheme.primary),
                                 suffixIcon: IconButton(
                                   onPressed: () {
                                     setState(() {
@@ -198,6 +227,10 @@ class _LoginPageState extends State<LoginPage> {
                                             .no_encryption_gmailerrorred_rounded,
                                   ),
                                 ),
+                              ),
+                              style: const TextStyle(
+                                color: Colors
+                                    .black, // Cambia el color del texto aquí
                               ),
                             ),
                           ),
@@ -225,7 +258,7 @@ class _LoginPageState extends State<LoginPage> {
                                   ),
                                 ),
                                 const Text(
-                                  'Remember me',
+                                  'Recordarme',
                                   style: TextStyle(
                                     fontSize: 16,
                                   ),
@@ -233,34 +266,77 @@ class _LoginPageState extends State<LoginPage> {
                                 const SizedBox(
                                   width: 40,
                                 ),
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(horizontal: 0),
-                                  child: Row(
-                                    children: [
-                                      GestureDetector(
-                                        onTap: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  const ForgetPassPage(),
-                                            ),
-                                          );
-                                        },
-                                        child: const Text(
-                                          "Forget Password ?",
-                                          style: TextStyle(
-                                            color: Colors.blue,
-                                            fontWeight: FontWeight.w400,
-                                            fontSize: 16,
+                                Column(
+                                  children: [
+                                    GestureDetector(
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const ForgetPassPage(),
                                           ),
+                                        );
+                                      },
+                                      child: const Text(
+                                        "Olvide contraseña",
+                                        style: TextStyle(
+                                          color: Colors.blue,
+                                          fontWeight: FontWeight.w400,
+                                          fontSize: 14,
                                         ),
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
                               ],
+                            ),
+                          ),
+                          const SizedBox(
+                            height: 40,
+                          ),
+                          Container(
+                            width: size.width * 0.8,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.white.withOpacity(0.95),
+                                  Colors.white.withOpacity(0.8)
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 10,
+                                  offset: Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: ElevatedButton(
+                              onPressed: signInWithGoogle,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                minimumSize: const Size(double.infinity, 50),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Image.asset('assets/images/google.png',
+                                      height: 24),
+                                  const SizedBox(width: 10),
+                                  const Text(
+                                    'Entrar con Google',
+                                    style: TextStyle(
+                                      color: Colors.black87,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ],
@@ -270,60 +346,68 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ],
             ),
-            const SizedBox(
-              height: 20,
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 50),
-              child: GestureDetector(
-                onTap: signIn,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Image.asset(
-                      'assets/icons/ic_button.png',
-                    ),
-                    Text(
-                      "Log In",
-                      style: GoogleFonts.inter(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white,
-                      ),
-                    ),
+            SizedBox(height: 40),
+            Container(
+              width: size.width * 0.8,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.white.withOpacity(0.9),
+                    Colors.white.withOpacity(0.7)
                   ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ElevatedButton(
+                onPressed: signIn,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  minimumSize: Size(double.infinity, 50),
+                  padding: EdgeInsets.symmetric(vertical: 15),
+                ),
+                child: Text(
+                  "Entrar",
+                  style: GoogleFonts.inter(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
+                  ),
                 ),
               ),
             ),
-            const SizedBox(
-              height: 15,
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Dont have an account?',
+           const SizedBox(height: 20),
+               
+               TextButton(
+                onPressed: widget.showLoginPage,
+                style: ElevatedButton.styleFrom(
+
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  minimumSize: Size(double.infinity, 50),
+                  padding: EdgeInsets.symmetric(vertical: 15),
+                ),
+                child: Text(
+                  "Crear cuenta",
                   style: GoogleFonts.inter(
                     fontSize: 17,
-                    fontWeight: FontWeight.w400,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
+                     decoration: TextDecoration.underline,  
+
                   ),
                 ),
-                const SizedBox(
-                  width: 10,
-                ),
-                GestureDetector(
-                  onTap: widget.showLoginPage,
-                  child: Text(
-                    "Sign Up",
-                    style: GoogleFonts.inter(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.blue,
-                    ),
-                  ),
-                ),
-              ],
-            )
+              ),
+            
           ],
         ),
       ),
