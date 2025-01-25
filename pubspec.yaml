@@ -47,6 +47,9 @@ dependencies:
   flutter_dotenv: 
   card_swiper: ^3.0.1
   google_sign_in: ^6.2.2
+  particles_flutter: ^1.0.1
+  lottie: ^3.3.0
+  shared_preferences: ^2.0.8
 
 
 

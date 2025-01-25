@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:user_auth_crudd10/auth/intro_page.dart';
+import 'package:user_auth_crudd10/onscreen/screen_one.dart';
 import 'package:user_auth_crudd10/services/functions/firebase_notification.dart';
 import 'package:user_auth_crudd10/services/providers/storage_ans_provider.dart';
 import 'package:user_auth_crudd10/services/providers/storage_provider.dart';
@@ -11,8 +13,11 @@ import 'package:user_auth_crudd10/services/settings/theme_data.dart';
 import 'package:user_auth_crudd10/services/settings/theme_provider.dart';
 import 'firebase_options.dart';
 
-void main() async {
+ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+int? isviewed = prefs.getInt('onBoard');
 
   await dotenv.load(fileName: '.env');
 
@@ -48,7 +53,7 @@ class MyApp extends StatelessWidget {
         themeMode: themeProvider.currentTheme,
         theme: lightTheme,
         darkTheme: darkTheme,
-        home:   IntroScreen(),
+        home:   OnboardingScreenOne(),
       ),
     );
   }
