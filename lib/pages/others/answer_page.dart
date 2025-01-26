@@ -200,20 +200,10 @@ class _AnswerPageState extends State<AnswerPage> {
                           childAspectRatio: 3 / 4,
                         ),
                         itemBuilder: (context, index) {
-                          final item = storageAnsProvider.ansItem[index];
                           return Padding(
                             padding: const EdgeInsets.all(10.0),
                             child: GestureDetector(
-                              onTap: () {
-                                if (item.path != null) {
-                                  openCheckout(item.path!);
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text("Item path is null")),
-                                  );
-                                }
-                              },
+                              onTap: () {},
                               child: Container(
                                 height: 100,
                                 width: 100,
@@ -235,14 +225,6 @@ class _AnswerPageState extends State<AnswerPage> {
                                     Padding(
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 5),
-                                      child: Text(
-                                        item.name.toUpperCase(),
-                                        style: GoogleFonts.inter(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
                                     ),
                                   ],
                                 ),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:user_auth_crudd10/pages/CanchasMap.dart';
 import 'package:user_auth_crudd10/pages/home_page.dart';
 import 'package:user_auth_crudd10/pages/others/answer_page.dart';
 import 'package:user_auth_crudd10/pages/others/profile_page.dart';
+import 'package:user_auth_crudd10/pages/screens/fields_screen.dart';
 
 class BottomNavBar extends StatefulWidget {
   const BottomNavBar({super.key});
@@ -21,13 +23,14 @@ class _BottomNavBarState extends State<BottomNavBar> {
 
   Color _iconColor(int index) {
     return _selectedIndex == index
-        ? Theme.of(context).colorScheme.secondary
-        : Colors.grey;
+        ? Theme.of(context).colorScheme.primary
+        : Theme.of(context).colorScheme.secondary;
   }
 
   List<Widget> _pages = [
     HomePage(),
     AnswerPage(),
+    FieldsScreen(),
     const ProfilePage(),
   ];
 
@@ -48,24 +51,33 @@ class _BottomNavBarState extends State<BottomNavBar> {
           onTap: _changeIndex,
           items: [
             BottomNavigationBarItem(
-              icon: Image.asset(
-                "assets/icons/ic_home.png",
+              icon: Icon(
+                Icons.home, // Usamos el ícono de casa
                 color: _iconColor(0),
               ),
               label: "Home",
             ),
             BottomNavigationBarItem(
-              icon: Image.asset(
-                "assets/icons/ic_ans.png",
+              icon: Icon(
+                Icons.question_answer,
                 color: _iconColor(1),
-                scale: 25,
+                size: 25,
               ),
               label: "Answers",
             ),
             BottomNavigationBarItem(
-              icon: Image.asset(
-                "assets/icons/ic_p.png",
+              icon: Icon(
+                Icons
+                    .location_on, // Usamos el ícono de cancha (puedes cambiarlo)
                 color: _iconColor(2),
+                size: 25, // Ajusta el tamaño del ícono
+              ),
+              label: "Canchas",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(
+                Icons.person, // Usamos el ícono de perfil
+                color: _iconColor(3),
               ),
               label: "Profile",
             ),

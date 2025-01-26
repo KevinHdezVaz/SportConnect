@@ -1,13 +1,14 @@
 // import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:user_auth_crudd10/services/functions/user_data_store.dart';
+import 'package:user_auth_crudd10/auth/auth_check.dart';
+import 'package:user_auth_crudd10/auth/auth_service.dart';
+import 'package:user_auth_crudd10/pages/home_page.dart';
 
 class RegisterPage extends StatefulWidget {
-  final VoidCallback showSignUpPage;
-  const RegisterPage({super.key, required this.showSignUpPage});
+  final VoidCallback showLoginPage;
+  const RegisterPage({super.key, required this.showLoginPage});
 
   @override
   State<RegisterPage> createState() => _RegisterPageState();
@@ -21,7 +22,13 @@ class _RegisterPageState extends State<RegisterPage> {
   final _nameController = TextEditingController();
   final _confromPasswordController = TextEditingController();
   final _yearController = TextEditingController();
-final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final _phoneController = TextEditingController();
+  String _selectedRole = 'player';
+  final _businessNameController = TextEditingController();
+  final _rfcController = TextEditingController();
+  final _businessAddressController = TextEditingController();
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final _authService = AuthService();
 
   //check passoword same or not
   bool checkPassowrd() {
@@ -32,85 +39,34 @@ final GoogleSignIn _googleSignIn = GoogleSignIn();
       return false;
     }
   }
-Future<void> signInWithGoogle() async {
- try {
-   final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-   if (googleUser == null) return;
 
-   final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-   final credential = GoogleAuthProvider.credential(
-     accessToken: googleAuth.accessToken, 
-     idToken: googleAuth.idToken,
-   );
-
-   // Obtenemos el UserCredential y verificamos si es nuevo usuario
-   final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
-   if (userCredential.additionalUserInfo?.isNewUser ?? false) {
-     // Solo guardamos en Firestore si es nuevo usuario
-     await storeUserData(
-       googleUser.displayName ?? '',
-       '', // year 
-       googleUser.email ?? '',
-     );
-   }
-
- } catch (e) {
-   ScaffoldMessenger.of(context).showSnackBar(
-     SnackBar(
-       content: Text("Error: $e"),
-       backgroundColor: Colors.red[200],
-       shape: RoundedRectangleBorder(
-         borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-       ),
-     ),
-   );
- }
-}
-
-  //method to create account
   Future signUp() async {
+    if (!validateRegister()) return;
     try {
-      if (checkPassowrd()) {
-        UserCredential userCredential =
-            await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-        );
-        User? user = userCredential.user;
-        if (user != null) {
-          await storeUserData(
-            _nameController.text.trim(),
-            _yearController.text.trim(),
-            _emailController.text.trim(),
-          );
-        }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text("Password is Incorrect"),
-            duration: const Duration(seconds: 3),
-            backgroundColor: Colors.red[200],
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(12),
-              ),
-            ),
-          ),
-        );
-      }
-    } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.message.toString()),
-          duration: const Duration(seconds: 3),
-          backgroundColor: Colors.red[200],
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(
-              top: Radius.circular(12),
-            ),
-          ),
-        ),
+      showDialog(
+          context: context,
+          builder: (_) => Center(child: CircularProgressIndicator()));
+
+      final success = await _authService.register(
+        name: _nameController.text,
+        email: _emailController.text,
+        password: _passwordController.text,
+        phone: _phoneController.text,
+        role: _selectedRole,
+        businessName:
+            _selectedRole == 'admin' ? _businessNameController.text : null,
+        businessAddress:
+            _selectedRole == 'admin' ? _businessAddressController.text : null,
       );
+
+      Navigator.pop(context);
+      if (success) {
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (_) => AuthCheckMain()));
+      }
+    } catch (e) {
+      Navigator.pop(context);
+      showErrorSnackBar(e.toString());
     }
   }
 
@@ -124,255 +80,380 @@ Future<void> signInWithGoogle() async {
     super.dispose();
   }
 
+  bool validateRegister() {
+    if (_emailController.text.isEmpty ||
+        _passwordController.text.isEmpty ||
+        _nameController.text.isEmpty ||
+        _confromPasswordController.text.isEmpty) {
+      showErrorSnackBar("Por favor complete todos los campos");
+      return false;
+    }
+
+    if (!_emailController.text.contains('@')) {
+      showErrorSnackBar("Correo electrónico inválido");
+      return false;
+    }
+
+    if (_passwordController.text.length < 6) {
+      showErrorSnackBar("La contraseña debe tener al menos 6 caracteres");
+      return false;
+    }
+
+    if (_passwordController.text != _confromPasswordController.text) {
+      showErrorSnackBar("Las contraseñas no coinciden");
+      return false;
+    }
+
+    return true;
+  }
+
+  void showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red[200],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-        final size = MediaQuery.of(context).size;
+    final size = MediaQuery.of(context).size;
 
     return Scaffold(
-        appBar: AppBar(
-          title: const Text("Registro"),
-          titleTextStyle: const TextStyle(color: Colors.white, fontSize: 20),
-    backgroundColor: Colors.transparent,
-    elevation: 10,
-    leading: IconButton(
-      icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
-      onPressed: () => Navigator.of(context).pop(),
-    ),
-  ),
+      appBar: AppBar(
+        title: const Text("Registro"),
+        titleTextStyle: const TextStyle(color: Colors.white, fontSize: 20),
+        backgroundColor: Colors.transparent,
+        elevation: 10,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+          onPressed: widget.showLoginPage,
+        ),
+      ),
       backgroundColor: Theme.of(context).colorScheme.primary,
       body: SingleChildScrollView(
         child: Column(
           children: [
             Stack(
               children: [
-                 Padding(
-                   padding:
-                       const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                   child: Container(
-                     height: 500,
-                     width: 350,
-                     decoration: BoxDecoration(
-                       color: Theme.of(context).colorScheme.surface,
-                       borderRadius: BorderRadius.circular(12),
-                     ),
-                     child: SingleChildScrollView(
-                       child: Column(
-                         children: [
-                           Padding(
-                             padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
-                             child: Image.asset('assets/images/signup.png'),
-                           ),
-                           const SizedBox(
-                             height: 15,
-                           ),
-                           Text(
-                             "Completa tu registro.",
-                             style: GoogleFonts.lato(
-                               fontSize: 17,
-                               fontWeight: FontWeight.w400,
-                               color: Colors.grey[600],
-                             ),
-                           ),
-                           const SizedBox(
-                             height: 30,
-                           ),
-                           Padding(
-                             padding:
-                                 const EdgeInsets.symmetric(horizontal: 20),
-                             child: TextField(
-                               cursorColor: Colors.white,
-                               controller: _nameController,
-                               decoration: InputDecoration(
-                                 enabledBorder: OutlineInputBorder(
-                                   borderRadius: BorderRadius.circular(12),
-                                   borderSide: const BorderSide(
-                                     color: Colors.grey,
-                                     width: 0.8,
-                                   ),
-                                 ),
-                                 focusedBorder: OutlineInputBorder(
-                                   borderRadius: BorderRadius.circular(12),
-                                   borderSide: const BorderSide(
-                                     color: Colors.purpleAccent,
-                                     width: 0.8,
-                                   ),
-                                 ),
-                                 labelText: " Full Name ",
-                                 labelStyle: TextStyle(
-                                     color: Theme.of(context)
-                                         .colorScheme
-                                         .secondary),
-                               ),
-                             ),
-                           ),
-                           const SizedBox(
-                             height: 20,
-                           ),
-                           Padding(
-                             padding:
-                                 const EdgeInsets.symmetric(horizontal: 20),
-                             child: TextField(
-                               cursorColor: Colors.white,
-                               controller: _yearController,
-                               decoration: InputDecoration(
-                                 enabledBorder: OutlineInputBorder(
-                                   borderRadius: BorderRadius.circular(12),
-                                   borderSide: const BorderSide(
-                                     color: Colors.grey,
-                                     width: 0.8,
-                                   ),
-                                 ),
-                                 focusedBorder: OutlineInputBorder(
-                                   borderRadius: BorderRadius.circular(12),
-                                   borderSide: const BorderSide(
-                                     color: Colors.purpleAccent,
-                                     width: 0.8,
-                                   ),
-                                 ),
-                                 labelText: " Year ",
-                                 labelStyle: TextStyle(
-                                     color: Theme.of(context)
-                                         .colorScheme
-                                         .secondary),
-                               ),
-                             ),
-                           ),
-                           const SizedBox(
-                             height: 20,
-                           ),
-                           //email textfield
-                           Padding(
-                             padding:
-                                 const EdgeInsets.symmetric(horizontal: 20),
-                             child: TextField(
-                               cursorColor: Colors.white,
-                               controller: _emailController,
-                               decoration: InputDecoration(
-                                 enabledBorder: OutlineInputBorder(
-                                   borderRadius: BorderRadius.circular(12),
-                                   borderSide: const BorderSide(
-                                     color: Colors.grey,
-                                     width: 0.8,
-                                   ),
-                                 ),
-                                 focusedBorder: OutlineInputBorder(
-                                   borderRadius: BorderRadius.circular(12),
-                                   borderSide: const BorderSide(
-                                     color: Colors.purpleAccent,
-                                     width: 0.8,
-                                   ),
-                                 ),
-                                 labelText: " Email ",
-                                 labelStyle: TextStyle(
-                                     color: Theme.of(context)
-                                         .colorScheme
-                                         .secondary),
-                               ),
-                             ),
-                           ),
-                           const SizedBox(
-                             height: 20,
-                           ),
-                 
-                           //password textfield
-                           Padding(
-                             padding:
-                                 const EdgeInsets.symmetric(horizontal: 20),
-                             child: TextField(
-                               cursorColor: Colors.white,
-                               controller: _passwordController,
-                               obscureText: isObscure,
-                               decoration: InputDecoration(
-                                 enabledBorder: OutlineInputBorder(
-                                   borderRadius: BorderRadius.circular(12),
-                                   borderSide: const BorderSide(
-                                     color: Colors.grey,
-                                     width: 0.8,
-                                   ),
-                                 ),
-                                 focusedBorder: OutlineInputBorder(
-                                   borderRadius: BorderRadius.circular(12),
-                                   borderSide: const BorderSide(
-                                     color: Colors.purpleAccent,
-                                     width: 0.8,
-                                   ),
-                                 ),
-                                 labelText: " Password ",
-                                 labelStyle: TextStyle(
-                                     color: Theme.of(context)
-                                         .colorScheme
-                                         .secondary),
-                                 suffixIcon: IconButton(
-                                   onPressed: () {
-                                     setState(() {
-                                       isObscure = !isObscure;
-                                     });
-                                   },
-                                   icon: Icon(
-                                     isObscure
-                                         ? Icons.lock
-                                         : Icons
-                                             .no_encryption_gmailerrorred_rounded,
-                                   ),
-                                 ),
-                               ),
-                             ),
-                           ),
-                           const SizedBox(
-                             height: 20,
-                           ),
-                 
-                           //password textfield
-                           Padding(
-                             padding:
-                                 const EdgeInsets.symmetric(horizontal: 20),
-                             child: TextField(
-                               cursorColor: Colors.white,
-                               controller: _confromPasswordController,
-                               obscureText: isObscure,
-                               decoration: InputDecoration(
-                                 enabledBorder: OutlineInputBorder(
-                                   borderRadius: BorderRadius.circular(12),
-                                   borderSide: const BorderSide(
-                                     color: Colors.grey,
-                                     width: 0.8,
-                                   ),
-                                 ),
-                                 focusedBorder: OutlineInputBorder(
-                                   borderRadius: BorderRadius.circular(12),
-                                   borderSide: const BorderSide(
-                                     color: Colors.purpleAccent,
-                                     width: 0.8,
-                                   ),
-                                 ),
-                                 labelText: " Confirm Password ",
-                                 labelStyle: TextStyle(
-                                     color: Theme.of(context)
-                                         .colorScheme
-                                         .secondary),
-                                 suffixIcon: IconButton(
-                                   onPressed: () {
-                                     setState(() {
-                                       isObscure = !isObscure;
-                                     });
-                                   },
-                                   icon: Icon(
-                                     isObscure
-                                         ? Icons.lock
-                                         : Icons
-                                             .no_encryption_gmailerrorred_rounded,
-                                   ),
-                                 ),
-                               ),
-                             ),
-                           ),
-                 
-                           //login Button
-                         ],
-                       ),
-                     ),
-                   ),
-                 ),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  child: Container(
+                    height: 500,
+                    width: 350,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
+                            child: Image.asset('assets/images/signup.png'),
+                          ),
+                          const SizedBox(
+                            height: 15,
+                          ),
+                          Text(
+                            "Completa tu registro.",
+                            style: GoogleFonts.lato(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w400,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(
+                            height: 30,
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: TextField(
+                              cursorColor: Colors.white,
+                              controller: _nameController,
+                              decoration: InputDecoration(
+                                prefixIcon:
+                                    Icon(Icons.person, color: Colors.grey),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: Colors.grey,
+                                    width: 0.8,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: Colors.black,
+                                    width: 0.8,
+                                  ),
+                                ),
+                                labelText: "Nombre",
+                                labelStyle: TextStyle(color: Colors.black),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(
+                            height: 20,
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: TextField(
+                              cursorColor: Colors.white,
+                              controller: _phoneController,
+                              decoration: InputDecoration(
+                                prefixIcon:
+                                    Icon(Icons.phone, color: Colors.grey),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: Colors.grey,
+                                    width: 0.8,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: Colors.black,
+                                    width: 0.8,
+                                  ),
+                                ),
+                                labelText: " Telefono ",
+                                labelStyle: TextStyle(color: Colors.black),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(
+                            height: 20,
+                          ),
+                          //email textfield
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: TextField(
+                              cursorColor: Colors.white,
+                              controller: _emailController,
+                              decoration: InputDecoration(
+                                prefixIcon:
+                                    Icon(Icons.email, color: Colors.grey),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: Colors.grey,
+                                    width: 0.8,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: Colors.black,
+                                    width: 0.8,
+                                  ),
+                                ),
+                                labelText: " Email ",
+                                labelStyle: TextStyle(color: Colors.black),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(
+                            height: 20,
+                          ),
+
+                          //password textfield
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: TextField(
+                              cursorColor: Colors.white,
+                              controller: _passwordController,
+                              obscureText: isObscure,
+                              decoration: InputDecoration(
+                                prefixIcon:
+                                    Icon(Icons.lock, color: Colors.grey),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: Colors.grey,
+                                    width: 0.8,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: Colors.black,
+                                    width: 0.8,
+                                  ),
+                                ),
+                                labelText: " Password ",
+                                labelStyle: TextStyle(color: Colors.black),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(
+                            height: 20,
+                          ),
+
+                          //password textfield
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: TextField(
+                              cursorColor: Colors.white,
+                              controller: _confromPasswordController,
+                              obscureText: isObscure,
+                              decoration: InputDecoration(
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: Colors.grey,
+                                    width: 0.8,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: Colors.black,
+                                    width: 0.8,
+                                  ),
+                                ),
+                                labelText: "Confirmar Contraseña",
+                                labelStyle: TextStyle(color: Colors.black),
+                                prefixIcon:
+                                    Icon(Icons.lock, color: Colors.grey),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(
+                            height: 20,
+                          ),
+
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: InputDecorator(
+                              decoration: InputDecoration(
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: Colors.grey,
+                                    width: 0.8,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: Colors.black,
+                                    width: 0.8,
+                                  ),
+                                ),
+                                labelText: "Seleccionar rol",
+                                labelStyle: TextStyle(color: Colors.black),
+                              ),
+                              child: DropdownButton<String>(
+                                value: _selectedRole,
+                                isExpanded:
+                                    true, // Para que ocupe todo el ancho
+                                underline:
+                                    const SizedBox(), // Ocultar la línea por defecto
+                                items: [
+                                  DropdownMenuItem(
+                                    value: 'player',
+                                    child: Text(
+                                      'Jugador',
+                                    ),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'admin',
+                                    child: Text('Administrador'),
+                                  ),
+                                ],
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedRole = value!;
+                                  });
+                                },
+                              ),
+                            ),
+                          ),
+                          const SizedBox(
+                            height: 20,
+                          ),
+
+                          if (_selectedRole == 'admin') ...[
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 20),
+                              child: TextField(
+                                cursorColor: Colors.white,
+                                controller: _businessNameController,
+                                obscureText: isObscure,
+                                decoration: InputDecoration(
+                                  prefixIcon:
+                                      Icon(Icons.business, color: Colors.grey),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: Colors.grey,
+                                      width: 0.8,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: Colors.black,
+                                      width: 0.8,
+                                    ),
+                                  ),
+                                  labelText: "Nombre de la cancha",
+                                  labelStyle: TextStyle(color: Colors.black),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(
+                              height: 20,
+                            ),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 20),
+                              child: TextField(
+                                cursorColor: Colors.white,
+                                controller: _businessAddressController,
+                                obscureText: isObscure,
+                                decoration: InputDecoration(
+                                  prefixIcon: Icon(Icons.location_on,
+                                      color: Colors.grey),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: Colors.grey,
+                                      width: 0.8,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: Colors.black,
+                                      width: 0.8,
+                                    ),
+                                  ),
+                                  labelText: "Ubicacion de la cancha",
+                                  labelStyle: TextStyle(color: Colors.black),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(
+                              height: 20,
+                            ),
+                          ]
+
+                          //login Button
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
             //year
@@ -443,50 +524,49 @@ Future<void> signInWithGoogle() async {
             const SizedBox(
               height: 20,
             ),
-           Container(
-                            width: size.width * 0.8,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.white.withOpacity(0.95),
-                                  Colors.white.withOpacity(0.8)
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 10,
-                                  offset: Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: ElevatedButton(
-                              onPressed: signInWithGoogle,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                shadowColor: Colors.transparent,
-                                minimumSize: const Size(double.infinity, 50),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Image.asset('assets/images/google.png',
-                                      height: 24),
-                                  const SizedBox(width: 10),
-                                  const Text(
-                                    'Entrar con Google',
-                                    style: TextStyle(
-                                      color: Colors.black87,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+            Container(
+              width: size.width * 0.8,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.white.withOpacity(0.95),
+                    Colors.white.withOpacity(0.8)
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ElevatedButton(
+                onPressed: signUp,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset('assets/images/google.png', height: 24),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'Entrar con Google',
+                      style: TextStyle(
+                        color: Colors.black87,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),

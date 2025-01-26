@@ -5,53 +5,51 @@ import 'package:particles_flutter/particles_engine.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:user_auth_crudd10/auth/auth_check.dart';
 import 'package:user_auth_crudd10/onscreen/screen_cuatro.dart';
- import 'package:user_auth_crudd10/onscreen/screen_two.dart';
+import 'package:user_auth_crudd10/onscreen/screen_two.dart';
 import 'package:user_auth_crudd10/onscreen/slanding_clipper.dart';
 
 import 'constants2.dart';
- 
+
 class OnboardingScreenTwo extends StatelessWidget {
+  final PageController pageController;
+  OnboardingScreenTwo({required this.pageController});
+
   @override
   Widget build(BuildContext context) {
+    bool isDarkMode(BuildContext context) {
+      return Theme.of(context).brightness == Brightness.dark;
+    }
 
-
-   bool isDarkMode(BuildContext context) {
-    return Theme.of(context).brightness == Brightness.dark;
-  }
-   
     Color fondo = isDarkMode(context) ? Colors.white : Colors.black;
-
 
     final sizeReference = 700.0;
 
     double getResponsiveText(double size) =>
         size * sizeReference / MediaQuery.of(context).size.longestSide;
-  Size size = MediaQuery.of(context).size;
-  double screenHeight = MediaQuery.of(context).size.height;
+    Size size = MediaQuery.of(context).size;
+    double screenHeight = MediaQuery.of(context).size.height;
     double screenWidth = MediaQuery.of(context).size.width;
-     final double itemHeight = (size.height - kToolbarHeight - 24) / 2;
+    final double itemHeight = (size.height - kToolbarHeight - 24) / 2;
     final double itemWidth = size.width / 1.6;
- 
+
     return WillPopScope(
       onWillPop: () async => false,
       child: Scaffold(
         body: Container(
-          color: Colors.white,
           child: Stack(
             children: [
-
-    Particles(
-        awayRadius: 150,
-        particles: [], // List of particles
-        height: screenHeight,
-        width: screenWidth,
-        onTapAnimation: true,
-        awayAnimationDuration: const Duration(milliseconds: 100),
-        awayAnimationCurve: Curves.linear,
-        enableHover: true,
-        hoverRadius: 90,
-        connectDots: false,
-      ),
+              Particles(
+                awayRadius: 150,
+                particles: [], // List of particles
+                height: screenHeight,
+                width: screenWidth,
+                onTapAnimation: true,
+                awayAnimationDuration: const Duration(milliseconds: 100),
+                awayAnimationCurve: Curves.linear,
+                enableHover: true,
+                hoverRadius: 90,
+                connectDots: false,
+              ),
               Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -86,7 +84,7 @@ class OnboardingScreenTwo extends StatelessWidget {
                       const Padding(
                         padding: const EdgeInsets.only(top: 50),
                         child: Text(
-                         "asdfasd",
+                          "asdfasd",
                           textAlign: TextAlign.start,
                           style: TextStyle(
                             fontFamily: 'Viga-Regular',
@@ -178,15 +176,15 @@ class OnboardingScreenTwo extends StatelessWidget {
                       child: TextButton(
                         onPressed: () {
                           _storeOnboardInfo();
-                         Navigator.push(
+                          Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const AuthCheckMain(),
+                              builder: (context) => AuthCheckMain(),
                             ),
                           );
                         },
                         child: Text(
-                     "asdfas",
+                          "omitir",
                           style: TextStyle(
                             color: fondo,
                             fontSize: 20.0,
@@ -194,46 +192,22 @@ class OnboardingScreenTwo extends StatelessWidget {
                         ),
                       ),
                     ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Align(
-                          alignment: Alignment.bottomLeft,
-                          child: Padding(
-                            padding: EdgeInsets.only(left: appPadding),
-                            child: FloatingActionButton(
-                              onPressed: () {
-                                Navigator.pop(context);
-                              },
-                              backgroundColor: white,
-                              child: Icon(
-                                Icons.navigate_before_sharp,
-                                color: black,
-                                size: 30,
-                              ),
-                            ),
-                          ),
+                    Padding(
+                      padding: EdgeInsets.only(right: appPadding),
+                      child: FloatingActionButton(
+                        onPressed: () {
+                          pageController.nextPage(
+                            duration: Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        },
+                        backgroundColor: white,
+                        child: Icon(
+                          Icons.navigate_next_rounded,
+                          color: black,
+                          size: 30,
                         ),
-                        Padding(
-                          padding: EdgeInsets.only(right: appPadding),
-                          child: FloatingActionButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => OnBoardingCuatro(),
-                                ),
-                              );
-                            },
-                            backgroundColor: white,
-                            child: Icon(
-                              Icons.navigate_next_rounded,
-                              color: black,
-                              size: 30,
-                            ),
-                          ),
-                        )
-                      ],
+                      ),
                     )
                   ],
                 ),

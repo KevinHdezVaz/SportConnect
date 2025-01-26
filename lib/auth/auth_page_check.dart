@@ -24,7 +24,7 @@ class _AuthPageCheckState extends State<AuthPageCheck> {
       return LoginPage(showLoginPage: toggelScreen);
     } else {
       return RegisterPage(
-        showSignUpPage: toggelScreen,
+        showLoginPage: toggelScreen,
       );
     }
   }

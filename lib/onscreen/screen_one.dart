@@ -10,6 +10,10 @@ import 'package:user_auth_crudd10/onscreen/slanding_clipper.dart';
 import 'constants2.dart';
 
 class OnboardingScreenOne extends StatelessWidget {
+  final PageController pageController;
+
+  OnboardingScreenOne({required this.pageController});
+
   @override
   Widget build(BuildContext context) {
     bool isDarkMode(BuildContext context) {
@@ -29,6 +33,7 @@ class OnboardingScreenOne extends StatelessWidget {
     double screenWidth = MediaQuery.of(context).size.width;
     final double itemHeight = (size.height - kToolbarHeight - 24) / 2;
     final double itemWidth = size.width / 1.6;
+
     return WillPopScope(
       onWillPop: () async => false,
       child: Scaffold(
@@ -146,7 +151,6 @@ class OnboardingScreenOne extends StatelessWidget {
                           shape: BoxShape.circle,
                           color: Colors.white),
                     ),
-                   
                     Container(
                       margin: EdgeInsets.symmetric(horizontal: appPadding / 4),
                       width: 15,
@@ -170,12 +174,10 @@ class OnboardingScreenOne extends StatelessWidget {
                       child: TextButton(
                         onPressed: () {
                           _storeOnboardInfo();
-
-                          // Navegación adicional a AuthCheckMain
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const AuthCheckMain(),
+                              builder: (context) => AuthCheckMain(),
                             ),
                           );
                         },
@@ -192,11 +194,9 @@ class OnboardingScreenOne extends StatelessWidget {
                       padding: EdgeInsets.only(right: appPadding),
                       child: FloatingActionButton(
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => OnboardingScreenTwo(),
-                            ),
+                          pageController.nextPage(
+                            duration: Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
                           );
                         },
                         backgroundColor: white,

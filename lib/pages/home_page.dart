@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:user_auth_crudd10/pages/folder_page.dart';
 import 'package:user_auth_crudd10/services/providers/storage_provider.dart';
 
 class HomePage extends StatefulWidget {
@@ -130,7 +129,6 @@ class _HomePageState extends State<HomePage> {
                   //grid view
                   Expanded(
                     child: GridView.builder(
-                      itemCount: storageProvider.items.length,
                       padding: const EdgeInsets.only(
                         top: 10,
                       ),
@@ -140,19 +138,10 @@ class _HomePageState extends State<HomePage> {
                         childAspectRatio: 3 / 3.8,
                       ),
                       itemBuilder: (context, index) {
-                        final item = storageProvider.items[index];
                         return Padding(
                           padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
                           child: GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      FolderPage(path: item.path!),
-                                ),
-                              );
-                            },
+                            onTap: () {},
                             child: Container(
                               alignment: Alignment.center,
                               height: 60,
@@ -178,14 +167,6 @@ class _HomePageState extends State<HomePage> {
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 5,
                                       vertical: 0,
-                                    ),
-                                    child: Text(
-                                      item.name.toUpperCase(),
-                                      style: GoogleFonts.inter(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      textAlign: TextAlign.center,
                                     ),
                                   ),
                                 ],

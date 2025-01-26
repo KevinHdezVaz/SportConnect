@@ -8,29 +8,27 @@ import 'package:user_auth_crudd10/onscreen/screen_two.dart';
 import 'package:user_auth_crudd10/onscreen/slanding_clipper.dart';
 
 import 'constants2.dart';
- 
 
 class OnBoardingCuatro extends StatelessWidget {
+  final PageController pageController;
+
+  OnBoardingCuatro({required this.pageController});
+
   @override
   Widget build(BuildContext context) {
+    bool isDarkMode(BuildContext context) {
+      return Theme.of(context).brightness == Brightness.dark;
+    }
 
-
-
-   bool isDarkMode(BuildContext context) {
-    return Theme.of(context).brightness == Brightness.dark;
-  }
-   
     Color fondo = isDarkMode(context) ? Colors.white : Colors.black;
-
-
 
     Size size = MediaQuery.of(context).size;
     final sizeReference = 700.0;
-   double screenHeight = MediaQuery.of(context).size.height;
+    double screenHeight = MediaQuery.of(context).size.height;
     double screenWidth = MediaQuery.of(context).size.width;
-     final double itemHeight = (size.height - kToolbarHeight - 24) / 2;
+    final double itemHeight = (size.height - kToolbarHeight - 24) / 2;
     final double itemWidth = size.width / 1.6;
- 
+
     double getResponsiveText(double size) =>
         size * sizeReference / MediaQuery.of(context).size.longestSide;
 
@@ -40,24 +38,21 @@ class OnBoardingCuatro extends StatelessWidget {
         body: Container(
           child: Stack(
             children: [
-
-
-    Particles(
-        awayRadius: 150,
-        particles: [], // List of particles
-        height: screenHeight,
-        width: screenWidth,
-        onTapAnimation: true,
-        awayAnimationDuration: const Duration(milliseconds: 100),
-        awayAnimationCurve: Curves.linear,
-        enableHover: true,
-        hoverRadius: 90,
-        connectDots: false,
-      ),
+              Particles(
+                awayRadius: 150,
+                particles: [], // List of particles
+                height: screenHeight,
+                width: screenWidth,
+                onTapAnimation: true,
+                awayAnimationDuration: const Duration(milliseconds: 100),
+                awayAnimationCurve: Curves.linear,
+                enableHover: true,
+                hoverRadius: 90,
+                connectDots: false,
+              ),
               Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
- 
                   Padding(
                     padding: const EdgeInsets.only(top: 60),
                     child: Container(
@@ -86,8 +81,8 @@ class OnBoardingCuatro extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                    const  Text(
-                       "asdfasdfas",
+                      const Text(
+                        "asdfasdfas",
                         textAlign: TextAlign.start,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
@@ -111,13 +106,12 @@ class OnBoardingCuatro extends StatelessWidget {
                                     color: Colors.black),
                                 text: "asdfasdf"),
                             TextSpan(
-                                text:"sadfasd",
+                                text: "sadfasd",
                                 style: TextStyle(
                                   fontFamily: 'Viga-Regular',
                                   color: Colors.black,
                                   fontSize: getResponsiveText(16),
                                 )),
-                            
                           ],
                         ),
                       ),
@@ -150,7 +144,6 @@ class OnBoardingCuatro extends StatelessWidget {
                           shape: BoxShape.circle,
                           color: white),
                     ),
-                   
                     Container(
                       margin: EdgeInsets.symmetric(horizontal: appPadding / 4),
                       width: 15,
@@ -174,15 +167,15 @@ class OnBoardingCuatro extends StatelessWidget {
                       child: TextButton(
                         onPressed: () {
                           _storeOnboardInfo();
-                       Navigator.push(
+                          Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const AuthCheckMain(),
+                              builder: (context) => AuthCheckMain(),
                             ),
                           );
                         },
                         child: Text(
-                         "omiti",
+                          "omitir",
                           style: TextStyle(
                             color: fondo,
                             fontSize: 20.0,
@@ -190,48 +183,24 @@ class OnBoardingCuatro extends StatelessWidget {
                         ),
                       ),
                     ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Align(
-                          alignment: Alignment.bottomLeft,
-                          child: Padding(
-                            padding: EdgeInsets.only(left: appPadding),
-                            child: FloatingActionButton(
-                              onPressed: () {
-                                Navigator.pop(context);
-                              },
-                              backgroundColor: white,
-                              child: Icon(
-                                Icons.navigate_before_sharp,
-                                color: black,
-                                size: 30,
-                              ),
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.only(right: appPadding),
-                          child: FloatingActionButton(
-                            onPressed: () {
-                              _storeOnboardInfo();
-                              Navigator.push(
+                    Padding(
+                      padding: EdgeInsets.only(right: appPadding),
+                      child: FloatingActionButton(
+                        onPressed: () {
+                          Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const AuthCheckMain(),
+                              builder: (context) => AuthCheckMain(),
                             ),
                           );
-                     
-                            },
-                            backgroundColor: white,
-                            child: Icon(
-                              Icons.done,
-                              color: black,
-                              size: 30,
-                            ),
-                          ),
-                        )
-                      ],
+                        },
+                        backgroundColor: white,
+                        child: const Icon(
+                          Icons.check,
+                          color: black,
+                          size: 30,
+                        ),
+                      ),
                     )
                   ],
                 ),

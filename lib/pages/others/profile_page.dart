@@ -1,234 +1,247 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
+import 'package:user_auth_crudd10/auth/auth_check.dart';
+import 'package:user_auth_crudd10/auth/auth_service.dart';
 import 'package:user_auth_crudd10/pages/userProfileEdit_page.dart';
-import 'package:user_auth_crudd10/services/settings/theme_provider.dart';
-import 'package:user_auth_crudd10/widgets/features/logOut_func.dart';
-import 'package:user_auth_crudd10/widgets/global/about_us.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
-
   @override
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  final auth = FirebaseAuth.instance;
-  final authData = FirebaseFirestore.instance;
+  final _authService = AuthService();
+  Map<String, dynamic>? userData;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    try {
+      final response = await _authService.getProfile();
+      setState(() {
+        userData = response;
+      });
+    } catch (e) {
+      print('Error cargando perfil: $e');
+    }
+  }
+
+  Future<void> _logout() async {
+    try {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        },
+      );
+
+      await _authService.logout();
+
+      Navigator.of(context, rootNavigator: true).pop();
+
+      Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => AuthCheckMain()),
+          (route) => false);
+    } catch (e) {
+      Navigator.of(context, rootNavigator: true).pop();
+      print('Error cerrando sesión: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    User? currentUser = auth.currentUser;
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        title: Text(
-          "Profile Page",
-          style: GoogleFonts.inter(
-            fontWeight: FontWeight.w500,
-            fontSize: 22,
-          ),
-        ),
-        // actions: [
-        //   IconButton(
-        //     padding: const EdgeInsets.only(right: 22),
-        //     icon: Image.asset(
-        //       'assets/icons/ic_logout.png',
-        //       color: const Color.fromARGB(255, 243, 75, 63),
-        //     ),
-        //     onPressed: () {
-        //       auth.signOut();
-        //     },
-        //   )
-        // ],
-        automaticallyImplyLeading: false,
-        centerTitle: true,
+        backgroundColor: Colors.white,
+        title: const Text("Profile"),
       ),
-      body: currentUser == null
-          ? const Center(
-              child: Text('No User Logged in'),
-            )
-          : FutureBuilder<DocumentSnapshot>(
-              future: authData.collection('users').doc(currentUser.uid).get(),
-              builder: (context, userSnapshot) {
-                if (userSnapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
-                } else if (userSnapshot.hasError) {
-                  return const Center(
-                    child: Text("Error fetching user data"),
-                  );
-                } else if (!userSnapshot.hasData ||
-                    !userSnapshot.data!.exists) {
-                  return const Center(
-                    child: Text('User data not found'),
-                  );
-                } else {
-                  var userData =
-                      userSnapshot.data!.data() as Map<String, dynamic>;
-                  return SingleChildScrollView(
-                    child: Center(
-                      child: Column(
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: Container(
-                              // alignment: Alignment.centerLeft,
-                              height: 140,
-                              width: double.maxFinite,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12.0),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceEvenly,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        //userName
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 15,
-                                          ),
-                                          child: Text(
-                                            "${userData['userName']}",
-                                            style: GoogleFonts.inter(
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ),
-
-                                        //email
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 15,
-                                          ),
-                                          child: Text(
-                                            '${userData['email']}',
-                                            style: GoogleFonts.inter(
-                                              fontSize: 18,
-                                            ),
-                                          ),
-                                        ),
-                                        //year
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 15,
-                                          ),
-                                          child: Text(
-                                            "Year: ${userData['year']}",
-                                            style: GoogleFonts.inter(
-                                              fontSize: 18,
-                                            ),
-                                          ),
-                                        ),
-
-                                        //edit profile page
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 15,
-                                          ),
-                                          child: GestureDetector(
-                                            onTap: () {
-                                              Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        UserProfileEdit(),
-                                                  ));
-                                            },
-                                            child: Text(
-                                              "Edit",
-                                              style: GoogleFonts.inter(
-                                                fontSize: 18,
-                                                color: Colors.blue,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    Image.asset(
-                                      'assets/images/profile_person.png',
-                                      scale: 2,
-                                    ),
-                                  ],
+      body: userData == null
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Column(
+                children: [
+                  const ProfilePic(),
+                  const SizedBox(height: 20),
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      children: [
+                        Card(
+                          elevation: 10,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 50, vertical: 10),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  userData!['name'] ?? '',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(
-                            height: 25,
-                          ),
-                          //mode section
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: Container(
-                              height: 60,
-                              width: double.maxFinite,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                              child: Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 20),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    const Icon(Icons.nights_stay_rounded),
-                                    const Text(
-                                      'Dark Mode',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w500,
+                                const SizedBox(height: 8),
+                                Text(
+                                  userData!['email'] ?? '',
+                                  style: GoogleFonts.inter(fontSize: 18),
+                                ),
+                                const SizedBox(height: 8),
+                                GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => UserProfileEdit(),
                                       ),
+                                    );
+                                  },
+                                  child: Text(
+                                    "Editar",
+                                    style: GoogleFonts.inter(
+                                      fontSize: 18,
+                                      color: Colors.blue,
                                     ),
-                                    const SizedBox(width: 60),
-                                    Switch(
-                                      value: Provider.of<ThemeProvider>(context)
-                                          .isDarkMode,
-                                      onChanged: (value) {
-                                        Provider.of<ThemeProvider>(context,
-                                                listen: false)
-                                            .toggleTheme();
-                                      },
-                                      activeColor: Colors.blue,
-                                    ),
-                                  ],
+                                  ),
                                 ),
-                              ),
+                              ],
                             ),
                           ),
-                          const SizedBox(
-                            height: 25,
-                          ),
-                          //about section
-                          const aboutUs(),
-                          const SizedBox(
-                            height: 25,
-                          ),
-                          logOutFunc(auth: auth)
-                        ],
-                      ),
+                        ),
+                        const SizedBox(height: 16),
+                        ProfileMenu(
+                          text: "Notifications",
+                          icon: Icons.notifications,
+                          press: () {},
+                        ),
+                        ProfileMenu(
+                          text: "Settings",
+                          icon: Icons.settings,
+                          press: () {},
+                        ),
+                        const SizedBox(height: 20),
+                        ProfileMenu(
+                          text: "Cerrar sesión",
+                          icon: Icons.logout,
+                          press: _logout,
+                        ),
+                      ],
                     ),
-                  );
-                }
-              },
+                  ),
+                ],
+              ),
             ),
+    );
+  }
+}
+
+class ProfilePic extends StatelessWidget {
+  const ProfilePic({
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 115,
+      width: 115,
+      child: Stack(
+        fit: StackFit.expand,
+        clipBehavior: Clip.none,
+        children: [
+          const CircleAvatar(
+            backgroundImage:
+                NetworkImage("https://i.postimg.cc/0jqKB6mS/Profile-Image.png"),
+          ),
+          Positioned(
+            right: -16,
+            bottom: 0,
+            child: SizedBox(
+              height: 46,
+              width: 46,
+              child: TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(50),
+                    side: const BorderSide(color: Colors.white),
+                  ),
+                  backgroundColor: const Color(0xFFF5F6F9),
+                ),
+                onPressed: () {},
+                child: const Icon(
+                  Icons.camera_alt, // Icono de cámara
+                  color: Colors.black,
+                ),
+              ),
+            ),
+          )
+        ],
+      ),
+    );
+  }
+}
+
+class ProfileMenu extends StatelessWidget {
+  const ProfileMenu({
+    Key? key,
+    required this.text,
+    required this.icon,
+    this.press,
+  }) : super(key: key);
+
+  final String text;
+  final IconData icon; // Usamos IconData en lugar de String para el icono
+  final VoidCallback? press;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      child: TextButton(
+        style: TextButton.styleFrom(
+          foregroundColor: const Color(0xFFFF7643),
+          padding: const EdgeInsets.all(20),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          backgroundColor: const Color(0xFFF5F6F9),
+        ),
+        onPressed: press,
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: const Color(0xFFFF7643),
+              size: 22,
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Text(
+                text,
+                style: const TextStyle(
+                  color: Color(0xFF757575),
+                ),
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios,
+              color: Color(0xFF757575),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
