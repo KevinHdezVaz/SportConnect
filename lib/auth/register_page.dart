@@ -1,7 +1,11 @@
 // import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:user_auth_crudd10/auth/auth_check.dart';
 import 'package:user_auth_crudd10/auth/auth_service.dart';
 import 'package:user_auth_crudd10/pages/home_page.dart';
@@ -18,18 +22,18 @@ class _RegisterPageState extends State<RegisterPage> {
   bool isObscure = true;
 
   final _emailController = TextEditingController();
+  final _codigPostalController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
   final _confromPasswordController = TextEditingController();
   final _yearController = TextEditingController();
   final _phoneController = TextEditingController();
-  String _selectedRole = 'player';
   final _businessNameController = TextEditingController();
-  final _rfcController = TextEditingController();
   final _businessAddressController = TextEditingController();
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final _authService = AuthService();
-
+  File? _profileImage;
+  final _imagePicker = ImagePicker();
   //check passoword same or not
   bool checkPassowrd() {
     if (_passwordController.text.trim() ==
@@ -47,16 +51,31 @@ class _RegisterPageState extends State<RegisterPage> {
           context: context,
           builder: (_) => Center(child: CircularProgressIndicator()));
 
+      final emailExists =
+          await _authService.checkEmailExists(_emailController.text);
+      if (emailExists) {
+        Navigator.pop(context);
+        showErrorSnackBar(
+            "Este correo electrónico ya está registrado, agrega otro.");
+        _emailController.clear();
+        return;
+      }
+      final phoneExists =
+          await _authService.checkPhoneExists(_phoneController.text);
+      if (phoneExists) {
+        Navigator.pop(context);
+        showErrorSnackBar("Este teléfono ya está registrado, agrega otro.");
+        _phoneController.clear();
+        return;
+      }
+
       final success = await _authService.register(
         name: _nameController.text,
         email: _emailController.text,
+        codigpostal: _codigPostalController.text,
         password: _passwordController.text,
         phone: _phoneController.text,
-        role: _selectedRole,
-        businessName:
-            _selectedRole == 'admin' ? _businessNameController.text : null,
-        businessAddress:
-            _selectedRole == 'admin' ? _businessAddressController.text : null,
+        profileImage: _profileImage,
       );
 
       Navigator.pop(context);
@@ -76,7 +95,8 @@ class _RegisterPageState extends State<RegisterPage> {
     _passwordController.dispose();
     _nameController.dispose();
     _confromPasswordController.dispose();
-    _yearController.dispose();
+    _codigPostalController.dispose();
+
     super.dispose();
   }
 
@@ -91,6 +111,25 @@ class _RegisterPageState extends State<RegisterPage> {
 
     if (!_emailController.text.contains('@')) {
       showErrorSnackBar("Correo electrónico inválido");
+      return false;
+    }
+    if (_nameController.text.contains(RegExp(r'[^a-zA-Z\s]'))) {
+      showErrorSnackBar("El nombre solo debe contener letras");
+      return false;
+    }
+
+    if (_profileImage == null) {
+      showErrorSnackBar("Por favor, sube una foto de perfil");
+      return false;
+    }
+
+    if (_codigPostalController.text.length != 5) {
+      showErrorSnackBar("El código postal debe tener 5 dígitos");
+      return false;
+    }
+
+    if (_phoneController.text.length != 10) {
+      showErrorSnackBar("El número de teléfono debe tener 10 dígitos");
       return false;
     }
 
@@ -111,13 +150,23 @@ class _RegisterPageState extends State<RegisterPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red[200],
+        backgroundColor: const Color.fromARGB(255, 207, 80, 80),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
         ),
       ),
     );
+  }
+
+  Future<void> _pickImage() async {
+    final pickedFile =
+        await _imagePicker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _profileImage = File(pickedFile.path);
+      });
+    }
   }
 
   @override
@@ -145,7 +194,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                   child: Container(
-                    height: 500,
+                    height: 600,
                     width: 350,
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.surface,
@@ -154,19 +203,15 @@ class _RegisterPageState extends State<RegisterPage> {
                     child: SingleChildScrollView(
                       child: Column(
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
-                            child: Image.asset('assets/images/signup.png'),
-                          ),
                           const SizedBox(
                             height: 15,
                           ),
                           Text(
-                            "Completa tu registro.",
+                            "Bienvenido, Completa tu registro.",
                             style: GoogleFonts.lato(
-                              fontSize: 17,
+                              fontSize: 18,
                               fontWeight: FontWeight.w400,
-                              color: Colors.grey[600],
+                              color: const Color.fromARGB(255, 201, 96, 15),
                             ),
                           ),
                           const SizedBox(
@@ -174,279 +219,122 @@ class _RegisterPageState extends State<RegisterPage> {
                           ),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: TextField(
-                              cursorColor: Colors.white,
-                              controller: _nameController,
-                              decoration: InputDecoration(
-                                prefixIcon:
-                                    Icon(Icons.person, color: Colors.grey),
-                                enabledBorder: OutlineInputBorder(
+                            child: GestureDetector(
+                              onTap: _pickImage,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey),
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(
-                                    color: Colors.grey,
-                                    width: 0.8,
-                                  ),
                                 ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(
-                                    color: Colors.black,
-                                    width: 0.8,
-                                  ),
+                                padding: EdgeInsets.all(8),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.photo_camera,
+                                        color: Colors.grey),
+                                    SizedBox(width: 8),
+                                    Text("Foto de perfil"),
+                                    Spacer(),
+                                    if (_profileImage != null)
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.file(
+                                          _profileImage!,
+                                          width: 50,
+                                          height: 50,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                  ],
                                 ),
-                                labelText: "Nombre",
-                                labelStyle: TextStyle(color: Colors.black),
                               ),
                             ),
                           ),
                           const SizedBox(
                             height: 20,
                           ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: TextField(
-                              cursorColor: Colors.white,
-                              controller: _phoneController,
-                              decoration: InputDecoration(
-                                prefixIcon:
-                                    Icon(Icons.phone, color: Colors.grey),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(
-                                    color: Colors.grey,
-                                    width: 0.8,
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(
-                                    color: Colors.black,
-                                    width: 0.8,
-                                  ),
-                                ),
-                                labelText: " Telefono ",
-                                labelStyle: TextStyle(color: Colors.black),
-                              ),
-                            ),
+                          customTextField(
+                            labelText: "Nombre completo",
+                            prefixIcon: Icon(Icons.person, color: Colors.grey),
+                            controller: _nameController,
+                            isObscure:
+                                false, // Cambiar a false para que el texto sea visible
                           ),
+                          const SizedBox(
+                            height: 20,
+                          ),
+                          customTextField(
+                            labelText: "Teléfono",
+                            prefixIcon: Icon(Icons.phone, color: Colors.grey),
+                            controller: _phoneController,
+                            isObscure:
+                                false, // Para el teléfono no debe ser obscuro
+                            keyboardType: TextInputType
+                                .phone, // Mostrar el teclado de teléfono
+                            inputFormatters: [
+                              FilteringTextInputFormatter
+                                  .digitsOnly, // Solo números
+                              LengthLimitingTextInputFormatter(
+                                  10), // Limitar a 10 dígitos para teléfono
+                            ],
+                          ),
+
                           const SizedBox(
                             height: 20,
                           ),
                           //email textfield
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: TextField(
-                              cursorColor: Colors.white,
-                              controller: _emailController,
-                              decoration: InputDecoration(
-                                prefixIcon:
-                                    Icon(Icons.email, color: Colors.grey),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(
-                                    color: Colors.grey,
-                                    width: 0.8,
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(
-                                    color: Colors.black,
-                                    width: 0.8,
-                                  ),
-                                ),
-                                labelText: " Email ",
-                                labelStyle: TextStyle(color: Colors.black),
-                              ),
-                            ),
+                          customTextField(
+                            labelText: "Correo electrónico",
+                            prefixIcon: Icon(Icons.email, color: Colors.grey),
+                            controller: _emailController,
+                            isObscure:
+                                false, // Cambiar a false para que el texto sea visible
                           ),
+
+                          const SizedBox(
+                            height: 20,
+                          ),
+
+                          customTextField(
+                            labelText: "Código Postal (C.P)",
+                            prefixIcon:
+                                Icon(Icons.add_location, color: Colors.grey),
+                            controller: _codigPostalController,
+                            isObscure: false,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter
+                                  .digitsOnly, // Solo números
+                              LengthLimitingTextInputFormatter(
+                                  5), // Limitar a 5 dígitos para código postal
+                            ],
+                          ),
+
                           const SizedBox(
                             height: 20,
                           ),
 
                           //password textfield
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: TextField(
-                              cursorColor: Colors.white,
-                              controller: _passwordController,
-                              obscureText: isObscure,
-                              decoration: InputDecoration(
-                                prefixIcon:
-                                    Icon(Icons.lock, color: Colors.grey),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(
-                                    color: Colors.grey,
-                                    width: 0.8,
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(
-                                    color: Colors.black,
-                                    width: 0.8,
-                                  ),
-                                ),
-                                labelText: " Password ",
-                                labelStyle: TextStyle(color: Colors.black),
-                              ),
-                            ),
+                          customTextField(
+                            labelText: "Contraseña",
+                            prefixIcon: Icon(Icons.lock, color: Colors.grey),
+                            controller: _passwordController,
+                            isObscure: isObscure,
                           ),
+
                           const SizedBox(
                             height: 20,
                           ),
 
                           //password textfield
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: TextField(
-                              cursorColor: Colors.white,
-                              controller: _confromPasswordController,
-                              obscureText: isObscure,
-                              decoration: InputDecoration(
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(
-                                    color: Colors.grey,
-                                    width: 0.8,
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(
-                                    color: Colors.black,
-                                    width: 0.8,
-                                  ),
-                                ),
-                                labelText: "Confirmar Contraseña",
-                                labelStyle: TextStyle(color: Colors.black),
-                                prefixIcon:
-                                    Icon(Icons.lock, color: Colors.grey),
-                              ),
-                            ),
+                          customTextField(
+                            labelText: "Confirmar Contraseña",
+                            prefixIcon: Icon(Icons.lock, color: Colors.grey),
+                            controller: _confromPasswordController,
+                            isObscure: isObscure,
                           ),
                           const SizedBox(
                             height: 20,
                           ),
-
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: InputDecorator(
-                              decoration: InputDecoration(
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(
-                                    color: Colors.grey,
-                                    width: 0.8,
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(
-                                    color: Colors.black,
-                                    width: 0.8,
-                                  ),
-                                ),
-                                labelText: "Seleccionar rol",
-                                labelStyle: TextStyle(color: Colors.black),
-                              ),
-                              child: DropdownButton<String>(
-                                value: _selectedRole,
-                                isExpanded:
-                                    true, // Para que ocupe todo el ancho
-                                underline:
-                                    const SizedBox(), // Ocultar la línea por defecto
-                                items: [
-                                  DropdownMenuItem(
-                                    value: 'player',
-                                    child: Text(
-                                      'Jugador',
-                                    ),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'admin',
-                                    child: Text('Administrador'),
-                                  ),
-                                ],
-                                onChanged: (value) {
-                                  setState(() {
-                                    _selectedRole = value!;
-                                  });
-                                },
-                              ),
-                            ),
-                          ),
-                          const SizedBox(
-                            height: 20,
-                          ),
-
-                          if (_selectedRole == 'admin') ...[
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 20),
-                              child: TextField(
-                                cursorColor: Colors.white,
-                                controller: _businessNameController,
-                                obscureText: isObscure,
-                                decoration: InputDecoration(
-                                  prefixIcon:
-                                      Icon(Icons.business, color: Colors.grey),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Colors.grey,
-                                      width: 0.8,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Colors.black,
-                                      width: 0.8,
-                                    ),
-                                  ),
-                                  labelText: "Nombre de la cancha",
-                                  labelStyle: TextStyle(color: Colors.black),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(
-                              height: 20,
-                            ),
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 20),
-                              child: TextField(
-                                cursorColor: Colors.white,
-                                controller: _businessAddressController,
-                                obscureText: isObscure,
-                                decoration: InputDecoration(
-                                  prefixIcon: Icon(Icons.location_on,
-                                      color: Colors.grey),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Colors.grey,
-                                      width: 0.8,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Colors.black,
-                                      width: 0.8,
-                                    ),
-                                  ),
-                                  labelText: "Ubicacion de la cancha",
-                                  labelStyle: TextStyle(color: Colors.black),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(
-                              height: 20,
-                            ),
-                          ]
 
                           //login Button
                         ],
@@ -456,46 +344,6 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
               ],
             ),
-            //year
-            // Padding(
-            //   padding: const EdgeInsets.symmetric(horizontal: 50),
-            //   child: TextField(
-            //     cursorColor: Colors.white,
-            //     controller: _confromPasswordController,
-            //     obscureText: isObscure,
-            //     decoration: InputDecoration(
-            //       enabledBorder: OutlineInputBorder(
-            //         borderRadius: BorderRadius.circular(12),
-            //         borderSide: const BorderSide(
-            //           color: Colors.grey,
-            //           width: 0.8,
-            //         ),
-            //       ),
-            //       focusedBorder: OutlineInputBorder(
-            //         borderRadius: BorderRadius.circular(12),
-            //         borderSide: const BorderSide(
-            //           color: Colors.purpleAccent,
-            //           width: 0.8,
-            //         ),
-            //       ),
-            //       labelText: " Confirm Password ",
-            //       labelStyle:
-            //           TextStyle(color: Theme.of(context).colorScheme.secondary),
-            //       suffixIcon: IconButton(
-            //         onPressed: () {
-            //           setState(() {
-            //             isObscure = !isObscure;
-            //           });
-            //         },
-            //         icon: Icon(
-            //           isObscure
-            //               ? Icons.lock
-            //               : Icons.no_encryption_gmailerrorred_rounded,
-            //         ),
-            //       ),
-            //     ),
-            //   ),
-            // ),
             const SizedBox(
               height: 40,
             ),
@@ -544,30 +392,48 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                 ],
               ),
-              child: ElevatedButton(
-                onPressed: signUp,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  minimumSize: const Size(double.infinity, 50),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset('assets/images/google.png', height: 24),
-                    const SizedBox(width: 10),
-                    const Text(
-                      'Entrar con Google',
-                      style: TextStyle(
-                        color: Colors.black87,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  customTextField({
+    required String labelText,
+    required Icon prefixIcon,
+    required TextEditingController controller,
+    bool isObscure = false, // Por defecto lo configuramos como 'false'
+    TextInputType keyboardType = TextInputType.text,
+    List<TextInputFormatter>? inputFormatters,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: TextField(
+        cursorColor: Colors.white,
+        controller: controller,
+        obscureText:
+            isObscure, // Aquí se maneja si el texto debe estar oculto o no
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
+        decoration: InputDecoration(
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(
+              color: Colors.grey,
+              width: 0.8,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(
+              color: Colors.black,
+              width: 0.8,
+            ),
+          ),
+          labelText: labelText,
+          labelStyle: TextStyle(color: Colors.black),
+          prefixIcon: prefixIcon,
         ),
       ),
     );

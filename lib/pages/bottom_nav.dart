@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:user_auth_crudd10/pages/CanchasMap.dart';
 import 'package:user_auth_crudd10/pages/home_page.dart';
-import 'package:user_auth_crudd10/pages/others/answer_page.dart';
 import 'package:user_auth_crudd10/pages/others/profile_page.dart';
+import 'package:user_auth_crudd10/pages/screens/bookin/booking_screen.dart';
 import 'package:user_auth_crudd10/pages/screens/fields_screen.dart';
 
 class BottomNavBar extends StatefulWidget {
@@ -24,14 +23,14 @@ class _BottomNavBarState extends State<BottomNavBar> {
   Color _iconColor(int index) {
     return _selectedIndex == index
         ? Theme.of(context).colorScheme.primary
-        : Theme.of(context).colorScheme.secondary;
+        : const Color.fromARGB(255, 109, 103, 103);
   }
 
   List<Widget> _pages = [
     HomePage(),
-    AnswerPage(),
+    BookingScreen(),
     FieldsScreen(),
-    const ProfilePage(),
+    ProfilePage(),
   ];
 
   @override
@@ -45,8 +44,8 @@ class _BottomNavBarState extends State<BottomNavBar> {
         ),
         child: BottomNavigationBar(
           selectedItemColor: Theme.of(context).colorScheme.secondary,
-          unselectedItemColor: Colors.grey[500],
-          // backgroundColor: Colors.transparent,
+          unselectedItemColor: Colors.black, // Para un alto contraste.
+          backgroundColor: Colors.transparent,
           currentIndex: _selectedIndex,
           onTap: _changeIndex,
           items: [

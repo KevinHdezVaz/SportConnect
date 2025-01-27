@@ -2,12 +2,13 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:user_auth_crudd10/auth/auth_service.dart';
 import 'package:user_auth_crudd10/model/field.dart';
+import 'package:user_auth_crudd10/utils/constantes.dart';
 
 class FieldService {
   final _authService = AuthService();
   Future<List<Field>> getFields() async {
     final response = await http.get(
-      Uri.parse('${_authService.baseUrl}/fields'),
+      Uri.parse('${baseUrl}/fields'),
       headers: await _authService.getHeaders(),
     );
 
@@ -30,7 +31,7 @@ class FieldService {
       int fieldId, DateTime date) async {
     final response = await http.get(
       Uri.parse(
-          '${_authService.baseUrl}/fields/$fieldId/availability?date=${date.toIso8601String()}'),
+          '$baseUrl/fields/$fieldId/availability?date=${date.toIso8601String()}'),
       headers: await _authService.getHeaders(),
     );
 

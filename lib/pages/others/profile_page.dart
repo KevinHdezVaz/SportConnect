@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:user_auth_crudd10/auth/auth_check.dart';
@@ -69,7 +71,7 @@ class _ProfilePageState extends State<ProfilePage> {
               padding: const EdgeInsets.symmetric(vertical: 20),
               child: Column(
                 children: [
-                  const ProfilePic(),
+                  ProfilePic(userData: userData),
                   const SizedBox(height: 20),
                   Padding(
                     padding: const EdgeInsets.all(12.0),
@@ -148,8 +150,11 @@ class _ProfilePageState extends State<ProfilePage> {
 }
 
 class ProfilePic extends StatelessWidget {
+  final Map<String, dynamic>? userData;
+
   const ProfilePic({
     Key? key,
+    required this.userData,
   }) : super(key: key);
 
   @override
@@ -161,9 +166,11 @@ class ProfilePic extends StatelessWidget {
         fit: StackFit.expand,
         clipBehavior: Clip.none,
         children: [
-          const CircleAvatar(
-            backgroundImage:
-                NetworkImage("https://i.postimg.cc/0jqKB6mS/Profile-Image.png"),
+          CircleAvatar(
+            backgroundImage: userData != null &&
+                    userData!['profile_image'] != null
+                ? FileImage(File(userData!['profile_image']))
+                : const AssetImage('assets/default_image.png') as ImageProvider,
           ),
           Positioned(
             right: -16,

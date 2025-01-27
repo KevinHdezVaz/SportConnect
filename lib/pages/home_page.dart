@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:user_auth_crudd10/services/providers/storage_provider.dart';
+import 'package:user_auth_crudd10/pages/screens/TournamentScreen.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -9,203 +9,303 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  List images = [
-    'assets/grid/a.png',
-    'assets/grid/b.png',
-    'assets/grid/c.png',
-    'assets/grid/d.png',
-    'assets/grid/e.png',
-    'assets/grid/f.png',
-    'assets/grid/g.png',
-    'assets/grid/h.png',
-    'assets/grid/i.png',
-  ];
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // appBar: AppBar(
-      //   title: Text('Home'),
-      //   automaticallyImplyLeading: false,
-      // ),
-      body: FutureBuilder(
-        future: Provider.of<StorageProvider>(context, listen: false)
-            .fetchItems('files/'),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          return Consumer<StorageProvider>(
-            builder: (context, storageProvider, child) {
-              return Column(
-                children: [
-                  // header
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
-                    child: Container(
-                      height: 200,
-                      width: double.maxFinite,
-                      decoration: const BoxDecoration(
-                        color: Color.fromARGB(255, 73, 111, 235),
-                        borderRadius: BorderRadius.vertical(
-                          bottom: Radius.circular(22),
-                          top: Radius.circular(22),
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: Colors.grey[100],
+        body: SafeArea(
+          child: CustomScrollView(
+            slivers: [
+              // Contenido principal
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Buscador
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.search, color: Colors.grey),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: TextField(
+                                decoration: InputDecoration(
+                                  hintText: 'Buscar canchas cercanas',
+                                  border: InputBorder.none,
+                                  hintStyle: TextStyle(color: Colors.grey),
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.filter_list),
+                              onPressed: () {},
+                            ),
+                          ],
                         ),
                       ),
-                      child: Stack(
+
+                      const SizedBox(height: 24),
+
+                      // Sección de canchas destacadas
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(15, 32, 0, 0),
-                            child: Text(
-                              "Hello!",
-                              style: GoogleFonts.inter(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
+                          const Text(
+                            'Torneos Activos',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                          Image.asset('assets/images/cont1.png'),
-                          Positioned(
-                            top: 10,
-                            left: 10,
-                            child: Image.asset('assets/images/cont2.png'),
-                          ),
-                          Positioned(
-                            top: 10,
-                            left: 10,
-                            child: Image.asset('assets/images/cont3.png'),
-                          ),
-                          Positioned(
-                            top: 0,
-                            right: 0,
-                            child: ClipRRect(
-                              borderRadius: const BorderRadius.horizontal(
-                                right: Radius.circular(22),
-                              ),
-                              child: Image.asset(
-                                'assets/images/home_3d.png',
-                                scale: 1.3,
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: 1,
-                            right: 293,
-                            child: Image.asset('assets/images/block.png'),
-                          ),
-                          Positioned(
-                            bottom: 1,
-                            left: 330,
-                            child: Image.asset('assets/images/box1.png'),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(
-                              20,
-                              120,
-                              20,
-                              0,
-                            ),
-                            child: TextField(
-                              decoration: InputDecoration(
-                                // filled: true,
-                                // fillColor: Colors.white,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                ),
-                                prefixIcon: const Icon(
-                                  Icons.search,
-                                  color: Colors.black,
-                                  size: 30,
-                                ),
-                                hintText: "Search..",
-                              ),
-                            ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => TournamentsScreen()),
+                              );
+                            },
+                            child: Text('Ver todos'),
                           ),
                         ],
                       ),
-                    ),
-                  ),
-
-                  //grid view
-                  Expanded(
-                    child: GridView.builder(
-                      padding: const EdgeInsets.only(
-                        top: 10,
-                      ),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        childAspectRatio: 3 / 3.8,
-                      ),
-                      itemBuilder: (context, index) {
-                        return Padding(
-                          padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
-                          child: GestureDetector(
-                            onTap: () {},
-                            child: Container(
-                              alignment: Alignment.center,
-                              height: 60,
-                              width: 100,
+                      SizedBox(height: 12),
+                      SizedBox(
+                        height: 180,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          padding: EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: 5,
+                          itemBuilder: (context, index) {
+                            return Container(
+                              width: 280,
+                              margin: EdgeInsets.only(right: 16),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(12),
-                                color: const Color.fromARGB(40, 158, 158, 158),
+                                color: Colors.white,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 10,
+                                  ),
+                                ],
                               ),
                               child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: Image.asset(
-                                      images[index],
-                                      scale: 0.7,
-                                    ),
+                                  Stack(
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.vertical(
+                                            top: Radius.circular(12)),
+                                        child: Image.network(
+                                          'https://img.olympics.com/images/image/private/t_s_16_9_g_auto/t_s_w1460/f_auto/primary/ngdjbafv3twathukjbq2',
+                                          height: 100,
+                                          width: double.infinity,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                      Positioned(
+                                        top: 8,
+                                        right: 8,
+                                        child: Container(
+                                          padding: EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.green,
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            'Inscripciones Abiertas',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  // SizedBox(
-                                  //   height: 15,
-                                  // ),
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 5,
-                                      vertical: 0,
+                                    padding: EdgeInsets.all(12),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Copa Verano 2025',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            Icon(Icons.people,
+                                                size: 14, color: Colors.grey),
+                                            SizedBox(width: 4),
+                                            Text(
+                                              '8 equipos inscritos',
+                                              style:
+                                                  TextStyle(color: Colors.grey),
+                                            ),
+                                            Spacer(),
+                                            Text(
+                                              '\$5,000',
+                                              style: TextStyle(
+                                                color: Colors.green,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
                               ),
+                            );
+                          },
+                        ),
+                      ),
+
+                      SizedBox(height: 24),
+
+                      // Sección de partidos disponibles
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Partidos Disponibles',
+                            style: TextStyle(
+                              fontSize: 20,
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                        );
-                      },
-                    ),
+                          TextButton(
+                            onPressed: () {},
+                            child: Text('Ver todos'),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 16),
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: 3,
+                        itemBuilder: (context, index) {
+                          return AvailableMatchCard();
+                        },
+                      ),
+                    ],
                   ),
-                ],
-              );
-            },
-          );
-        },
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
-//  ListView.builder(
-//                       padding: EdgeInsets.zero,
-//                       itemCount: storageProvider.items.length,
-//                       itemBuilder: (context, index) {
-//                         final item = storageProvider.items[index];..
-//                         return ListTile(
-//                           leading: Icon(item.isFolder
-//                               ? Icons.folder
-//                               : Icons.picture_as_pdf),
-//                           title: Text(item.name),..
-//                           onTap: () {
-//                             Navigator.push(
-//                               context,
-//                               MaterialPageRoute(
-//                                 builder: (context) =>
-//                                     FolderPage(path: item.path!),
-//                               ),
-//                             );
-//                           },
-//                         );
-//                       },
-//                     ),
+// Widget para tarjeta de partido disponible
+class AvailableMatchCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 16),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '15',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue,
+                  ),
+                ),
+                Text(
+                  'ENE',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.blue,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Partido Amistoso',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  '8 jugadores necesarios',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {},
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text('Unirse'),
+          ),
+        ],
+      ),
+    );
+  }
+}

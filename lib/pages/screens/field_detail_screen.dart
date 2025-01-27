@@ -4,6 +4,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:user_auth_crudd10/auth/auth_service.dart';
 import 'package:user_auth_crudd10/model/field.dart';
+import 'package:user_auth_crudd10/pages/screens/bookin/BookingDialog%20.dart';
 
 class FieldDetailScreen extends StatefulWidget {
   final Field field;
@@ -31,9 +32,23 @@ class _FieldDetailScreenState extends State<FieldDetailScreen>
     _controller.forward();
   }
 
+  void _showBookingDialog(Field field) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: BookingDialog(field: field),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
@@ -128,7 +143,7 @@ class _FieldDetailScreenState extends State<FieldDetailScreen>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Text(
-                                    'Precio por hora',
+                                    'Precio por partido',
                                     style: TextStyle(
                                       color: Colors.black,
                                       fontSize:
@@ -142,7 +157,7 @@ class _FieldDetailScreenState extends State<FieldDetailScreen>
                                           color:
                                               Colors.green), // Icono de precio.
                                       Text(
-                                        '${widget.field.pricePerHour}',
+                                        '${widget.field.price_per_match}',
                                         style: TextStyle(
                                           fontSize: 20,
                                           fontWeight: FontWeight.bold,
@@ -154,7 +169,8 @@ class _FieldDetailScreenState extends State<FieldDetailScreen>
                                 ],
                               ),
                               ElevatedButton(
-                                onPressed: () {},
+                                onPressed: () => _showBookingDialog(widget
+                                    .field), // usar widget.field en lugar de field
                                 child: Row(
                                   children: [
                                     Icon(
@@ -211,7 +227,7 @@ class _FieldDetailScreenState extends State<FieldDetailScreen>
                           SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             child: Row(
-                              children: widget.field.availableHours
+                              children: widget.field.available_hours
                                   .map(
                                     (time) => Container(
                                       margin: const EdgeInsets.only(right: 8),
