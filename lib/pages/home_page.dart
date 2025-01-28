@@ -302,7 +302,10 @@ class AvailableMatchCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            child: Text('Unirse'),
+            child: Text(
+              'Unirse',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),

@@ -78,55 +78,49 @@ class _BookingScreenState extends State<BookingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[100],
-      appBar: AppBar(
-        title: const Text('Mis Reservas'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-        elevation: 1,
-      ),
-      body: Column(
-        children: [
-          // Tabs replaced with a swipeable page view
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _buildTabButton('active', 'Reservas Activas'),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _buildTabButton('history', 'Historial'),
-                ),
-              ],
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: Colors.grey[100],
+        body: Column(
+          children: [
+            // Tabs replaced with a swipeable page view
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _buildTabButton('active', 'Reservas Activas'),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildTabButton('history', 'Historial'),
+                  ),
+                ],
+              ),
             ),
-          ),
 
-          // PageView to swipe between active and history reservations
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : PageView(
-                      controller: _pageController,
-                      onPageChanged: (index) {
-                        setState(() {
-                          activeTab = index == 0 ? 'active' : 'history';
-                        });
-                      },
-                      children: [
-                        _buildReservationList(activeReservations, true),
-                        _buildReservationList(reservationHistory, false),
-                      ],
-                    ),
-            ),
-          )
-        ],
+            // PageView to swipe between active and history reservations
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : PageView(
+                        controller: _pageController,
+                        onPageChanged: (index) {
+                          setState(() {
+                            activeTab = index == 0 ? 'active' : 'history';
+                          });
+                        },
+                        children: [
+                          _buildReservationList(activeReservations, true),
+                          _buildReservationList(reservationHistory, false),
+                        ],
+                      ),
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
@@ -156,9 +150,12 @@ class _BookingScreenState extends State<BookingScreen> {
   Widget _buildReservationList(List<Booking> reservations, bool isActive) {
     if (reservations.isEmpty) {
       return Center(
-        child: Text(isActive
-            ? 'No tienes reservas activas'
-            : 'No tienes reservas en el historial'),
+        child: Text(
+          isActive
+              ? 'No tienes reservas activas'
+              : 'No tienes reservas en el historial',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
       );
     }
 

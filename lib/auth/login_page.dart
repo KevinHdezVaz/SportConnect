@@ -18,7 +18,6 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   bool isRember = false;
-
   bool isObscure = true;
 
   //textControllers
@@ -31,28 +30,17 @@ class _LoginPageState extends State<LoginPage> {
   final _authService = AuthService();
 
   //login logic
-
   Future<bool> signInWithGoogle() async {
     try {
-      // Inicia sesión con Google
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        // El usuario cancela el login
-        return false;
-      }
+      if (googleUser == null) return false;
 
-      // Obtén la información de autenticación
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
 
-      // Envía el token de Google al backend para autenticación
       final response = await _authService.loginWithGoogle(googleAuth.idToken);
 
-      if (response) {
-        return true;
-      } else {
-        return false;
-      }
+      return response;
     } catch (e) {
       print('Error durante el login con Google: $e');
       return false;
@@ -77,13 +65,9 @@ class _LoginPageState extends State<LoginPage> {
         Navigator.pushReplacement(
             context, MaterialPageRoute(builder: (context) => AuthCheckMain()));
       } else {
-        Navigator.pop(context); // Cierra el loader
-
         showErrorSnackBar('Credenciales inválidas');
       }
     } catch (e) {
-      Navigator.pop(context); // Cierra el loader
-
       showErrorSnackBar(e.toString());
     }
   }
@@ -148,18 +132,14 @@ class _LoginPageState extends State<LoginPage> {
                   child: Image.asset('assets/images/grad1.png'),
                 ),
 
-                //container
-                Positioned(
-                  top: 50,
-                  left: 10,
-                  right: 10,
-                  bottom: 0,
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                // Rectángulo blanco
+                Padding(
+                  padding: const EdgeInsets.only(
+                      top: 50), // Ajusta este valor para bajar el rectángulo
+                  child: Center(
                     child: Container(
-                      height: MediaQuery.of(context).size.height * 0.9,
-                      width: 100,
+                      height: size.height * 0.75, // 3/4 de la pantalla
+                      width: size.width * 0.9, // Ancho del 90% de la pantalla
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(12),
@@ -170,14 +150,12 @@ class _LoginPageState extends State<LoginPage> {
                             padding: const EdgeInsets.fromLTRB(0, 30, 0, 0),
                             child: Image.asset(
                               'assets/icons/logoapp.png',
-                              width: 100,
-                              height: 100,
+                              width: 80,
+                              height: 80,
                               fit: BoxFit.contain,
                             ),
                           ),
-                          const SizedBox(
-                            height: 20,
-                          ),
+                          const SizedBox(height: 20),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 20),
                             child: Text(
@@ -189,9 +167,7 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             ),
                           ),
-                          const SizedBox(
-                            height: 40,
-                          ),
+                          const SizedBox(height: 40),
                           //email textfield
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -199,31 +175,27 @@ class _LoginPageState extends State<LoginPage> {
                               cursorColor: lightTheme.primaryColor,
                               controller: _emailController,
                               decoration: InputDecoration(
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Colors.grey,
-                                      width: 0.8,
-                                    ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: Colors.grey,
+                                    width: 0.8,
                                   ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Colors.black,
-                                      width: 0.8,
-                                    ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: Colors.black,
+                                    width: 0.8,
                                   ),
-                                  labelText: "Correo",
-                                  labelStyle: TextStyle(color: Colors.black)),
-                              style: const TextStyle(
-                                color: Colors
-                                    .black, // Cambia el color del texto aquí
+                                ),
+                                labelText: "Correo",
+                                labelStyle: TextStyle(color: Colors.black),
                               ),
+                              style: const TextStyle(color: Colors.black),
                             ),
                           ),
-                          const SizedBox(
-                            height: 20,
-                          ),
+                          const SizedBox(height: 20),
                           //password textfield
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -256,27 +228,19 @@ class _LoginPageState extends State<LoginPage> {
                                   },
                                   icon: Icon(
                                     isObscure
-                                        ? Icons
-                                            .visibility_off // Ojo cerrado cuando el texto está oculto
+                                        ? Icons.visibility_off
                                         : Icons.visibility,
                                   ),
                                 ),
                               ),
-                              style: const TextStyle(
-                                color: Colors
-                                    .black, // Cambia el color del texto aquí
-                              ),
+                              style: const TextStyle(color: Colors.black),
                             ),
                           ),
-                          const SizedBox(
-                            height: 20,
-                          ),
-
+                          const SizedBox(height: 20),
                           //remember--forget row
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 10),
                             child: Row(
-                              // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 IconButton(
                                   padding: EdgeInsets.zero,
@@ -293,41 +257,33 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                                 const Text(
                                   'Recordarme',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                  ),
+                                  style: TextStyle(fontSize: 16),
                                 ),
-                                const SizedBox(
-                                  width: 40,
-                                ),
-                                Column(
-                                  children: [
-                                    GestureDetector(
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                const ForgetPassPage(),
-                                          ),
-                                        );
-                                      },
-                                      child: const Text(
-                                        "Olvide contraseña",
-                                        style: TextStyle(
-                                          color: Colors.blue,
-                                          fontWeight: FontWeight.w400,
-                                          fontSize: 14,
-                                        ),
+                                const SizedBox(width: 40),
+                                GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const ForgetPassPage(),
                                       ),
+                                    );
+                                  },
+                                  child: const Text(
+                                    "Olvide contraseña",
+                                    style: TextStyle(
+                                      color: Colors.blue,
+                                      fontWeight: FontWeight.w400,
+                                      fontSize: 14,
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ],
                             ),
                           ),
-
-                          SizedBox(height: 60),
+                          const SizedBox(height: 60),
+                          // Botón "Entrar"
                           Container(
                             width: size.width * 0.8,
                             decoration: BoxDecoration(
@@ -374,31 +330,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ],
             ),
-            const SizedBox(
-              height: 40,
-            ),
-            Container(
-              width: size.width * 0.8,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.white.withOpacity(0.95),
-                    Colors.white.withOpacity(0.8)
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
-                  ),
-                ],
-              ),
-              
-            ),
+            const SizedBox(height: 40),
             TextButton(
               onPressed: widget.showLoginPage,
               style: ElevatedButton.styleFrom(

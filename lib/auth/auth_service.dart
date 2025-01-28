@@ -51,7 +51,7 @@ class AuthService {
       }
 
       final data = json.decode(response.body);
-      //   await storage.saveUser(data);
+      print('Profile Data: $data'); // Agrega esto para depurar
       return data;
     } catch (e) {
       throw Exception('Error: $e');

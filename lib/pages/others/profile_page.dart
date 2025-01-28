@@ -59,12 +59,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    print('User Data: $userData');
+
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        title: const Text("Profile"),
-      ),
       body: userData == null
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -159,43 +157,58 @@ class ProfilePic extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 115,
-      width: 115,
-      child: Stack(
-        fit: StackFit.expand,
-        clipBehavior: Clip.none,
-        children: [
-          CircleAvatar(
-            backgroundImage: userData != null &&
-                    userData!['profile_image'] != null
-                ? FileImage(File(userData!['profile_image']))
-                : const AssetImage('assets/default_image.png') as ImageProvider,
-          ),
-          Positioned(
-            right: -16,
-            bottom: 0,
-            child: SizedBox(
-              height: 46,
-              width: 46,
-              child: TextButton(
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(50),
-                    side: const BorderSide(color: Colors.white),
+    String? imageUrl;
+    if (userData != null && userData!['profile_image'] != null) {
+      imageUrl =
+          'https://srv471-files.hstgr.io/45b73e2b7df2ce51/files/public_html/proyect/storage/app/public/${userData!['profile_image']}';
+    }
+
+//revisar la iamgen porque da 403, moverla a otro lado
+    return SafeArea(
+      child: SizedBox(
+        height: 115,
+        width: 115,
+        child: Stack(
+          fit: StackFit.expand,
+          clipBehavior: Clip.none,
+          children: [
+            CircleAvatar(
+              backgroundImage: imageUrl != null
+                  ? NetworkImage(
+                      imageUrl) // Usar NetworkImage para cargar la imagen desde la URL
+                  : const AssetImage('assets/icons/jugadore.png')
+                      as ImageProvider, // Imagen por defecto
+              onBackgroundImageError: (exception, stackTrace) {
+                print(
+                    'Error loading image: $exception'); // Agrega esto para depurar
+                const AssetImage('assets/icons/jugadore.png');
+              },
+            ),
+            Positioned(
+              right: -16,
+              bottom: 0,
+              child: SizedBox(
+                height: 46,
+                width: 46,
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(50),
+                      side: const BorderSide(color: Colors.white),
+                    ),
+                    backgroundColor: const Color(0xFFF5F6F9),
                   ),
-                  backgroundColor: const Color(0xFFF5F6F9),
-                ),
-                onPressed: () {},
-                child: const Icon(
-                  Icons.camera_alt, // Icono de cámara
-                  color: Colors.black,
+                  onPressed: () {},
+                  child: const Icon(
+                    Icons.camera_alt, // Icono de cámara
+                    color: Colors.black,
+                  ),
                 ),
               ),
-            ),
-          )
-        ],
+            )
+          ],
+        ),
       ),
     );
   }
