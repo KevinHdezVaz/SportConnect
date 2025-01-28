@@ -158,8 +158,7 @@ class _LoginPageState extends State<LoginPage> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
                     child: Container(
-                      height: MediaQuery.of(context).size.height *
-                          0.8, // Cambia 0.9 por un valor mayor
+                      height: MediaQuery.of(context).size.height * 0.9,
                       width: 100,
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.surface,
@@ -169,7 +168,12 @@ class _LoginPageState extends State<LoginPage> {
                         children: [
                           Padding(
                             padding: const EdgeInsets.fromLTRB(0, 30, 0, 0),
-                            child: Image.asset('assets/images/login.png'),
+                            child: Image.asset(
+                              'assets/icons/logoapp.png',
+                              width: 100,
+                              height: 100,
+                              fit: BoxFit.contain,
+                            ),
                           ),
                           const SizedBox(
                             height: 20,
@@ -195,25 +199,22 @@ class _LoginPageState extends State<LoginPage> {
                               cursorColor: lightTheme.primaryColor,
                               controller: _emailController,
                               decoration: InputDecoration(
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(
-                                    color: Colors.grey,
-                                    width: 0.8,
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: Colors.grey,
+                                      width: 0.8,
+                                    ),
                                   ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(
-                                    color: Colors.black,
-                                    width: 0.8,
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: Colors.black,
+                                      width: 0.8,
+                                    ),
                                   ),
-                                ),
-                                labelText: "Correo",
-                                labelStyle: TextStyle(
-                                    color:
-                                        Theme.of(context).colorScheme.primary),
-                              ),
+                                  labelText: "Correo",
+                                  labelStyle: TextStyle(color: Colors.black)),
                               style: const TextStyle(
                                 color: Colors
                                     .black, // Cambia el color del texto aquí
@@ -246,9 +247,7 @@ class _LoginPageState extends State<LoginPage> {
                                   ),
                                 ),
                                 labelText: " Contraseña ",
-                                labelStyle: TextStyle(
-                                    color:
-                                        Theme.of(context).colorScheme.primary),
+                                labelStyle: TextStyle(color: Colors.black),
                                 suffixIcon: IconButton(
                                   onPressed: () {
                                     setState(() {
@@ -257,9 +256,9 @@ class _LoginPageState extends State<LoginPage> {
                                   },
                                   icon: Icon(
                                     isObscure
-                                        ? Icons.lock
-                                        : Icons
-                                            .no_encryption_gmailerrorred_rounded,
+                                        ? Icons
+                                            .visibility_off // Ojo cerrado cuando el texto está oculto
+                                        : Icons.visibility,
                                   ),
                                 ),
                               ),
@@ -328,7 +327,7 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
 
-                          SizedBox(height: 40),
+                          SizedBox(height: 60),
                           Container(
                             width: size.width * 0.8,
                             decoration: BoxDecoration(
@@ -352,7 +351,7 @@ class _LoginPageState extends State<LoginPage> {
                             child: ElevatedButton(
                               onPressed: signIn,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
+                                backgroundColor: Colors.blue,
                                 shadowColor: Colors.black.withOpacity(0.3),
                                 elevation: 10,
                                 minimumSize: Size(double.infinity, 50),
@@ -363,7 +362,7 @@ class _LoginPageState extends State<LoginPage> {
                                 style: GoogleFonts.inter(
                                   fontSize: 17,
                                   fontWeight: FontWeight.w500,
-                                  color: Colors.black87,
+                                  color: Colors.white,
                                 ),
                               ),
                             ),
@@ -398,29 +397,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ],
               ),
-              child: ElevatedButton(
-                onPressed: signInWithGoogle,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.black.withOpacity(0.5),
-                  elevation: 28, // Controla la intensidad de la sombra
-                  minimumSize: const Size(double.infinity, 50),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset('assets/images/google.png', height: 24),
-                    const SizedBox(width: 10),
-                    const Text(
-                      'Entrar con Google',
-                      style: TextStyle(
-                        color: Colors.black87,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              
             ),
             TextButton(
               onPressed: widget.showLoginPage,
@@ -431,7 +408,7 @@ class _LoginPageState extends State<LoginPage> {
                 padding: EdgeInsets.symmetric(vertical: 15),
               ),
               child: Text(
-                "o Crea tu cuenta",
+                "Crea tu cuenta",
                 style: GoogleFonts.inter(
                   fontSize: 17,
                   fontWeight: FontWeight.w500,

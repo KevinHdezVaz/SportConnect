@@ -84,7 +84,7 @@ class OnboardingScreenTwo extends StatelessWidget {
                       const Padding(
                         padding: const EdgeInsets.only(top: 50),
                         child: Text(
-                          "asdfasd",
+                          "Encuentra tu cancha cercana",
                           textAlign: TextAlign.start,
                           style: TextStyle(
                             fontFamily: 'Viga-Regular',
@@ -97,31 +97,36 @@ class OnboardingScreenTwo extends StatelessWidget {
                       SizedBox(
                         height: size.height * 0.02,
                       ),
-                      RichText(
-                        textAlign: TextAlign.start,
-                        text: TextSpan(
-                          style: TextStyle(color: Colors.black, fontSize: 16),
-                          children: <TextSpan>[
-                            TextSpan(
-                                style: TextStyle(
-                                    fontSize: getResponsiveText(16),
-                                    fontFamily: 'Viga-Regular',
-                                    color: Colors.black),
-                                text: "asdfasdf"),
-                            TextSpan(
-                                text: "asdfa",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.black,
-                                  fontSize: getResponsiveText(16),
-                                )),
-                            TextSpan(
-                                style: TextStyle(
-                                    fontSize: getResponsiveText(16),
-                                    fontFamily: 'Viga-Regular',
-                                    color: Colors.black),
-                                text: "asdfadf"),
-                          ],
+                         Container(
+  padding: EdgeInsets.symmetric(
+                    horizontal: 20, // Reduje padding lateral
+                  ),
+                        child: RichText(
+                          textAlign: TextAlign.start,
+                          text: TextSpan(
+                            style: TextStyle(color: Colors.black, fontSize: 16),
+                            children: <TextSpan>[
+                              TextSpan(
+                                  style: TextStyle(
+                                      fontSize: getResponsiveText(24),
+                                      fontFamily: 'Viga-Regular',
+                                      color: Colors.black),
+                                  text:
+                                      "Disfruta partidos en tu zona, "),
+                              TextSpan(
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    color: Colors.black,
+                                    fontSize: getResponsiveText(24),
+                                  ),
+                                  text: "unete a torneos, amistosos o renta una cancha"),
+                              TextSpan(
+                                  style: TextStyle(
+                                      fontSize: getResponsiveText(24),
+                                      color: Colors.black),
+                                  text: " para disfrutar con amigos. "),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -184,7 +189,7 @@ class OnboardingScreenTwo extends StatelessWidget {
                           );
                         },
                         child: Text(
-                          "omitir",
+                          "OMITIR",
                           style: TextStyle(
                             color: fondo,
                             fontSize: 20.0,

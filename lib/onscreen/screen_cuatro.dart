@@ -82,11 +82,11 @@ class OnBoardingCuatro extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        "asdfasdfas",
-                        textAlign: TextAlign.start,
+                        "Demuestra tus skills futbolisticas",
+                        textAlign: TextAlign.center,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: Color.fromARGB(255, 25, 67, 220),
                           fontFamily: 'Viga-Regular',
                           fontSize: 27,
                         ),
@@ -94,25 +94,36 @@ class OnBoardingCuatro extends StatelessWidget {
                       SizedBox(
                         height: size.height * 0.02,
                       ),
-                      RichText(
-                        textAlign: TextAlign.start,
-                        text: TextSpan(
-                          style: TextStyle(color: Colors.black, fontSize: 16),
-                          children: <TextSpan>[
-                            TextSpan(
-                                style: TextStyle(
-                                    fontSize: getResponsiveText(16),
+                        Container(
+  padding: EdgeInsets.symmetric(
+                    horizontal: 10, // Reduje padding lateral
+                  ),
+                        child: RichText(
+                          textAlign: TextAlign.start,
+                          text: TextSpan(
+                            style: TextStyle(color: Colors.black, fontSize: 16),
+                            children: <TextSpan>[
+                              TextSpan(
+                                  style: TextStyle(
+                                      fontSize: getResponsiveText(24),
+                                      fontFamily: 'Viga-Regular',
+                                      color: Colors.black),
+                                  text:
+                                      "Compite con otros jugadores, "),
+                              TextSpan(
+                                  style: TextStyle(
                                     fontWeight: FontWeight.w900,
-                                    color: Colors.black),
-                                text: "asdfasdf"),
-                            TextSpan(
-                                text: "sadfasd",
-                                style: TextStyle(
-                                  fontFamily: 'Viga-Regular',
-                                  color: Colors.black,
-                                  fontSize: getResponsiveText(16),
-                                )),
-                          ],
+                                    color: Colors.black,
+                                    fontSize: getResponsiveText(24),
+                                  ),
+                                  text: "vuelvete MVP del partido y escala hasta el primer puesto del ranking"),
+                              TextSpan(
+                                  style: TextStyle(
+                                      fontSize: getResponsiveText(24),
+                                      color: Colors.black),
+                                  text: " para demostrar que eres el mejor. "),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -175,7 +186,7 @@ class OnBoardingCuatro extends StatelessWidget {
                           );
                         },
                         child: Text(
-                          "omitir",
+                          "OMITIR",
                           style: TextStyle(
                             color: fondo,
                             fontSize: 20.0,

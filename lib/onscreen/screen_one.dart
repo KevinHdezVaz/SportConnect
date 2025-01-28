@@ -27,10 +27,11 @@ class OnboardingScreenOne extends StatelessWidget {
     double getResponsiveText(double size) =>
         size * sizeReference / MediaQuery.of(context).size.longestSide;
 
-    //it will helps to return the size of the screen
+    // Obtén el tamaño de la pantalla
     Size size = MediaQuery.of(context).size;
-    double screenHeight = MediaQuery.of(context).size.height;
-    double screenWidth = MediaQuery.of(context).size.width;
+    double screenHeight = size.height;
+    double screenWidth = size.width;
+
     final double itemHeight = (size.height - kToolbarHeight - 24) / 2;
     final double itemWidth = size.width / 1.6;
 
@@ -73,53 +74,61 @@ class OnboardingScreenOne extends StatelessWidget {
                 ],
               ),
               Positioned(
-                top: size.height * 0.60,
+                top: size.height * 0.55, // Ajusté posición vertical
                 child: Container(
                   width: size.width,
-                  padding: EdgeInsets.all(appPadding),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: screenWidth * 0.03, // Reduje padding lateral
+                  ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisAlignment:
+                        MainAxisAlignment.center, // Centrado vertical
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      FittedBox(
-                        child: Text(
-                          "asdfasd",
-                          textAlign: TextAlign.end,
-                          style: TextStyle(
-                            fontFamily: 'Viga-Regular',
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue[800],
-                            fontSize: 28,
-                          ),
+                      Text(
+                        "Únete a la comunidad\nfutbolística de tu zona", // Salto de línea
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue[800],
+                          fontSize: getResponsiveText(
+                              32), // Tamaño responsivo aumentado
+                          height: 1.2, // Espaciado entre líneas
                         ),
                       ),
                       SizedBox(
-                        height: size.height * 0.02,
-                      ),
-                      RichText(
-                        textAlign: TextAlign.start,
-                        text: TextSpan(
-                          style: TextStyle(color: Colors.black, fontSize: 16),
-                          children: <TextSpan>[
-                            TextSpan(
-                                style: TextStyle(
-                                    fontSize: getResponsiveText(16),
-                                    fontFamily: 'Viga-Regular',
-                                    color: Colors.black),
-                                text: "asdfasdf"),
-                            TextSpan(
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.black,
-                                  fontSize: getResponsiveText(16),
-                                ),
-                                text: "asdfasdf"),
-                            TextSpan(
-                                style: TextStyle(
-                                    fontSize: getResponsiveText(16),
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black),
-                                text: "asdfasdf"),
-                          ],
+                          height:
+                              size.height * 0.03), // Aumenté espacio vertical
+                      Container(
+  padding: EdgeInsets.symmetric(
+                    horizontal: 20, // Reduje padding lateral
+                  ),
+                        child: RichText(
+                          textAlign: TextAlign.start,
+                          text: TextSpan(
+                            style: TextStyle(color: Colors.black, fontSize: 16),
+                            children: <TextSpan>[
+                              TextSpan(
+                                  style: TextStyle(
+                                      fontSize: getResponsiveText(24),
+                                      fontFamily: 'Viga-Regular',
+                                      color: Colors.black),
+                                  text:
+                                      "Únete a la comunidad futbolística de tu zona, "),
+                              TextSpan(
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    color: Colors.black,
+                                    fontSize: getResponsiveText(24),
+                                  ),
+                                  text: "compite en ligas de tu zona "),
+                              TextSpan(
+                                  style: TextStyle(
+                                      fontSize: getResponsiveText(24),
+                                      color: Colors.black),
+                                  text: "con tus amigos. "),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -182,7 +191,7 @@ class OnboardingScreenOne extends StatelessWidget {
                           );
                         },
                         child: Text(
-                          "omitir",
+                          "OMITIR",
                           style: TextStyle(
                             color: fondo,
                             fontSize: 20.0,
