@@ -54,187 +54,210 @@ class _FieldDetailScreenState extends State<FieldDetailScreen>
         ),
       );
     }
-
     return DefaultTabController(
       length: 2,
-      child: Scaffold(
-        backgroundColor: Colors.grey[100],
-        body: CustomScrollView(
-          slivers: [
-            SliverAppBar(
-              expandedHeight: 250,
-              pinned: true,
-              flexibleSpace: Stack(
-                children: [
-                  CarouselSlider(
-                    options: CarouselOptions(
-                      height: 250,
-                      viewportFraction: 1.0,
-                      onPageChanged: (index, _) =>
-                          setState(() => _currentImage = index),
-                      autoPlay: true,
-                    ),
-                    items: (widget.field.images ?? [])
-                        .map((url) => CachedNetworkImage(
-                              imageUrl: url,
-                              fit: BoxFit.cover,
-                              placeholder: (context, url) => _buildShimmer(),
-                            ))
-                        .toList(),
-                  ),
-                  Positioned(
-                    bottom: 20,
-                    left: 0,
-                    right: 0,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: (widget.field.images ?? [])
-                          .asMap()
-                          .entries
-                          .map((entry) {
-                        return Container(
-                          width: 8,
-                          height: 8,
-                          margin: EdgeInsets.symmetric(horizontal: 4),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: _currentImage == entry.key
-                                ? Colors.white
-                                : Colors.grey,
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  )
-                ],
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Sección de Cancha 1
-                  Container(
-                    color: Color(0xFF00BFFF),
-                    padding: EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.field.name ?? 'Nombre no disponible',
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Icon(Icons.location_on,
-                                size: 16, color: Colors.black),
-                            Text(
-                              widget.field.location ??
-                                  'Ubicación no disponible',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
+      child: SafeArea(
+        child: Scaffold(
+          backgroundColor: Colors.grey[100],
+          body: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Sección de Cancha 1
+
+                    Container(
+                      color: Color(0xFF00BFFF),
+                      padding: EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.field.name ?? 'Nombre no disponible',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             ),
-                          ],
-                        ),
-                        SizedBox(height: 16),
-                        Card(
-                          elevation: 10,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Padding(
-                            padding: EdgeInsets.all(16),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Precio por partido',
-                                      style: TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                    SizedBox(height: 8),
-                                    Row(
-                                      children: [
-                                        Icon(Icons.attach_money,
-                                            color: Colors.green),
-                                        Text(
-                                          '${widget.field.price_per_match ?? 'N/A'}',
-                                          style: TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.green,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                          SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(Icons.location_on,
+                                  size: 16, color: Colors.black),
+                              Text(
+                                widget.field.location ??
+                                    'Ubicación no disponible',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                ElevatedButton(
-                                  onPressed: () =>
-                                      _showBookingDialog(widget.field),
-                                  child: Row(
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 16),
+                          Card(
+                            elevation: 10,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Icon(
-                                        Icons.calendar_today,
-                                        size: 16,
-                                        color: Colors.white,
+                                      const Text(
+                                        'Precio por partido',
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 14,
+                                        ),
                                       ),
-                                      SizedBox(width: 12),
-                                      Text(
-                                        'Reservar',
-                                        style: TextStyle(color: Colors.white),
+                                      SizedBox(height: 8),
+                                      Row(
+                                        children: [
+                                          Icon(Icons.attach_money,
+                                              color: Colors.green),
+                                          Text(
+                                            '${widget.field.price_per_match ?? 'N/A'}',
+                                            style: TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.green,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.blue,
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                      vertical: 12,
+                                  ElevatedButton(
+                                    onPressed: () =>
+                                        _showBookingDialog(widget.field),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.calendar_today,
+                                          size: 16,
+                                          color: Colors.white,
+                                        ),
+                                        SizedBox(width: 12),
+                                        Text(
+                                          'Reservar',
+                                          style: TextStyle(color: Colors.white),
+                                        ),
+                                      ],
                                     ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.blue,
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 20,
+                                        vertical: 12,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  Container(
-                    color: Colors.white,
-                    child: const TabBar(
-                      labelColor: Colors.blue,
-                      unselectedLabelColor: Colors.grey,
-                      tabs: [
-                        Tab(text: 'Sobre la cancha'),
-                        Tab(text: 'Torneos activos'),
-                      ],
-                    ),
-                  ),
-                  // Mover el TabBarView aquí, debajo de las pestañas
-                  Container(
-                    height: 500, // Ajusta la altura según sea necesario
-                    child: TabBarView(
+
+                    SizedBox(height: 40),
+
+                    Stack(
                       children: [
-                        // Contenido de la pestaña "Sobre la cancha"
-                        SingleChildScrollView(
-                          child: Column(
+                        CarouselSlider(
+                          options: CarouselOptions(
+                            height: 150,
+                            viewportFraction: 0.6,
+                            onPageChanged: (index, _) =>
+                                setState(() => _currentImage = index),
+                            autoPlay: true,
+                          ),
+                          items: (widget.field.images ?? []).map((url) {
+                            return GestureDetector(
+                              onTap: () {
+                                // Mostrar la imagen en pantalla completa
+                                showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return Dialog(
+                                      child: InteractiveViewer(
+                                        minScale: 0.5,
+                                        maxScale: 4.0,
+                                        child: CachedNetworkImage(
+                                          imageUrl: url,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                              child: CachedNetworkImage(
+                                imageUrl: url,
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) => _buildShimmer(),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                        Positioned(
+                          bottom: 20,
+                          left: 0,
+                          right: 0,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: (widget.field.images ?? [])
+                                .asMap()
+                                .entries
+                                .map((entry) {
+                              return Container(
+                                width: 8,
+                                height: 8,
+                                margin: EdgeInsets.symmetric(horizontal: 4),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: _currentImage == entry.key
+                                      ? Colors.white
+                                      : Colors.grey,
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        )
+                      ],
+                    ),
+                    SizedBox(height: 20),
+
+                    Container(
+                      child: const TabBar(
+                        labelColor: Colors.blue,
+                        unselectedLabelColor: Colors.grey,
+                        tabs: [
+                          Tab(text: 'Sobre la cancha'),
+                          Tab(text: 'Torneos activos'),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      height: MediaQuery.of(context)
+                          .size
+                          .height, // Ocupa toda la altura de la pantalla
+                      child: TabBarView(
+                        children: [
+                          // Contenido de la pestaña "Sobre la cancha"
+                          Column(
                             children: [
                               Container(
                                 margin: const EdgeInsets.all(16),
@@ -258,7 +281,8 @@ class _FieldDetailScreenState extends State<FieldDetailScreen>
                                         Text(
                                           'Sótano de la plaza "Puerta del Sol Periférico Sur, 4237"',
                                           style: TextStyle(
-                                              fontSize: 16, color: Colors.black),
+                                              fontSize: 16,
+                                              color: Colors.black),
                                         ),
                                         SizedBox(height: 8),
                                         Card(
@@ -310,7 +334,9 @@ class _FieldDetailScreenState extends State<FieldDetailScreen>
                                         SizedBox(height: 8),
                                         Text(
                                           'La información de horarios la proporciona el propio establecimiento, si tienes alguna duda ponte en contacto con el establecimiento.',
-                                          style: TextStyle(fontSize: 16),
+                                          style: TextStyle(
+                                              fontSize: 16,
+                                              color: Colors.black),
                                         ),
                                         SizedBox(height: 8),
                                         Table(
@@ -390,22 +416,22 @@ class _FieldDetailScreenState extends State<FieldDetailScreen>
                               ),
                             ],
                           ),
-                        ),
-                        // Contenido de la pestaña "Torneos activos"
-                        Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Text(
-                            'Lista de torneos activos...',
-                            style: TextStyle(fontSize: 16),
+                          // Contenido de la pestaña "Torneos activos"
+                          Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Text(
+                              'Lista de torneos activos...',
+                              style: TextStyle(fontSize: 16),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

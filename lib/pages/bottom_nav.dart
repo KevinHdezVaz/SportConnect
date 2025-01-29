@@ -20,18 +20,11 @@ class _BottomNavBarState extends State<BottomNavBar> {
     });
   }
 
-  Color _iconColor(int index) {
-    return _selectedIndex == index
-        ? Theme.of(context).colorScheme.primary
-        : const Color.fromARGB(255, 109, 103, 103);
-  }
-
   List<Widget> _pages = [
     HomePage(),
     BookingScreen(),
     FieldsScreen(),
-    ProfilePage( toggleDarkMode: toggleDarkMode,
-                  isDarkMode: isDarkMode,),
+    ProfilePage(),
   ];
 
   @override
@@ -39,83 +32,112 @@ class _BottomNavBarState extends State<BottomNavBar> {
     return Scaffold(
       body: _pages[_selectedIndex],
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-        ),
-        child: BottomNavigationBar(
-          selectedItemColor: Theme.of(context).colorScheme.secondary,
-          unselectedItemColor: Colors.black, // Para un alto contraste.
-          backgroundColor: Colors.transparent,
-          currentIndex: _selectedIndex,
-          onTap: _changeIndex,
-          items: [
-            BottomNavigationBarItem(
-              icon: Container(
-                padding: EdgeInsets.all(8), // Ajusta el padding según sea necesario
-                decoration: BoxDecoration(
-                  color: _selectedIndex == 0
-                      ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12), // Bordes redondeados
+        color: Colors.blue, // Fondo azul para el BottomNavigationBar
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12), // Bordes redondeados
+            child: BottomNavigationBar(
+              type: BottomNavigationBarType.fixed,
+              selectedItemColor: Colors.white, // Color del ítem seleccionado
+              unselectedItemColor: Colors.white
+                  .withOpacity(0.6), // Color del ítem no seleccionado
+              backgroundColor:
+                  Colors.blue, // Fondo azul para el BottomNavigationBar
+              currentIndex: _selectedIndex,
+              onTap: _changeIndex,
+              elevation: 0, // Eliminar la sombra
+              iconSize: 22, // Tamaño más pequeño para los íconos
+              selectedFontSize:
+                  12, // Tamaño de fuente más pequeño para el texto seleccionado
+              unselectedFontSize:
+                  12, // Tamaño de fuente más pequeño para el texto no seleccionado
+              showSelectedLabels: true, // Mostrar etiquetas seleccionadas
+              showUnselectedLabels: true, // Mostrar etiquetas no seleccionadas
+              items: [
+                BottomNavigationBarItem(
+                  icon: Container(
+                    padding: EdgeInsets.all(6), // Padding reducido
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _selectedIndex == 0
+                          ? Colors.white.withOpacity(
+                              0.2) // Círculo blanco alrededor del ítem seleccionado
+                          : Colors.transparent,
+                    ),
+                    child: Icon(
+                      Icons.home,
+                      color: _selectedIndex == 0
+                          ? Colors.white
+                          : Colors.white.withOpacity(0.6),
+                      size: 22, // Tamaño reducido del ícono
+                    ),
+                  ),
+                  label: "Home",
                 ),
-                child: Icon(
-                  Icons.home,
-                  color: _iconColor(0),
+                BottomNavigationBarItem(
+                  icon: Container(
+                    padding: EdgeInsets.all(6), // Padding reducido
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _selectedIndex == 1
+                          ? Colors.white.withOpacity(
+                              0.2) // Círculo blanco alrededor del ítem seleccionado
+                          : Colors.transparent,
+                    ),
+                    child: Icon(
+                      Icons.question_answer,
+                      color: _selectedIndex == 1
+                          ? Colors.white
+                          : Colors.white.withOpacity(0.6),
+                      size: 22, // Tamaño reducido del ícono
+                    ),
+                  ),
+                  label: "Reservas",
                 ),
-              ),
-              label: "Home",
+                BottomNavigationBarItem(
+                  icon: Container(
+                    padding: EdgeInsets.all(6), // Padding reducido
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _selectedIndex == 2
+                          ? Colors.white.withOpacity(
+                              0.2) // Círculo blanco alrededor del ítem seleccionado
+                          : Colors.transparent,
+                    ),
+                    child: Icon(
+                      Icons.location_on,
+                      color: _selectedIndex == 2
+                          ? Colors.white
+                          : Colors.white.withOpacity(0.6),
+                      size: 22, // Tamaño reducido del ícono
+                    ),
+                  ),
+                  label: "Canchas",
+                ),
+                BottomNavigationBarItem(
+                  icon: Container(
+                    padding: EdgeInsets.all(6), // Padding reducido
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _selectedIndex == 3
+                          ? Colors.white.withOpacity(
+                              0.2) // Círculo blanco alrededor del ítem seleccionado
+                          : Colors.transparent,
+                    ),
+                    child: Icon(
+                      Icons.person,
+                      color: _selectedIndex == 3
+                          ? Colors.white
+                          : Colors.white.withOpacity(0.6),
+                      size: 22, // Tamaño reducido del ícono
+                    ),
+                  ),
+                  label: "Profile",
+                ),
+              ],
             ),
-            BottomNavigationBarItem(
-              icon: Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: _selectedIndex == 1
-                      ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.question_answer,
-                  color: _iconColor(1),
-                  size: 25,
-                ),
-              ),
-              label: "Reservas",
-            ),
-            BottomNavigationBarItem(
-              icon: Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: _selectedIndex == 2
-                      ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.location_on,
-                  color: _iconColor(2),
-                  size: 25,
-                ),
-              ),
-              label: "Canchas",
-            ),
-            BottomNavigationBarItem(
-              icon: Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: _selectedIndex == 3
-                      ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.person,
-                  color: _iconColor(3),
-                ),
-              ),
-              label: "Profile",
-            ),
-          ],
+          ),
         ),
       ),
     );

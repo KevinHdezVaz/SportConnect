@@ -13,7 +13,8 @@ class FieldsScreen extends StatefulWidget {
   _FieldsScreenState createState() => _FieldsScreenState();
 }
 
-class _FieldsScreenState extends State<FieldsScreen> with WidgetsBindingObserver {
+class _FieldsScreenState extends State<FieldsScreen>
+    with WidgetsBindingObserver {
   final _fieldService = FieldService();
   List<Field>? fields;
   LatLng _initialPosition = LatLng(19.432608, -99.133209);
@@ -144,8 +145,14 @@ class _FieldsScreenState extends State<FieldsScreen> with WidgetsBindingObserver
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Servicio de Ubicación Desactivado', style: TextStyle(color: Colors.black),),
-          content: Text('Para continuar, activa el servicio de ubicación.', style: TextStyle(color: const Color.fromARGB(255, 48, 47, 47)),),
+          title: Text(
+            'Servicio de Ubicación Desactivado',
+            style: TextStyle(color: Colors.black),
+          ),
+          content: Text(
+            'Para continuar, activa el servicio de ubicación.',
+            style: TextStyle(color: const Color.fromARGB(255, 48, 47, 47)),
+          ),
           actions: <Widget>[
             TextButton(
               onPressed: () {
@@ -154,14 +161,20 @@ class _FieldsScreenState extends State<FieldsScreen> with WidgetsBindingObserver
                   _isLocationServiceDialogShown = false;
                 });
               },
-              child: Text('Cancelar',style: TextStyle(fontWeight: FontWeight.bold),),
+              child: Text(
+                'Cancelar',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop();
                 openLocationSettings();
               },
-              child: Text('Abrir Configuración', style: TextStyle(fontWeight: FontWeight.bold),),
+              child: Text(
+                'Abrir Configuración',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         );
@@ -216,7 +229,8 @@ class _FieldsScreenState extends State<FieldsScreen> with WidgetsBindingObserver
               initialChildSize: 0.25, // Tamaño inicial (1/4 de la pantalla)
               minChildSize: 0.25, // Tamaño mínimo (1/4 de la pantalla)
               maxChildSize: 0.75, // Tamaño máximo (3/4 de la pantalla)
-              builder: (BuildContext context, ScrollController scrollController) {
+              builder:
+                  (BuildContext context, ScrollController scrollController) {
                 return Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -250,14 +264,16 @@ class _FieldsScreenState extends State<FieldsScreen> with WidgetsBindingObserver
                         child: fields == null
                             ? Center(child: CircularProgressIndicator())
                             : NotificationListener<ScrollNotification>(
-                                onNotification: (ScrollNotification notification) {
+                                onNotification:
+                                    (ScrollNotification notification) {
                                   if (notification is UserScrollNotification &&
-                                      notification.direction == ScrollDirection.forward) {
-                                  }
+                                      notification.direction ==
+                                          ScrollDirection.forward) {}
                                   return false;
                                 },
                                 child: PageView.builder(
-                                  controller: PageController(viewportFraction: 0.8),
+                                  controller:
+                                      PageController(viewportFraction: 0.8),
                                   itemCount: fields!.length,
                                   itemBuilder: (context, index) {
                                     final field = fields![index];
@@ -273,7 +289,9 @@ class _FieldsScreenState extends State<FieldsScreen> with WidgetsBindingObserver
                                           Navigator.push(
                                             context,
                                             MaterialPageRoute(
-                                                builder: (_) => FieldDetailScreen(field: field)),
+                                                builder: (_) =>
+                                                    FieldDetailScreen(
+                                                        field: field)),
                                           );
                                         },
                                       ),
@@ -301,108 +319,95 @@ class _FieldsScreenState extends State<FieldsScreen> with WidgetsBindingObserver
     required int activeGames,
     required VoidCallback onPressed,
   }) {
-    return Container(
-      width: 300, // Ancho de la tarjeta
-      margin: EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
         borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 5,
-            offset: Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 100,
-            height: 120,
-            decoration: const BoxDecoration(
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(10),
-                bottomLeft: Radius.circular(10),
+        child: Container(
+          width: 300,
+          margin: EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 5,
+                offset: Offset(0, 3),
               ),
-              image: DecorationImage(
-                image: NetworkImage(
-                    'https://picsum.photos/seed/picsum/200/300'),
-                fit: BoxFit.cover,
-              ),
-            ),
+            ],
           ),
-
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Row(
+            children: [
+              Container(
+                width: 100,
+                height: 120,
+                decoration: const BoxDecoration(
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(10),
+                    bottomLeft: Radius.circular(10),
+                  ),
+                  image: DecorationImage(
+                    image: NetworkImage(
+                        'https://picsum.photos/seed/picsum/200/300'),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            name,
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blueAccent),
+                          ),
+                        ],
+                      ),
                       Text(
-                        name,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        descripcion,
+                        style: TextStyle(color: Colors.black, fontSize: 12),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Row(
+                        children: [
+                          Icon(Icons.location_on, size: 14, color: Colors.grey),
+                          SizedBox(width: 4),
+                          Text(
+                            'A $distance de tu ubicación.',
+                            style: TextStyle(color: Colors.black, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          Icon(Icons.groups, size: 14, color: Colors.grey),
+                          SizedBox(width: 4),
+                          Text(
+                            '$activeGames partidos activos',
+                            style: TextStyle(
+                                color: Colors.grey[600], fontSize: 12),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-
-                  Text(
-                    descripcion,
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-
-                  Row(
-                    children: [
-                      Icon(Icons.location_on, size: 14, color: Colors.grey),
-                      SizedBox(width: 4),
-                      Text(
-                        '$distance • $address',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                      ),
-                    ],
-                  ),
-
-                  Row(
-                    children: [
-                      Icon(Icons.groups, size: 14, color: Colors.grey),
-                      SizedBox(width: 4),
-                      Text(
-                        '$activeGames partidos activos',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                      ),
-                    ],
-                  ),
-
-                  Center(
-                    child: ElevatedButton(
-                      onPressed: onPressed,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      ),
-                      child: Text(
-                        'Ver Detalles',
-                        style: TextStyle(fontSize: 12, color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

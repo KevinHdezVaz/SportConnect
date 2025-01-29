@@ -7,11 +7,9 @@ import 'package:user_auth_crudd10/auth/auth_service.dart';
 import 'package:user_auth_crudd10/pages/userProfileEdit_page.dart';
 
 class ProfilePage extends StatefulWidget {
-  final Function(bool) toggleDarkMode;
-  final bool isDarkMode;
-
-  const ProfilePage(
-      {super.key, required this.toggleDarkMode, required this.isDarkMode});
+  const ProfilePage({
+    super.key,
+  });
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -74,7 +72,9 @@ class _ProfilePageState extends State<ProfilePage> {
               padding: const EdgeInsets.symmetric(vertical: 20),
               child: Column(
                 children: [
-ProfilePic(userData: userData, isDarkMode: widget.isDarkMode),
+                  ProfilePic(
+                    userData: userData,
+                  ),
                   const SizedBox(height: 20),
                   Padding(
                     padding: const EdgeInsets.all(12.0),
@@ -90,8 +90,8 @@ ProfilePic(userData: userData, isDarkMode: widget.isDarkMode),
                               borderRadius: BorderRadius.circular(20),
                               gradient: LinearGradient(
                                 colors: [
-                                  Colors.green.shade100,
-                                  const Color.fromARGB(255, 74, 145, 207)
+                                  const Color.fromARGB(255, 127, 205, 234),
+                                  const Color.fromARGB(255, 104, 151, 193)
                                 ], // Degradado
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
@@ -167,21 +167,18 @@ ProfilePic(userData: userData, isDarkMode: widget.isDarkMode),
                         ),
                         const SizedBox(height: 16),
                         ProfileMenu(
-                               isDarkMode: widget.isDarkMode,
                           text: "Notificaciones",
                           icon: Icons.notifications,
                           press: () {},
                         ),
-                        
                         ProfileMenu(
-                               isDarkMode: widget.isDarkMode,
                           text: "Ajustes",
                           icon: Icons.settings,
                           press: () {},
                         ),
                         const SizedBox(height: 20),
                         ProfileMenu(
-isDarkMode: widget.isDarkMode,                          text: "Cerrar sesión",
+                          text: "Cerrar sesión",
                           icon: Icons.logout,
                           press: _logout,
                         ),
@@ -197,12 +194,10 @@ isDarkMode: widget.isDarkMode,                          text: "Cerrar sesión",
 
 class ProfilePic extends StatelessWidget {
   final Map<String, dynamic>? userData;
-  final bool isDarkMode;
 
   const ProfilePic({
     Key? key,
     required this.userData,
-    required this.isDarkMode,
   }) : super(key: key);
 
   @override
@@ -210,7 +205,7 @@ class ProfilePic extends StatelessWidget {
     String? imageUrl;
     if (userData != null && userData!['profile_image'] != null) {
       imageUrl =
-          'https://srv471-files.hstgr.io/45b73e2b7df2ce51/files/public_html/proyect/storage/app/public/${userData!['profile_image']}';
+          'https://proyect.aftconta.mx/storage/${userData!['profile_image']}';
     }
 
     return SafeArea(
@@ -224,7 +219,8 @@ class ProfilePic extends StatelessWidget {
             CircleAvatar(
               backgroundImage: imageUrl != null
                   ? NetworkImage(imageUrl)
-                  : const AssetImage('assets/icons/jugadore.png') as ImageProvider,
+                  : const AssetImage('assets/icons/jugadore.png')
+                      as ImageProvider,
               onBackgroundImageError: (exception, stackTrace) {
                 print('Error loading image: $exception');
                 const AssetImage('assets/icons/jugadore.png');
@@ -238,17 +234,16 @@ class ProfilePic extends StatelessWidget {
                 width: 46,
                 child: TextButton(
                   style: TextButton.styleFrom(
-                    foregroundColor: isDarkMode ? Colors.black : Colors.white,
+                    foregroundColor: Colors.black,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(50),
-                      side: BorderSide(color: isDarkMode ? Colors.black : Colors.white),
                     ),
-                    backgroundColor: isDarkMode ? Colors.grey[800] : const Color(0xFFF5F6F9),
+                    backgroundColor: const Color.fromARGB(255, 100, 148, 220),
                   ),
                   onPressed: () {},
                   child: Icon(
                     Icons.camera_alt,
-                    color: isDarkMode ? Colors.white : Colors.black,
+                    color: Colors.white,
                   ),
                 ),
               ),
@@ -259,19 +254,18 @@ class ProfilePic extends StatelessWidget {
     );
   }
 }
+
 class ProfileMenu extends StatelessWidget {
   const ProfileMenu({
     Key? key,
     required this.text,
     required this.icon,
     this.press,
-    required this.isDarkMode,
   }) : super(key: key);
 
   final String text;
   final IconData icon;
   final VoidCallback? press;
-  final bool isDarkMode;
 
   @override
   Widget build(BuildContext context) {
@@ -281,17 +275,17 @@ class ProfileMenu extends StatelessWidget {
         elevation: 10,
         child: TextButton(
           style: TextButton.styleFrom(
-            foregroundColor: isDarkMode ? Colors.white : const Color.fromARGB(255, 39, 164, 199),
+            foregroundColor: const Color.fromARGB(255, 39, 164, 199),
             padding: const EdgeInsets.all(20),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-            backgroundColor: isDarkMode ? Colors.grey[800] : const Color(0xFFF5F6F9),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           ),
           onPressed: press,
           child: Row(
             children: [
               Icon(
                 icon,
-                color: isDarkMode ? Colors.white : Colors.blueGrey,
+                color: Colors.blueGrey,
                 size: 22,
               ),
               const SizedBox(width: 20),
@@ -299,13 +293,13 @@ class ProfileMenu extends StatelessWidget {
                 child: Text(
                   text,
                   style: TextStyle(
-                    color: isDarkMode ? Colors.white : const Color(0xFF757575),
+                    color: Colors.black,
                   ),
                 ),
               ),
               Icon(
                 Icons.arrow_forward_ios,
-                color: isDarkMode ? Colors.white : const Color(0xFF757575),
+                color: Colors.black,
               ),
             ],
           ),

@@ -275,7 +275,7 @@ class AvailableMatchCard extends StatelessWidget {
             ),
           ),
           SizedBox(width: 16),
-          Expanded(
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -283,6 +283,7 @@ class AvailableMatchCard extends StatelessWidget {
                   'Partido Amistoso',
                   style: TextStyle(
                     fontSize: 16,
+                    color: Colors.blueAccent,
                     fontWeight: FontWeight.bold,
                   ),
                 ),

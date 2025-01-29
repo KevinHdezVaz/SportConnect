@@ -1,4 +1,3 @@
-import 'package:easy_pdf_viewer/easy_pdf_viewer.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -85,13 +84,4 @@ class _FolderAnsPageState extends State<FolderAnsPage> {
 
 void _openPdf(BuildContext context, String path) async {
   final pdfUrl = await FirebaseStorage.instance.ref(path).getDownloadURL();
-  final document = await PDFDocument.fromURL(pdfUrl);
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => PdfViewerPage(
-        document: document,
-      ),
-    ),
-  );
 }
