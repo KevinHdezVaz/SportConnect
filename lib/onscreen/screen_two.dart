@@ -87,7 +87,6 @@ class OnboardingScreenTwo extends StatelessWidget {
                           "Encuentra tu cancha cercana",
                           textAlign: TextAlign.start,
                           style: TextStyle(
-                            fontFamily: 'Viga-Regular',
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                             fontSize: 27,

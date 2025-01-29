@@ -30,7 +30,8 @@ class _BottomNavBarState extends State<BottomNavBar> {
     HomePage(),
     BookingScreen(),
     FieldsScreen(),
-    ProfilePage(),
+    ProfilePage( toggleDarkMode: toggleDarkMode,
+                  isDarkMode: isDarkMode,),
   ];
 
   @override
@@ -39,7 +40,6 @@ class _BottomNavBarState extends State<BottomNavBar> {
       body: _pages[_selectedIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          // borderRadius: BorderRadius.circular(12),
           color: Theme.of(context).colorScheme.surface,
         ),
         child: BottomNavigationBar(
@@ -50,33 +50,68 @@ class _BottomNavBarState extends State<BottomNavBar> {
           onTap: _changeIndex,
           items: [
             BottomNavigationBarItem(
-              icon: Icon(
-                Icons.home, // Usamos el ícono de casa
-                color: _iconColor(0),
+              icon: Container(
+                padding: EdgeInsets.all(8), // Ajusta el padding según sea necesario
+                decoration: BoxDecoration(
+                  color: _selectedIndex == 0
+                      ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12), // Bordes redondeados
+                ),
+                child: Icon(
+                  Icons.home,
+                  color: _iconColor(0),
+                ),
               ),
               label: "Home",
             ),
             BottomNavigationBarItem(
-              icon: Icon(
-                Icons.question_answer,
-                color: _iconColor(1),
-                size: 25,
+              icon: Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _selectedIndex == 1
+                      ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.question_answer,
+                  color: _iconColor(1),
+                  size: 25,
+                ),
               ),
-              label: "Answers",
+              label: "Reservas",
             ),
             BottomNavigationBarItem(
-              icon: Icon(
-                Icons
-                    .location_on, // Usamos el ícono de cancha (puedes cambiarlo)
-                color: _iconColor(2),
-                size: 25, // Ajusta el tamaño del ícono
+              icon: Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _selectedIndex == 2
+                      ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.location_on,
+                  color: _iconColor(2),
+                  size: 25,
+                ),
               ),
               label: "Canchas",
             ),
             BottomNavigationBarItem(
-              icon: Icon(
-                Icons.person, // Usamos el ícono de perfil
-                color: _iconColor(3),
+              icon: Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _selectedIndex == 3
+                      ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.person,
+                  color: _iconColor(3),
+                ),
               ),
               label: "Profile",
             ),

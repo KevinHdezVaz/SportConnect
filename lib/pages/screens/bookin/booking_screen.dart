@@ -30,9 +30,6 @@ class _BookingScreenState extends State<BookingScreen> {
       final active = await bookingService.getActiveReservations();
       final history = await bookingService.getReservationHistory();
 
-      print('Reservas activas recibidas: $active');
-      print('Historial de reservas recibido: $history');
-
       setState(() {
         activeReservations = active;
         reservationHistory = history;
@@ -62,7 +59,8 @@ class _BookingScreenState extends State<BookingScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red,
+        backgroundColor: Colors.red[800],
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -71,7 +69,8 @@ class _BookingScreenState extends State<BookingScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.green,
+        backgroundColor: Colors.green[800],
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -80,31 +79,47 @@ class _BookingScreenState extends State<BookingScreen> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-        backgroundColor: Colors.grey[100],
+        backgroundColor: Colors.grey[50],
+        appBar: AppBar(
+          title: const Text('Mis Reservas', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          centerTitle: true,
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.blue[800],
+        ),
         body: Column(
           children: [
-            // Tabs replaced with a swipeable page view
+            // Tabs modernos con indicador animado
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _buildTabButton('active', 'Reservas Activas'),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _buildTabButton('history', 'Historial'),
-                  ),
-                ],
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _buildTabButton('active', 'Reservas Activas'),
+                    ),
+                    Expanded(
+                      child: _buildTabButton('history', 'Historial'),
+                    ),
+                  ],
+                ),
               ),
             ),
 
-            // PageView to swipe between active and history reservations
+            // Contenido de las reservas
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: isLoading
-                    ? const Center(child: CircularProgressIndicator())
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                        ),
+                      )
                     : PageView(
                         controller: _pageController,
                         onPageChanged: (index) {
@@ -118,7 +133,7 @@ class _BookingScreenState extends State<BookingScreen> {
                         ],
                       ),
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -126,8 +141,8 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   Widget _buildTabButton(String tabType, String text) {
-    return ElevatedButton(
-      onPressed: () {
+    return InkWell(
+      onTap: () {
         setState(() => activeTab = tabType);
         _pageController.animateToPage(
           tabType == 'active' ? 0 : 1,
@@ -135,13 +150,21 @@ class _BookingScreenState extends State<BookingScreen> {
           curve: Curves.easeInOut,
         );
       },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: activeTab == tabType ? Colors.blue : Colors.white,
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: activeTab == tabType ? Colors.white : Colors.blue,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: activeTab == tabType ? Colors.blue[800] : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Center(
+          child: Text(
+            text,
+            style: TextStyle(
+              color: activeTab == tabType ? Colors.white : Colors.blue,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
         ),
       ),
     );
@@ -150,11 +173,24 @@ class _BookingScreenState extends State<BookingScreen> {
   Widget _buildReservationList(List<Booking> reservations, bool isActive) {
     if (reservations.isEmpty) {
       return Center(
-        child: Text(
-          isActive
-              ? 'No tienes reservas activas'
-              : 'No tienes reservas en el historial',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.calendar_today,
+              size: 50,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isActive ? 'No tienes reservas activas' : 'No hay historial de reservas',
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -165,16 +201,17 @@ class _BookingScreenState extends State<BookingScreen> {
         final reservation = reservations[index];
         return Card(
           margin: const EdgeInsets.symmetric(vertical: 8),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 2,
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildReservationHeader(reservation, isActive),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 _buildReservationDetails(reservation),
               ],
             ),
@@ -189,16 +226,17 @@ class _BookingScreenState extends State<BookingScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          'Cancha ${reservation.fieldId}', // Ajusta según tus necesidades
+          'Cancha ${reservation.fieldId}',
           style: const TextStyle(
-            fontSize: 16,
+            fontSize: 18,
             fontWeight: FontWeight.bold,
+            color: Colors.blueGrey,
           ),
         ),
         if (isActive)
           IconButton(
-            icon: const Icon(Icons.cancel),
-            color: Colors.red,
+            icon: const Icon(Icons.cancel, size: 24),
+            color: Colors.red[800],
             onPressed: () => _handleCancelReservation(reservation.id),
           ),
       ],
@@ -209,17 +247,13 @@ class _BookingScreenState extends State<BookingScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildInfoRow(Icons.calendar_today, Colors.blue,
-            _formatDateTime(reservation.startTime)),
-        const SizedBox(height: 4),
-        _buildInfoRow(Icons.access_time, Colors.green,
-            '${_formatTime(reservation.startTime)} - ${_formatTime(reservation.endTime)}'),
-        const SizedBox(height: 4),
-        _buildInfoRow(Icons.attach_money, Colors.purple,
-            'Precio: ${reservation.totalPrice.toStringAsFixed(2)}'),
-        const SizedBox(height: 4),
-        _buildInfoRow(
-            Icons.info, Colors.orange, 'Estado: ${reservation.status}'),
+        _buildInfoRow(Icons.calendar_today, Colors.blue[800]!, _formatDateTime(reservation.startTime)),
+        const SizedBox(height: 8),
+        _buildInfoRow(Icons.access_time, Colors.green[800]!, '${_formatTime(reservation.startTime)} - ${_formatTime(reservation.endTime)}'),
+        const SizedBox(height: 8),
+        _buildInfoRow(Icons.attach_money, Colors.purple[800]!, 'Precio: ${reservation.totalPrice.toStringAsFixed(2)}'),
+        const SizedBox(height: 8),
+        _buildInfoRow(Icons.info, Colors.orange[800]!, 'Estado: ${reservation.status}'),
       ],
     );
   }
@@ -231,7 +265,10 @@ class _BookingScreenState extends State<BookingScreen> {
         const SizedBox(width: 8),
         Text(
           text,
-          style: const TextStyle(fontSize: 14),
+          style: const TextStyle(
+            fontSize: 16,
+            color: Colors.blueGrey,
+          ),
         ),
       ],
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -12,19 +13,44 @@ class FieldsScreen extends StatefulWidget {
   _FieldsScreenState createState() => _FieldsScreenState();
 }
 
-class _FieldsScreenState extends State<FieldsScreen> {
+class _FieldsScreenState extends State<FieldsScreen> with WidgetsBindingObserver {
   final _fieldService = FieldService();
   List<Field>? fields;
   LatLng _initialPosition = LatLng(19.432608, -99.133209);
   Position? _currentPosition;
   GoogleMapController? _mapController;
+  bool _isLocationServiceDialogShown = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _requestLocationPermission();
     _loadFields();
     _getSavedLocation();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkLocationService();
+    }
+  }
+
+  Future<void> _checkLocationService() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (serviceEnabled && _isLocationServiceDialogShown) {
+      setState(() {
+        _isLocationServiceDialogShown = false;
+      });
+      _getCurrentLocation();
+    }
   }
 
   Future<void> _getSavedLocation() async {
@@ -36,7 +62,6 @@ class _FieldsScreenState extends State<FieldsScreen> {
       setState(() {
         _initialPosition = LatLng(latitude, longitude);
       });
-      // Only animate camera if _mapController is not null
       _mapController?.animateCamera(
         CameraUpdate.newLatLng(_initialPosition),
       );
@@ -65,7 +90,6 @@ class _FieldsScreenState extends State<FieldsScreen> {
   Future<Position> _getCurrentLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      // Si el servicio de ubicación está desactivado, muestra un mensaje o solicita activarlo
       _showLocationServiceDialog();
       return Future.error('El servicio de ubicación está desactivado');
     }
@@ -86,10 +110,8 @@ class _FieldsScreenState extends State<FieldsScreen> {
       _initialPosition = LatLng(position.latitude, position.longitude);
     });
 
-    // Guardar la ubicación actual
     _saveCurrentLocation(_initialPosition);
 
-    // Mover la cámara solo si _mapController está inicializado
     if (_mapController != null) {
       _mapController?.animateCamera(
         CameraUpdate.newLatLng(_initialPosition),
@@ -103,34 +125,43 @@ class _FieldsScreenState extends State<FieldsScreen> {
     PermissionStatus status = await Permission.location.request();
     if (status.isGranted) {
       print("Permiso concedido");
-      _getCurrentLocation(); // Obtener ubicación solo después de que el permiso sea concedido
+      _getCurrentLocation();
     } else if (status.isDenied) {
       print("Permiso denegado");
     } else if (status.isPermanentlyDenied) {
-      openAppSettings(); // Si es denegado permanentemente, abrir la configuración de la app
+      openAppSettings();
     }
   }
 
   void _showLocationServiceDialog() {
+    if (_isLocationServiceDialogShown) return;
+
+    setState(() {
+      _isLocationServiceDialogShown = true;
+    });
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Servicio de Ubicación Desactivado'),
-          content: Text('Para continuar, activa el servicio de ubicación.'),
+          title: Text('Servicio de Ubicación Desactivado', style: TextStyle(color: Colors.black),),
+          content: Text('Para continuar, activa el servicio de ubicación.', style: TextStyle(color: const Color.fromARGB(255, 48, 47, 47)),),
           actions: <Widget>[
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
+                setState(() {
+                  _isLocationServiceDialogShown = false;
+                });
               },
-              child: Text('Cancelar'),
+              child: Text('Cancelar',style: TextStyle(fontWeight: FontWeight.bold),),
             ),
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop();
                 openLocationSettings();
               },
-              child: Text('Abrir Configuración'),
+              child: Text('Abrir Configuración', style: TextStyle(fontWeight: FontWeight.bold),),
             ),
           ],
         );
@@ -141,77 +172,24 @@ class _FieldsScreenState extends State<FieldsScreen> {
   Future<void> openLocationSettings() async {
     await Geolocator.openLocationSettings();
     Future.delayed(Duration(seconds: 1), () {
-      _getCurrentLocation(); // Recarga la ubicación después de abrir los ajustes
+      _getCurrentLocation();
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    double screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            // Search Section
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 5,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: const Row(
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.all(8.0),
-                            child: Icon(Icons.search, color: Colors.grey),
-                          ),
-                          Expanded(
-                            child: TextField(
-                              decoration: const InputDecoration(
-                                hintText: 'Buscar canchas, jugadores o equipos',
-                                border: InputBorder.none,
-                                hintStyle: TextStyle(color: Colors.grey),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.green[700],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: IconButton(
-                      onPressed: () {},
-                      icon: const Icon(Icons.filter_list, color: Colors.white),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Map Section
             Container(
-              height: 250,
-              color: Colors.grey[300],
+              height: screenHeight * 0.8, // 75% de la altura de la pantalla
               child: GoogleMap(
                 onMapCreated: (GoogleMapController controller) {
                   _mapController = controller;
-                  // Aquí puedes mover la cámara después de que se haya creado el mapa
                   if (_currentPosition != null) {
                     _mapController!.animateCamera(
                       CameraUpdate.newLatLng(LatLng(_currentPosition!.latitude,
@@ -233,32 +211,81 @@ class _FieldsScreenState extends State<FieldsScreen> {
               ),
             ),
 
-            Expanded(
-              child: fields == null
-                  ? const Center(
-                      child: CircularProgressIndicator()) // Indicador de carga
-                  : ListView.builder(
-                      itemCount: fields!.length,
-                      itemBuilder: (context, index) {
-                        final field = fields![index];
-                        return _buildVenueCard(
-                          name: field.name,
-                          descripcion: field.description,
-                          rating: 4.5,
-                          distance: '2.5 km',
-                          address: 'Calle Deportiva 456',
-                          activeGames: 5,
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) =>
-                                      FieldDetailScreen(field: field)),
-                            );
-                          },
-                        );
-                      },
+            // DraggableScrollableSheet para la sección de canchas
+            DraggableScrollableSheet(
+              initialChildSize: 0.25, // Tamaño inicial (1/4 de la pantalla)
+              minChildSize: 0.25, // Tamaño mínimo (1/4 de la pantalla)
+              maxChildSize: 0.75, // Tamaño máximo (3/4 de la pantalla)
+              builder: (BuildContext context, ScrollController scrollController) {
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 10,
+                        offset: Offset(0, -5),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      // Barra deslizadora
+                      Container(
+                        margin: EdgeInsets.only(top: 10, bottom: 10),
+                        width: 40,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[400],
+                          borderRadius: BorderRadius.circular(2.5),
+                        ),
+                      ),
+
+                      // Lista de canchas
+                      Expanded(
+                        child: fields == null
+                            ? Center(child: CircularProgressIndicator())
+                            : NotificationListener<ScrollNotification>(
+                                onNotification: (ScrollNotification notification) {
+                                  if (notification is UserScrollNotification &&
+                                      notification.direction == ScrollDirection.forward) {
+                                  }
+                                  return false;
+                                },
+                                child: PageView.builder(
+                                  controller: PageController(viewportFraction: 0.8),
+                                  itemCount: fields!.length,
+                                  itemBuilder: (context, index) {
+                                    final field = fields![index];
+                                    return Padding(
+                                      padding: const EdgeInsets.all(2.0),
+                                      child: _buildVenueCard(
+                                        name: field.name,
+                                        descripcion: field.description,
+                                        distance: '2.5 km',
+                                        address: 'Calle Deportiva 456',
+                                        activeGames: 5,
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                                builder: (_) => FieldDetailScreen(field: field)),
+                                          );
+                                        },
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -266,106 +293,116 @@ class _FieldsScreenState extends State<FieldsScreen> {
     );
   }
 
-  // Venue Card Widget
   Widget _buildVenueCard({
     required String name,
     required String descripcion,
-    required double rating,
     required String distance,
     required String address,
     required int activeGames,
     required VoidCallback onPressed,
   }) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Name and Rating
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  name,
-                  style: const TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                /*
-                Row(
-                  children: [
-                    const Icon(Icons.star, color: Colors.yellow, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                      rating.toString(),
-                      style: const TextStyle(color: Colors.yellow),
-                    ),
-                  ],
-                ),
-                */
-              ],
+    return Container(
+      width: 300, // Ancho de la tarjeta
+      margin: EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 5,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 100,
+            height: 120,
+            decoration: const BoxDecoration(
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(10),
+                bottomLeft: Radius.circular(10),
+              ),
+              image: DecorationImage(
+                image: NetworkImage(
+                    'https://picsum.photos/seed/picsum/200/300'),
+                fit: BoxFit.cover,
+              ),
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(Icons.sports_soccer, size: 16, color: Colors.grey),
-                const SizedBox(width: 4),
-                Text(
-                  '$descripcion',
-                  style: const TextStyle(color: Colors.black),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
+          ),
 
-            // Distance and Address
-            Row(
-              children: [
-                const Icon(Icons.location_on, size: 16, color: Colors.grey),
-                const SizedBox(width: 4),
-                Text(
-                  '$distance • $address',
-                  style: const TextStyle(color: Colors.black),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        name,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
 
-            // Active Games and Button
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.groups, size: 16, color: Colors.grey),
-                    const SizedBox(width: 4),
-                    Text(
-                      '$activeGames partidos activos',
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                  ],
-                ),
-                ElevatedButton(
-                  onPressed: onPressed,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                  Text(
+                    descripcion,
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+
+                  Row(
+                    children: [
+                      Icon(Icons.location_on, size: 14, color: Colors.grey),
+                      SizedBox(width: 4),
+                      Text(
+                        '$distance • $address',
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      ),
+                    ],
+                  ),
+
+                  Row(
+                    children: [
+                      Icon(Icons.groups, size: 14, color: Colors.grey),
+                      SizedBox(width: 4),
+                      Text(
+                        '$activeGames partidos activos',
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      ),
+                    ],
+                  ),
+
+                  Center(
+                    child: ElevatedButton(
+                      onPressed: onPressed,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      ),
+                      child: Text(
+                        'Ver Detalles',
+                        style: TextStyle(fontSize: 12, color: Colors.white),
+                      ),
                     ),
                   ),
-                  child: const Text(
-                    'Ver Detalles',
-                    style: TextStyle(fontSize: 14, color: Colors.white),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

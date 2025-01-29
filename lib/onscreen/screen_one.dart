@@ -114,7 +114,7 @@ class OnboardingScreenOne extends StatelessWidget {
                                       fontFamily: 'Viga-Regular',
                                       color: Colors.black),
                                   text:
-                                      "Únete a la comunidad futbolística de tu zona, "),
+                                      "Esfuerzate y "),
                               TextSpan(
                                   style: TextStyle(
                                     fontWeight: FontWeight.w900,

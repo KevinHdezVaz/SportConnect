@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -39,24 +40,25 @@ class AuthService {
     }
   }
 
-  Future<Map<String, dynamic>> getProfile() async {
-    try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/profile'),
-        headers: await getHeaders(),
-      );
+Future<Map<String, dynamic>> getProfile() async {
+  try {
+    final response = await http.get(
+      Uri.parse('$baseUrl/profile'),
+      headers: await getHeaders(),
+    );
 
-      if (response.statusCode != 200) {
-        throw Exception('Error obteniendo perfil');
-      }
-
-      final data = json.decode(response.body);
-      print('Profile Data: $data'); // Agrega esto para depurar
-      return data;
-    } catch (e) {
-      throw Exception('Error: $e');
+    if (response.statusCode != 200) {
+      throw Exception('Error obteniendo perfil');
     }
+
+    final data = json.decode(response.body);
+    print('Profile Data: $data'); // Agrega esto para depurar
+    return data;
+  } catch (e) {
+    throw Exception('Error: $e');
   }
+}
+ 
 
   Future<void> logout() async {
     try {

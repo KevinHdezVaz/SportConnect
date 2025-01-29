@@ -47,283 +47,366 @@ class _FieldDetailScreenState extends State<FieldDetailScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[100],
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 250,
-            pinned: true,
-            flexibleSpace: Stack(
-              children: [
-                CarouselSlider(
-                  options: CarouselOptions(
-                    height: 250,
-                    viewportFraction: 1.0,
-                    onPageChanged: (index, _) =>
-                        setState(() => _currentImage = index),
-                    autoPlay: true,
+    if (widget.field == null) {
+      return Scaffold(
+        body: Center(
+          child: Text('No se ha proporcionado información del campo.'),
+        ),
+      );
+    }
+
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: Colors.grey[100],
+        body: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              expandedHeight: 250,
+              pinned: true,
+              flexibleSpace: Stack(
+                children: [
+                  CarouselSlider(
+                    options: CarouselOptions(
+                      height: 250,
+                      viewportFraction: 1.0,
+                      onPageChanged: (index, _) =>
+                          setState(() => _currentImage = index),
+                      autoPlay: true,
+                    ),
+                    items: (widget.field.images ?? [])
+                        .map((url) => CachedNetworkImage(
+                              imageUrl: url,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => _buildShimmer(),
+                            ))
+                        .toList(),
                   ),
-                  items: widget.field.images
-                          ?.map((url) => CachedNetworkImage(
-                                imageUrl: url,
-                                fit: BoxFit.cover,
-                                placeholder: (context, url) => _buildShimmer(),
-                              ))
-                          .toList() ??
-                      [],
-                ),
-                Positioned(
-                  bottom: 20,
-                  left: 0,
-                  right: 0,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: (widget.field.images ?? [])
-                        .asMap()
-                        .entries
-                        .map((entry) {
-                      return Container(
-                        width: 8,
-                        height: 8,
-                        margin: EdgeInsets.symmetric(horizontal: 4),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _currentImage == entry.key
-                              ? Colors.white
-                              : Colors.grey,
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                )
-              ],
+                  Positioned(
+                    bottom: 20,
+                    left: 0,
+                    right: 0,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: (widget.field.images ?? [])
+                          .asMap()
+                          .entries
+                          .map((entry) {
+                        return Container(
+                          width: 8,
+                          height: 8,
+                          margin: EdgeInsets.symmetric(horizontal: 4),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _currentImage == entry.key
+                                ? Colors.white
+                                : Colors.grey,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  )
+                ],
+              ),
             ),
-          ),
-          SliverToBoxAdapter(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  color: Color(0xFF00BFFF),
-                  padding: EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.field.name,
-                        style: const TextStyle(
+            SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Sección de Cancha 1
+                  Container(
+                    color: Color(0xFF00BFFF),
+                    padding: EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.field.name ?? 'Nombre no disponible',
+                          style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white),
-                      ),
-                      SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.location_on,
-                              size: 16, color: Colors.black),
-                          Text(widget.field.location,
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                      SizedBox(height: 16),
-                      Card(
-                        elevation: 10, // Agrega un efecto de sombra.
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                            color: Colors.white,
+                          ),
                         ),
-                        child: Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Precio por partido',
-                                    style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize:
-                                          14, // Tamaño de texto más pequeño.
-                                    ),
-                                  ),
-                                  SizedBox(height: 8), // Espaciado entre texto.
-                                  Row(
-                                    children: [
-                                      Icon(Icons.attach_money,
-                                          color:
-                                              Colors.green), // Icono de precio.
-                                      Text(
-                                        '${widget.field.price_per_match}',
-                                        style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.green,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                        SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(Icons.location_on,
+                                size: 16, color: Colors.black),
+                            Text(
+                              widget.field.location ??
+                                  'Ubicación no disponible',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
                               ),
-                              ElevatedButton(
-                                onPressed: () => _showBookingDialog(widget
-                                    .field), // usar widget.field en lugar de field
-                                child: Row(
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 16),
+                        Card(
+                          elevation: 10,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Icon(
-                                      Icons.calendar_today,
-                                      size: 16,
-                                      color: Colors.white,
+                                    const Text(
+                                      'Precio por partido',
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 14,
+                                      ),
                                     ),
-                                    SizedBox(width: 12),
-                                    Text(
-                                      'Reservar',
-                                      style: TextStyle(color: Colors.white),
+                                    SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        Icon(Icons.attach_money,
+                                            color: Colors.green),
+                                        Text(
+                                          '${widget.field.price_per_match ?? 'N/A'}',
+                                          style: TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.green,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue,
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 20, vertical: 12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
+                                ElevatedButton(
+                                  onPressed: () =>
+                                      _showBookingDialog(widget.field),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.calendar_today,
+                                        size: 16,
+                                        color: Colors.white,
+                                      ),
+                                      SizedBox(width: 12),
+                                      Text(
+                                        'Reservar',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                    ],
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blue,
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    color: Colors.white,
+                    child: const TabBar(
+                      labelColor: Colors.blue,
+                      unselectedLabelColor: Colors.grey,
+                      tabs: [
+                        Tab(text: 'Sobre la cancha'),
+                        Tab(text: 'Torneos activos'),
+                      ],
+                    ),
+                  ),
+                  // Mover el TabBarView aquí, debajo de las pestañas
+                  Container(
+                    height: 500, // Ajusta la altura según sea necesario
+                    child: TabBarView(
+                      children: [
+                        // Contenido de la pestaña "Sobre la cancha"
+                        SingleChildScrollView(
+                          child: Column(
+                            children: [
+                              Container(
+                                margin: const EdgeInsets.all(16),
+                                child: Card(
+                                  elevation: 10,
+                                  child: Padding(
+                                    padding: EdgeInsets.all(16),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Localización',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 18,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                        SizedBox(height: 18),
+                                        Text(
+                                          'Sótano de la plaza "Puerta del Sol Periférico Sur, 4237"',
+                                          style: TextStyle(
+                                              fontSize: 16, color: Colors.black),
+                                        ),
+                                        SizedBox(height: 8),
+                                        Card(
+                                          elevation: 5,
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(8.0),
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Icon(Icons.near_me,
+                                                    color: Colors.blue),
+                                                SizedBox(width: 8),
+                                                Text(
+                                                  '¿Cómo llegar?',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16,
+                                                    color: Colors.blue,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                margin: const EdgeInsets.all(16),
+                                child: Card(
+                                  elevation: 10,
+                                  child: Padding(
+                                    padding: EdgeInsets.all(16),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Horario',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 18,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                        SizedBox(height: 8),
+                                        Text(
+                                          'La información de horarios la proporciona el propio establecimiento, si tienes alguna duda ponte en contacto con el establecimiento.',
+                                          style: TextStyle(fontSize: 16),
+                                        ),
+                                        SizedBox(height: 8),
+                                        Table(
+                                          border: TableBorder.all(
+                                              color: Colors.grey),
+                                          children: [
+                                            TableRow(
+                                              children: [
+                                                Padding(
+                                                  padding: EdgeInsets.all(8),
+                                                  child: Text('Lunes',
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold)),
+                                                ),
+                                                Padding(
+                                                  padding: EdgeInsets.all(8),
+                                                  child: Text(
+                                                      '06:00 a 10:30 y 17:30 a 21:30'),
+                                                ),
+                                              ],
+                                            ),
+                                            TableRow(
+                                              children: [
+                                                Padding(
+                                                  padding: EdgeInsets.all(8),
+                                                  child: Text('Martes',
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold)),
+                                                ),
+                                                Padding(
+                                                  padding: EdgeInsets.all(8),
+                                                  child: Text(
+                                                      '06:00 a 10:30 y 17:30 a 21:30'),
+                                                ),
+                                              ],
+                                            ),
+                                            TableRow(
+                                              children: [
+                                                Padding(
+                                                  padding: EdgeInsets.all(8),
+                                                  child: Text('Miércoles',
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold)),
+                                                ),
+                                                Padding(
+                                                  padding: EdgeInsets.all(8),
+                                                  child: Text(
+                                                      '06:00 a 10:30 y 17:30 a 21:30'),
+                                                ),
+                                              ],
+                                            ),
+                                            TableRow(
+                                              children: [
+                                                Padding(
+                                                  padding: EdgeInsets.all(8),
+                                                  child: Text('Jueves',
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold)),
+                                                ),
+                                                Padding(
+                                                  padding: EdgeInsets.all(8),
+                                                  child: Text(
+                                                      '06:00 a 10:30 y 17:30 a 21:30'),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                Center(
-                  child: Card(
-                    elevation: 8, // Sombra básica
-                    shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(12), // Bordes redondeados
-                    ),
-                    margin: EdgeInsets.all(16), // Margen alrededor del Card
-
-                    child: Container(
-                      padding: EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          const Text(
-                            'Horarios Disponibles',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                              color: Colors.black87,
-                            ),
+                        // Contenido de la pestaña "Torneos activos"
+                        Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Text(
+                            'Lista de torneos activos...',
+                            style: TextStyle(fontSize: 16),
                           ),
-                          SizedBox(height: 12),
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(
-                              children: widget.field.available_hours
-                                  .map(
-                                    (time) => Container(
-                                      margin: const EdgeInsets.only(right: 8),
-                                      child: OutlinedButton(
-                                        onPressed: () {
-                                          // Acción al presionar el botón
-                                          print('Selected time: $time');
-                                        },
-                                        child: Text(time),
-                                        style: OutlinedButton.styleFrom(
-                                          side: BorderSide(
-                                              color: Colors
-                                                  .blue), // Bordes con color azul
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  )
-                                  .toList(),
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                Center(
-                  child: Card(
-                    elevation: 8,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    margin: EdgeInsets.all(16),
-                    child: Container(
-                      color: Colors.white,
-                      margin: EdgeInsets.only(top: 8),
-                      padding: EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Servicios que incluye:',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                                color: Colors.black),
-                          ),
-                          GridView.count(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            crossAxisCount: 2,
-                            childAspectRatio: 3,
-                            children: widget.field.amenities != null &&
-                                    widget.field.amenities!.isNotEmpty
-                                ? widget.field.amenities!
-                                    .map(
-                                      (amenity) => AmenityTile(
-                                        icon: _getAmenityIcon(
-                                            amenity), // Asigna un icono basado en el servicio
-                                        text:
-                                            amenity, // Muestra el nombre del servicio
-                                      ),
-                                    )
-                                    .toList()
-                                : [
-                                    Text('No amenities available')
-                                  ], // Si no hay servicios, muestra un mensaje
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                Container(
-                  color: Colors.white,
-                  margin: EdgeInsets.only(top: 8),
-                  padding: EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Partidos Activos',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                      SizedBox(height: 12),
-                      ActiveGameTile(),
-                      SizedBox(height: 8),
-                      ActiveGameTile(),
-                    ],
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

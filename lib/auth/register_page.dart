@@ -8,6 +8,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:user_auth_crudd10/auth/auth_check.dart';
 import 'package:user_auth_crudd10/auth/auth_service.dart';
+import 'package:user_auth_crudd10/auth/login_page.dart';
 import 'package:user_auth_crudd10/pages/home_page.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -173,227 +174,236 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Registro"),
-        titleTextStyle: const TextStyle(color: Colors.white, fontSize: 20),
-        backgroundColor: Colors.transparent,
-        elevation: 10,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
-          onPressed: widget.showLoginPage,
+    return WillPopScope(
+       onWillPop: () async {
+        // Lógica para manejar el botón de retroceso
+ Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (context) => LoginPage(showLoginPage: () {  },)),
+  );        return false;  
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text("Registro"),
+          titleTextStyle: const TextStyle(color: Colors.white, fontSize: 20),
+          backgroundColor: Colors.transparent,
+          elevation: 10,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+            onPressed: widget.showLoginPage,
+          ),
         ),
-      ),
-      backgroundColor: Theme.of(context).colorScheme.primary,
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Stack(
-              children: [
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                  child: Container(
-                    height: 600,
-                    width: 350,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          const SizedBox(
-                            height: 15,
-                          ),
-                          Text(
-                            "Bienvenido, Completa tu registro.",
-                            style: GoogleFonts.lato(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w400,
-                              color: const Color.fromARGB(255, 201, 96, 15),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        body: SingleChildScrollView(
+          child: Column(
+            children: [
+              Stack(
+                children: [
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                    child: Container(
+                      height: 600,
+                      width: 350,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            const SizedBox(
+                              height: 15,
                             ),
-                          ),
-                          const SizedBox(
-                            height: 30,
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: GestureDetector(
-                              onTap: _pickImage,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                padding: EdgeInsets.all(8),
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.photo_camera,
-                                        color: Colors.grey),
-                                    SizedBox(width: 8),
-                                    Text("Foto de perfil"),
-                                    Spacer(),
-                                    if (_profileImage != null)
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: Image.file(
-                                          _profileImage!,
-                                          width: 50,
-                                          height: 50,
-                                          fit: BoxFit.cover,
+                            Text(
+                              "Bienvenido, Completa tu registro.",
+                              style: GoogleFonts.lato(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: const Color.fromARGB(255, 42, 179, 33),
+                              ),
+                            ),
+                            const SizedBox(
+                              height: 30,
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              child: GestureDetector(
+                                onTap: _pickImage,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.grey),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  padding: EdgeInsets.all(8),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.photo_camera,
+                                          color: Colors.grey),
+                                      SizedBox(width: 8),
+                                      Text("Foto de perfil"),
+                                      Spacer(),
+                                      if (_profileImage != null)
+                                        ClipRRect(
+                                          borderRadius: BorderRadius.circular(8),
+                                          child: Image.file(
+                                            _profileImage!,
+                                            width: 50,
+                                            height: 50,
+                                            fit: BoxFit.cover,
+                                          ),
                                         ),
-                                      ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(
-                            height: 20,
-                          ),
-                          customTextField(
-                            labelText: "Nombre completo",
-                            prefixIcon: Icon(Icons.person, color: Colors.grey),
-                            controller: _nameController,
-                            isObscure:
-                                false, // Cambiar a false para que el texto sea visible
-                          ),
-                          const SizedBox(
-                            height: 20,
-                          ),
-                          customTextField(
-                            labelText: "Teléfono",
-                            prefixIcon: Icon(Icons.phone, color: Colors.grey),
-                            controller: _phoneController,
-                            isObscure:
-                                false, // Para el teléfono no debe ser obscuro
-                            keyboardType: TextInputType
-                                .phone, // Mostrar el teclado de teléfono
-                            inputFormatters: [
-                              FilteringTextInputFormatter
-                                  .digitsOnly, // Solo números
-                              LengthLimitingTextInputFormatter(
-                                  10), // Limitar a 10 dígitos para teléfono
-                            ],
-                          ),
-
-                          const SizedBox(
-                            height: 20,
-                          ),
-                          //email textfield
-                          customTextField(
-                            labelText: "Correo electrónico",
-                            prefixIcon: Icon(Icons.email, color: Colors.grey),
-                            controller: _emailController,
-                            isObscure:
-                                false, // Cambiar a false para que el texto sea visible
-                          ),
-
-                          const SizedBox(
-                            height: 20,
-                          ),
-
-                          customTextField(
-                            labelText: "Código Postal (C.P)",
-                            prefixIcon:
-                                Icon(Icons.add_location, color: Colors.grey),
-                            controller: _codigPostalController,
-                            isObscure: false,
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter
-                                  .digitsOnly, // Solo números
-                              LengthLimitingTextInputFormatter(
-                                  5), // Limitar a 5 dígitos para código postal
-                            ],
-                          ),
-
-                          const SizedBox(
-                            height: 20,
-                          ),
-
-                          //password textfield
-                          customTextField(
-                            labelText: "Contraseña",
-                            prefixIcon: Icon(Icons.lock, color: Colors.grey),
-                            controller: _passwordController,
-                            isObscure: isObscure,
-                          ),
-
-                          const SizedBox(
-                            height: 20,
-                          ),
-
-                          //password textfield
-                          customTextField(
-                            labelText: "Confirmar Contraseña",
-                            prefixIcon: Icon(Icons.lock, color: Colors.grey),
-                            controller: _confromPasswordController,
-                            isObscure: isObscure,
-                          ),
-                          const SizedBox(
-                            height: 20,
-                          ),
-
-                          //login Button
-                        ],
+                            const SizedBox(
+                              height: 20,
+                            ),
+                            customTextField(
+                              labelText: "Nombre completo",
+                              prefixIcon: Icon(Icons.person, color: Colors.grey),
+                              controller: _nameController,
+                              isObscure:
+                                  false,  
+                            ),
+                            const SizedBox(
+                              height: 20,
+                            ),
+                            customTextField(
+                              labelText: "Teléfono",
+                              prefixIcon: Icon(Icons.phone, color: Colors.grey),
+                              controller: _phoneController,
+                              isObscure:
+                                  false, 
+                              keyboardType: TextInputType
+                                  .phone,  
+                              inputFormatters: [
+                                FilteringTextInputFormatter
+                                    .digitsOnly,  
+                                LengthLimitingTextInputFormatter(
+                                    10),  
+                              ],
+                            ),
+      
+                            const SizedBox(
+                              height: 20,
+                            ),
+                            //email textfield
+                            customTextField(
+                              labelText: "Correo electrónico",
+                              prefixIcon: Icon(Icons.email, color: Colors.grey),
+                              controller: _emailController,
+                              isObscure:
+                                  false, 
+                            ),
+      
+                            const SizedBox(
+                              height: 20,
+                            ),
+      
+                            customTextField(
+                              labelText: "Código Postal (C.P)",
+                              prefixIcon:
+                                  Icon(Icons.add_location, color: Colors.grey),
+                              controller: _codigPostalController,
+                              isObscure: false,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter
+                                    .digitsOnly, // Solo números
+                                LengthLimitingTextInputFormatter(
+                                    5), // Limitar a 5 dígitos para código postal
+                              ],
+                            ),
+      
+                            const SizedBox(
+                              height: 20,
+                            ),
+      
+                            //password textfield
+                            customTextField(
+                              labelText: "Contraseña",
+                              prefixIcon: Icon(Icons.lock, color: Colors.grey),
+                              controller: _passwordController,
+                              isObscure: isObscure,
+                            ),
+      
+                            const SizedBox(
+                              height: 20,
+                            ),
+      
+                            //password textfield
+                            customTextField(
+                              labelText: "Confirmar Contraseña",
+                              prefixIcon: Icon(Icons.lock, color: Colors.grey),
+                              controller: _confromPasswordController,
+                              isObscure: isObscure,
+                            ),
+                            const SizedBox(
+                              height: 20,
+                            ),
+      
+                            //login Button
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(
-              height: 40,
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 50),
-              child: GestureDetector(
-                onTap: signUp,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Image.asset(
-                      'assets/icons/ic_button.png',
-                    ),
-                    Text(
-                      "Crea tu cuenta",
-                      style: GoogleFonts.inter(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(
-              height: 20,
-            ),
-            Container(
-              width: size.width * 0.8,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.white.withOpacity(0.95),
-                    Colors.white.withOpacity(0.8)
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
                   ),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(
+                height: 40,
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 50),
+                child: GestureDetector(
+                  onTap: signUp,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Image.asset(
+                        'assets/icons/ic_button.png',
+                      ),
+                      Text(
+                        "Crea tu cuenta",
+                        style: GoogleFonts.inter(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(
+                height: 20,
+              ),
+              Container(
+                width: size.width * 0.8,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.white.withOpacity(0.95),
+                      Colors.white.withOpacity(0.8)
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -416,6 +426,9 @@ class _RegisterPageState extends State<RegisterPage> {
             isObscure, // Aquí se maneja si el texto debe estar oculto o no
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
+         style: const TextStyle(
+      color: Colors.black,  
+    ),
         decoration: InputDecoration(
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),

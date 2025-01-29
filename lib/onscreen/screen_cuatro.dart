@@ -67,7 +67,7 @@ class OnBoardingCuatro extends StatelessWidget {
                       clipper: SlandingClipper(),
                       child: Container(
                         height: size.height * 0.4,
-                        color: Colors.lightBlue[100],
+                        color: const Color.fromARGB(255, 159, 212, 158),
                       ),
                     ),
                   ),
@@ -86,9 +86,8 @@ class OnBoardingCuatro extends StatelessWidget {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Color.fromARGB(255, 25, 67, 220),
-                          fontFamily: 'Viga-Regular',
-                          fontSize: 27,
+                          color: Colors.white,
+                           fontSize: 27,
                         ),
                       ),
                       SizedBox(
@@ -105,9 +104,11 @@ class OnBoardingCuatro extends StatelessWidget {
                             children: <TextSpan>[
                               TextSpan(
                                   style: TextStyle(
+                         fontWeight: FontWeight.w900,
+
                                       fontSize: getResponsiveText(24),
-                                      fontFamily: 'Viga-Regular',
-                                      color: Colors.black),
+                                       color: Colors.black),
+                                       
                                   text:
                                       "Compite con otros jugadores, "),
                               TextSpan(
@@ -198,6 +199,7 @@ class OnBoardingCuatro extends StatelessWidget {
                       padding: EdgeInsets.only(right: appPadding),
                       child: FloatingActionButton(
                         onPressed: () {
+                           _storeOnboardInfo();
                           Navigator.push(
                             context,
                             MaterialPageRoute(

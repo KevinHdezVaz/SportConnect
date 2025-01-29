@@ -7,7 +7,12 @@ import 'package:user_auth_crudd10/auth/auth_service.dart';
 import 'package:user_auth_crudd10/pages/userProfileEdit_page.dart';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
+  final Function(bool) toggleDarkMode;
+  final bool isDarkMode;
+
+  const ProfilePage(
+      {super.key, required this.toggleDarkMode, required this.isDarkMode});
+
   @override
   State<ProfilePage> createState() => _ProfilePageState();
 }
@@ -69,7 +74,7 @@ class _ProfilePageState extends State<ProfilePage> {
               padding: const EdgeInsets.symmetric(vertical: 20),
               child: Column(
                 children: [
-                  ProfilePic(userData: userData),
+ProfilePic(userData: userData, isDarkMode: widget.isDarkMode),
                   const SizedBox(height: 20),
                   Padding(
                     padding: const EdgeInsets.all(12.0),
@@ -78,62 +83,105 @@ class _ProfilePageState extends State<ProfilePage> {
                         Card(
                           elevation: 10,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
+                            borderRadius: BorderRadius.circular(32),
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 50, vertical: 10),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  userData!['name'] ?? '',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  userData!['email'] ?? '',
-                                  style: GoogleFonts.inter(fontSize: 18),
-                                ),
-                                const SizedBox(height: 8),
-                                GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => UserProfileEdit(),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.green.shade100,
+                                  const Color.fromARGB(255, 74, 145, 207)
+                                ], // Degradado
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 50, vertical: 10),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.person,
+                                          color: Colors.blueGrey, size: 24),
+                                      const SizedBox(width: 20),
+                                      Text(
+                                        userData!['name'] ?? '',
+                                        style: GoogleFonts.inter(
+                                          color: Colors.white,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
-                                    );
-                                  },
-                                  child: Text(
-                                    "Editar",
-                                    style: GoogleFonts.inter(
-                                      fontSize: 18,
-                                      color: Colors.blue,
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.email,
+                                          color: Colors.blueGrey, size: 24),
+                                      const SizedBox(width: 20),
+                                      Text(
+                                        userData!['email'] ?? '',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 13,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              UserProfileEdit(),
+                                        ),
+                                      );
+                                    },
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.edit,
+                                            color: Colors.blueGrey, size: 24),
+                                        const SizedBox(width: 20),
+                                        Text(
+                                          "Editar",
+                                          style: GoogleFonts.inter(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.green,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),
                         const SizedBox(height: 16),
                         ProfileMenu(
-                          text: "Notifications",
+                               isDarkMode: widget.isDarkMode,
+                          text: "Notificaciones",
                           icon: Icons.notifications,
                           press: () {},
                         ),
+                        
                         ProfileMenu(
-                          text: "Settings",
+                               isDarkMode: widget.isDarkMode,
+                          text: "Ajustes",
                           icon: Icons.settings,
                           press: () {},
                         ),
                         const SizedBox(height: 20),
                         ProfileMenu(
-                          text: "Cerrar sesión",
+isDarkMode: widget.isDarkMode,                          text: "Cerrar sesión",
                           icon: Icons.logout,
                           press: _logout,
                         ),
@@ -149,10 +197,12 @@ class _ProfilePageState extends State<ProfilePage> {
 
 class ProfilePic extends StatelessWidget {
   final Map<String, dynamic>? userData;
+  final bool isDarkMode;
 
   const ProfilePic({
     Key? key,
     required this.userData,
+    required this.isDarkMode,
   }) : super(key: key);
 
   @override
@@ -163,7 +213,6 @@ class ProfilePic extends StatelessWidget {
           'https://srv471-files.hstgr.io/45b73e2b7df2ce51/files/public_html/proyect/storage/app/public/${userData!['profile_image']}';
     }
 
-//revisar la iamgen porque da 403, moverla a otro lado
     return SafeArea(
       child: SizedBox(
         height: 115,
@@ -174,13 +223,10 @@ class ProfilePic extends StatelessWidget {
           children: [
             CircleAvatar(
               backgroundImage: imageUrl != null
-                  ? NetworkImage(
-                      imageUrl) // Usar NetworkImage para cargar la imagen desde la URL
-                  : const AssetImage('assets/icons/jugadore.png')
-                      as ImageProvider, // Imagen por defecto
+                  ? NetworkImage(imageUrl)
+                  : const AssetImage('assets/icons/jugadore.png') as ImageProvider,
               onBackgroundImageError: (exception, stackTrace) {
-                print(
-                    'Error loading image: $exception'); // Agrega esto para depurar
+                print('Error loading image: $exception');
                 const AssetImage('assets/icons/jugadore.png');
               },
             ),
@@ -192,17 +238,17 @@ class ProfilePic extends StatelessWidget {
                 width: 46,
                 child: TextButton(
                   style: TextButton.styleFrom(
-                    foregroundColor: Colors.white,
+                    foregroundColor: isDarkMode ? Colors.black : Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(50),
-                      side: const BorderSide(color: Colors.white),
+                      side: BorderSide(color: isDarkMode ? Colors.black : Colors.white),
                     ),
-                    backgroundColor: const Color(0xFFF5F6F9),
+                    backgroundColor: isDarkMode ? Colors.grey[800] : const Color(0xFFF5F6F9),
                   ),
                   onPressed: () {},
-                  child: const Icon(
-                    Icons.camera_alt, // Icono de cámara
-                    color: Colors.black,
+                  child: Icon(
+                    Icons.camera_alt,
+                    color: isDarkMode ? Colors.white : Colors.black,
                   ),
                 ),
               ),
@@ -213,53 +259,56 @@ class ProfilePic extends StatelessWidget {
     );
   }
 }
-
 class ProfileMenu extends StatelessWidget {
   const ProfileMenu({
     Key? key,
     required this.text,
     required this.icon,
     this.press,
+    required this.isDarkMode,
   }) : super(key: key);
 
   final String text;
-  final IconData icon; // Usamos IconData en lugar de String para el icono
+  final IconData icon;
   final VoidCallback? press;
+  final bool isDarkMode;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      child: TextButton(
-        style: TextButton.styleFrom(
-          foregroundColor: const Color(0xFFFF7643),
-          padding: const EdgeInsets.all(20),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          backgroundColor: const Color(0xFFF5F6F9),
-        ),
-        onPressed: press,
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color: const Color(0xFFFF7643),
-              size: 22,
-            ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: Text(
-                text,
-                style: const TextStyle(
-                  color: Color(0xFF757575),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      child: Card(
+        elevation: 10,
+        child: TextButton(
+          style: TextButton.styleFrom(
+            foregroundColor: isDarkMode ? Colors.white : const Color.fromARGB(255, 39, 164, 199),
+            padding: const EdgeInsets.all(20),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            backgroundColor: isDarkMode ? Colors.grey[800] : const Color(0xFFF5F6F9),
+          ),
+          onPressed: press,
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                color: isDarkMode ? Colors.white : Colors.blueGrey,
+                size: 22,
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Text(
+                  text,
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white : const Color(0xFF757575),
+                  ),
                 ),
               ),
-            ),
-            const Icon(
-              Icons.arrow_forward_ios,
-              color: Color(0xFF757575),
-            ),
-          ],
+              Icon(
+                Icons.arrow_forward_ios,
+                color: isDarkMode ? Colors.white : const Color(0xFF757575),
+              ),
+            ],
+          ),
         ),
       ),
     );
