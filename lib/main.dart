@@ -19,6 +19,7 @@ void main() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   int isviewed = prefs.getInt('onBoard') ?? 1;
 
+ 
   await dotenv.load(fileName: '.env');
 
   await Firebase.initializeApp(
@@ -32,6 +33,8 @@ void main() async {
     ),
   );
 }
+
+  GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
 class MyApp extends StatelessWidget {
   final int isviewed;

@@ -13,6 +13,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   final Completer<GoogleMapController> _controller = Completer();
   Position? _currentPosition;
   List<Field> fields = [];
+  bool _isMapLoading = true; // Estado para controlar si el mapa está cargando
 
   @override
   void initState() {
@@ -23,66 +24,79 @@ class _ExploreScreenState extends State<ExploreScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: Stack(
-      children: [
-        // Google Maps
-        _currentPosition == null
-            ? Center(child: CircularProgressIndicator())
-            : GoogleMap(
-                initialCameraPosition: CameraPosition(
-                    target: LatLng(_currentPosition!.latitude,
-                        _currentPosition!.longitude),
-                    zoom: 14),
-                onMapCreated: (controller) => _controller.complete(controller),
-                myLocationEnabled: true,
-              ),
+      body: Stack(
+        children: [
+          // Google Maps
+          _currentPosition == null
+              ? const Center(child: const CircularProgressIndicator())
+              : Stack(
+                  children: [
+                    GoogleMap(
+                       initialCameraPosition: CameraPosition(
+                        target: LatLng(
+                            _currentPosition!.latitude, _currentPosition!.longitude),
+                        zoom: 14,
+                      ),
+                      onMapCreated: (controller) {
+                        _controller.complete(controller);
+                        setState(() {
+                          _isMapLoading = false; // El mapa se ha cargado
+                        });
+                      },
+                      myLocationEnabled: true,
+                    ),
+                    if (_isMapLoading)
+                      Center(
+                        child: CircularProgressIndicator(), // Indicador de carga
+                      ),
+                  ],
+                ),
 
-        // Search Bar
-        Positioned(
-          top: 50,
-          left: 20,
-          right: 20,
-          child: Container(
-            decoration: BoxDecoration(
+          // Search Bar
+          Positioned(
+            top: 50,
+            left: 20,
+            right: 20,
+            child: Container(
+              decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(8),
-                boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)]),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Buscar canchas',
-                      prefixIcon: Icon(Icons.search),
-                      border: InputBorder.none,
+                boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      decoration: InputDecoration(
+                        hintText: 'Buscar canchas',
+                        prefixIcon: Icon(Icons.search),
+                        border: InputBorder.none,
+                      ),
                     ),
                   ),
-                ),
-                IconButton(
-                  icon: Icon(Icons.filter_list),
-                  onPressed: () {
-                    // Show filters
-                  },
-                )
-              ],
+                  IconButton(
+                    icon: Icon(Icons.filter_list),
+                    onPressed: () {
+                      // Show filters
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
 
-        // Fields List
-        DraggableScrollableSheet(
+          // Fields List
+          DraggableScrollableSheet(
             initialChildSize: 0.3,
             minChildSize: 0.2,
             maxChildSize: 0.8,
             builder: (context, scrollController) {
               return Container(
                 decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(16)),
-                    boxShadow: [
-                      BoxShadow(color: Colors.black26, blurRadius: 10)
-                    ]),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                  boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10)],
+                ),
                 child: ListView.builder(
                   controller: scrollController,
                   itemCount: fields.length,
@@ -92,9 +106,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   },
                 ),
               );
-            })
-      ],
-    ));
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _getCurrentLocation() async {
@@ -132,9 +148,9 @@ class FieldCard extends StatelessWidget {
                 Row(
                   children: [
                     Icon(Icons.star, color: Colors.amber),
-                    Text(field.rating.toString())
+                    Text(field.rating.toString()),
                   ],
-                )
+                ),
               ],
             ),
             SizedBox(height: 8),
@@ -143,7 +159,7 @@ class FieldCard extends StatelessWidget {
                 Icon(Icons.location_on, size: 16),
                 Text(' ${field.distance.toStringAsFixed(1)} km'),
                 Spacer(),
-                Text('${field.activeGames} partidos activos')
+                Text('${field.activeGames} partidos activos'),
               ],
             ),
             SizedBox(height: 12),
@@ -153,9 +169,10 @@ class FieldCard extends StatelessWidget {
               },
               child: Text('Ver detalles'),
               style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  minimumSize: Size(double.infinity, 36)),
-            )
+                backgroundColor: Colors.green,
+                minimumSize: Size(double.infinity, 36),
+              ),
+            ),
           ],
         ),
       ),
@@ -169,9 +186,10 @@ class Field {
   final double distance;
   final int activeGames;
 
-  Field(
-      {required this.name,
-      required this.rating,
-      required this.distance,
-      required this.activeGames});
+  Field({
+    required this.name,
+    required this.rating,
+    required this.distance,
+    required this.activeGames,
+  });
 }

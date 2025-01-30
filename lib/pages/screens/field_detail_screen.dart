@@ -5,7 +5,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:user_auth_crudd10/auth/auth_service.dart';
 import 'package:user_auth_crudd10/model/field.dart';
 import 'package:user_auth_crudd10/pages/screens/bookin/BookingDialog%20.dart';
-
+ 
 class FieldDetailScreen extends StatefulWidget {
   final Field field;
   FieldDetailScreen({required this.field});
@@ -40,7 +40,7 @@ class _FieldDetailScreenState extends State<FieldDetailScreen>
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
-        child: BookingDialog(field: field),
+        child: ScaffoldMessenger(child: BookingDialog(field: field)),
       ),
     );
   }
@@ -187,8 +187,7 @@ class _FieldDetailScreenState extends State<FieldDetailScreen>
                           items: (widget.field.images ?? []).map((url) {
                             return GestureDetector(
                               onTap: () {
-                                // Mostrar la imagen en pantalla completa
-                                showDialog(
+                                 showDialog(
                                   context: context,
                                   builder: (BuildContext context) {
                                     return Dialog(

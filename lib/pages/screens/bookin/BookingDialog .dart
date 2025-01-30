@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:user_auth_crudd10/auth/booking_service.dart';
 import 'package:user_auth_crudd10/model/field.dart';
+
 
 class BookingDialog extends StatefulWidget {
   final Field field;
@@ -13,45 +16,91 @@ class BookingDialog extends StatefulWidget {
 }
 
 class _BookingDialogState extends State<BookingDialog> {
+  List<String> availableHours = [];
   final _bookingService = BookingService();
   DateTime selectedDate = DateTime.now();
   String? selectedTime;
   int? playersNeeded;
-    bool isLoading = false;
+  bool isLoading = false;
+  bool isLoadingHours = false;
 
-Future<void> _selectDate() async {
-  final DateTime? picked = await showDatePicker(
-    context: context,
-    initialDate: selectedDate,
-    firstDate: DateTime.now(),
-    lastDate: DateTime.now().add(const Duration(days: 30)),
-    builder: (BuildContext context, Widget? child) {
-      return Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: Colors.blue,  
-            onPrimary: Colors.white,  
-            onSurface: Colors.black,  
-          ),
-          textButtonTheme: TextButtonThemeData(
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.blue, // Color de los botones (Cancelar, Aceptar)
-            ),
-          ),
-        ),
-        child: child!,
-      );
-    },
-  );
+  @override
+  void initState() {
+    super.initState();
+initializeDateFormatting('en').then((_) {
+    _refreshAvailableHours();
+  });
+  }
 
-  if (picked != null && picked != selectedDate) {
+Future<void> _refreshAvailableHours() async {
+  setState(() {
+    isLoadingHours = true;
+  });
+
+  try {
+    final availableHours = await _bookingService.getAvailableHours(
+      widget.field.id,
+      DateFormat('yyyy-MM-dd').format(selectedDate),
+    );
+
     setState(() {
-      selectedDate = picked;
-      selectedTime = null; // Reinicia la hora si cambia la fecha
+      this.availableHours = availableHours;
+      if (!availableHours.contains(selectedTime)) {
+        selectedTime = null;
+      }
+    });
+
+    if (availableHours.isEmpty) {
+      Fluttertoast.showToast(
+        msg: 'No hay horarios disponibles para este día',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.orange,
+        textColor: Colors.white,
+      );
+    }
+  } catch (e) {
+    debugPrint('Error refreshing hours: $e');
+  } finally {
+    setState(() {
+      isLoadingHours = false;
     });
   }
 }
 
+  Future<void> _selectDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 30)),
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Colors.blue,
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.blue,
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && picked != selectedDate) {
+      setState(() {
+        selectedDate = picked;
+        selectedTime = null;
+      });
+      await _refreshAvailableHours();
+    }
+  }
 
   void _selectTime(String time) {
     setState(() {
@@ -59,181 +108,351 @@ Future<void> _selectDate() async {
     });
   }
 
- Future<void> _createBooking() async {
-  if (selectedTime == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Por favor selecciona un horario')),
-    );
-    return;
-  }
+  Future<void> _createBooking() async {
+    debugPrint("Método _createBooking ejecutado");
 
-  setState(() {
-    isLoading = true;
-  });
+    DateTime today = DateTime.now();
+    DateTime selectedOnlyDate = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+    DateTime todayOnlyDate = DateTime(today.year, today.month, today.day);
 
-  try {
-    final success = await _bookingService.createBooking(
-      fieldId: widget.field.id,
-      date: DateFormat('yyyy-MM-dd').format(selectedDate),
-      startTime: selectedTime!,
-      playersNeeded: playersNeeded,
-    );
-
-    setState(() {
-      isLoading = false;
-    });
-
-    if (success) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Reserva creada exitosamente')),
+    if (selectedOnlyDate.isBefore(todayOnlyDate)) {
+      Fluttertoast.showToast(
+        msg: 'Por favor selecciona una fecha válida',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
       );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al crear la reserva')),
-      );
+      return;
     }
-  } catch (e) {
+
+    if (selectedTime == null || selectedTime!.isEmpty) {
+      Fluttertoast.showToast(
+        msg: 'Por favor selecciona un horario',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+      );
+      return;
+    }
+
     setState(() {
-      isLoading = false;
+      isLoading = true;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error: ${e.toString()}')),
-    );
-  }
-}
 
-Widget _buildDatePicker() {
-  return ListTile(
-    leading: const Icon(Icons.calendar_today),
-    title: const Text(
-      'Fecha',
-      style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
-    ),
-    subtitle: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          DateFormat('dd/MM/yyyy').format(selectedDate),
-          style: const TextStyle(color: Colors.black),
-        ),
-        const Text(
-          'Toca para cambiar fecha',
-          style: TextStyle(color: Colors.grey, fontSize: 14),
-        ),
-      ],
-    ),
-    onTap: _selectDate,
-  );
-}
+    try {
+      final result = await _bookingService.createBooking(
+        fieldId: widget.field.id,
+        date: DateFormat('yyyy-MM-dd').format(selectedDate),
+        startTime: selectedTime!,
+        playersNeeded: playersNeeded,
+      );
+      debugPrint("Result from server: $result");
 
+      if (result['success']) {
+        Fluttertoast.showToast(
+          msg: result['message'],
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+        );
+        Navigator.pop(context);
+      } else {
+        Fluttertoast.showToast(
+          msg: result['message'],
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
 
-  Widget _buildTimeSlots() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Horarios Disponibles', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          children: (widget.field.available_hours ?? []).map((time) {
-            bool isSelected = time == selectedTime;
-            return FilterChip(
-              label: Text(time),
-              selected: isSelected,
-              onSelected: (_) => _selectTime(time),
-              backgroundColor: isSelected ? Colors.blue : null,
-              labelStyle: TextStyle(
-                color: isSelected ? Colors.white : null,
-              ),
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
+        await _refreshAvailableHours();
+        
+      }
+} catch (e, stackTrace) {
+      debugPrint("Error: ${e.toString()}");
+        debugPrint("Stack trace: $stackTrace"); // Imprime el stack trace
 
- Widget _buildPlayersNeededInput() {
-  return TextField(
-    style: const TextStyle(
-      color: Colors.black,
-    ),
-    keyboardType: TextInputType.number,
-    decoration: const InputDecoration(
-      fillColor: Colors.green,
-      labelText: 'Jugadores necesarios (opcional)',
-      labelStyle: TextStyle(
-        color: Colors.blue, // Cambia aquí el color del label
-      ),
-      border: OutlineInputBorder(),
-    ),
-    onChanged: (value) {
+      Fluttertoast.showToast(
+        msg: 'Error al crear la reserva: ${e.toString()}',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+      );
+    } finally {
       setState(() {
-        playersNeeded = int.tryParse(value);
+        isLoading = false;
       });
-    },
+    }
+  }
+
+  Widget _buildDatePicker() {
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.calendar_today, color: Colors.blue),
+                SizedBox(width: 8),
+                Text(
+                  DateFormat('EEEE dd/MM/yyyy', 'es').format(selectedDate),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            TextButton(
+              onPressed: _selectDate,
+              child: Text('Cambiar fecha'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+Widget _buildTimeSlots() {
+  return Card(
+    elevation: 4,
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Horarios Disponibles',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue,
+                ),
+              ),
+              if (isLoadingHours)
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+            ],
+          ),
+          SizedBox(height: 16),
+          if (availableHours.isEmpty && !isLoadingHours)
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.orange),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'No hay horarios disponibles para este día',
+                      style: TextStyle(color: Colors.orange[700]),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: availableHours.map((time) {
+                bool isSelected = time == selectedTime;
+                return FilterChip(
+                  label: Text(time),
+                  selected: isSelected,
+                  onSelected: (_) => setState(() => selectedTime = time),
+                  backgroundColor: isSelected ? Colors.blue : Colors.grey.shade100,
+                  labelStyle: TextStyle(
+                    color: isSelected ? Colors.white : Colors.black87,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                );
+              }).toList(),
+            ),
+        ],
+      ),
+    ),
   );
 }
 
-
-  Widget _buildPriceInfo() {
-    return Row(
-      children: [
-        const Icon(Icons.attach_money),
-        const SizedBox(width: 8),
-        Text(
-          'Precio: \$${widget.field.price_per_match}',
-          style: const TextStyle(
-            fontSize: 18,
-            color: Colors.green,
-            fontWeight: FontWeight.bold,
-          ),
+  Widget _buildPlayersNeededInput() {
+    return TextField(
+      style: const TextStyle(
+        color: Colors.black,
+      ),
+      keyboardType: TextInputType.number,
+      decoration: const InputDecoration(
+        fillColor: Colors.green,
+        labelText: 'Jugadores necesarios (opcional)',
+        labelStyle: TextStyle(
+          color: Colors.blue,
         ),
-      ],
+        border: OutlineInputBorder(),
+      ),
+      onChanged: (value) {
+        setState(() {
+          playersNeeded = int.tryParse(value);
+        });
+      },
+    );
+  }
+
+  Widget _buildSummary() {
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Resumen de Reserva',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue,
+              ),
+            ),
+            Divider(),
+            _buildSummaryRow('Cancha:', widget.field.name),
+            _buildSummaryRow('Fecha:', 
+              DateFormat('EEEE dd/MM/yyyy', 'es').format(selectedDate)),
+            if (selectedTime != null)
+              _buildSummaryRow('Hora:', selectedTime!),
+            _buildSummaryRow('Precio:', 
+              '\$${widget.field.price_per_match}'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSummaryRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(color: Colors.grey[600])),
+          Text(
+            value,
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
     );
   }
 
 Widget _buildConfirmButton() {
-  return ElevatedButton(
-    onPressed: isLoading ? null : _createBooking,
-    style: ElevatedButton.styleFrom(
-      minimumSize: const Size(double.infinity, 50),
-      backgroundColor: isLoading ? Colors.grey : Colors.blue,
+  final bool isDisabled = isLoading || selectedTime == null;
+  
+  return Container(
+    margin: const EdgeInsets.symmetric(horizontal: 30),
+    child: ElevatedButton(
+      onPressed: isDisabled ? null : _createBooking,
+      style: ElevatedButton.styleFrom(
+        minimumSize: const Size(double.infinity, 50),
+        backgroundColor: Colors.blue,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(25),
+        ),
+        // Añadir el color de fondo cuando está deshabilitado
+        disabledBackgroundColor: Colors.blue.withOpacity(0.6),
+      ),
+      child: isLoading
+          ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2,
+              ),
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.sports_soccer,
+                  // Color condicional para el icono
+                  color: isDisabled ? Colors.white : Colors.white,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Confirmar Reserva',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    // Color condicional para el texto
+                    color: isDisabled ? Colors.white : Colors.white,
+                  ),
+                ),
+              ],
+            ),
     ),
-    child: isLoading
-        ? const CircularProgressIndicator(color: Colors.white)
-        : const Text(
-            'Confirmar Reserva',
-            style: TextStyle(fontSize: 16),
-          ),
   );
 }
+
   @override
   Widget build(BuildContext context) {
- 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'Reservar - ${widget.field.name}',
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+    return SingleChildScrollView(
+      child: Container(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  margin: EdgeInsets.only(left: 30),
+                  child: Text(
+                    'Reservar Cancha',
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 20),
-          _buildDatePicker(),
-          const SizedBox(height: 20),
-          _buildTimeSlots(),
-          const SizedBox(height: 30),
-          _buildPlayersNeededInput(),
-          const SizedBox(height: 30),
-          _buildPriceInfo(),
-          const SizedBox(height: 40),
-          _buildConfirmButton(),
-        ],
+            SizedBox(height: 16),
+            _buildDatePicker(),
+            SizedBox(height: 16),
+            _buildTimeSlots(),
+            SizedBox(height: 16),
+            _buildSummary(),
+            SizedBox(height: 24),
+            _buildConfirmButton(),
+                        SizedBox(height: 24),
+
+          ],
+        ),
       ),
     );
   }

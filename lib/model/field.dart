@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 class Field {
   final int id;
   final String name;
@@ -11,7 +9,7 @@ class Field {
   final double? longitude;
   final bool is_active;
   final String type;
-  final List<String> available_hours;
+  final Map<String, List<String>> available_hours; // Cambiado a Map<String, List<String>>
   final List<String>? amenities;
   final List<String>? images;
   final String price_per_match;
@@ -27,7 +25,7 @@ class Field {
     this.longitude,
     required this.is_active,
     required this.type,
-    required this.available_hours,
+    required this.available_hours, // Cambiado a Map<String, List<String>>
     this.amenities,
     this.images,
     required this.price_per_match,
@@ -45,7 +43,9 @@ class Field {
       longitude: json['longitude']?.toDouble(),
       is_active: json['is_active'],
       type: json['type'],
-      available_hours: List<String>.from(json['available_hours']),
+      available_hours: (json['available_hours'] as Map<String, dynamic>).map(
+        (key, value) => MapEntry(key, List<String>.from(value)),
+      ), // Convertir el mapa correctamente
       amenities: json['amenities'] != null
           ? List<String>.from(json['amenities'])
           : null,
@@ -54,7 +54,6 @@ class Field {
     );
   }
 
-  // Sobrescribir toString para una representación más legible
   @override
   String toString() {
     return 'Field(id: $id, name: $name, description: $description, location: $location, price_per_match: $price_per_match, availableHours: $available_hours, amenities: $amenities, images: $images)';
