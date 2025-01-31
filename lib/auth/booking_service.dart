@@ -35,67 +35,90 @@ class BookingService {
       return false;
     }
   }
- 
 
 Future<List<String>> getAvailableHours(int fieldId, String date) async {
   try {
-    final token = await storage.getToken();
+    debugPrint('Requesting available hours for field $fieldId on date $date');
+    final Uri url = Uri.parse('$baseUrl/fields/$fieldId/available-hours?date=$date');
+    debugPrint('URL: $url');
+    
     final response = await http.get(
-      Uri.parse('$baseUrl/fields/$fieldId/available-hours?date=$date'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
+      url,
+      headers: await AuthService().getHeaders(),
     );
-
-    debugPrint("Response status code: ${response.statusCode}");
-    debugPrint("Response body: ${response.body}");
+    
+    debugPrint('Response status code: ${response.statusCode}');
+    debugPrint('Response body: ${response.body}');
 
     if (response.statusCode == 200) {
       final dynamic decodedData = json.decode(response.body);
-
-      // Verificar el tipo de la respuesta
-      debugPrint("Decoded data type: ${decodedData.runtimeType}");
-      debugPrint("Decoded data: $decodedData");
-
-      // Si la respuesta es una lista de strings, devolverla directamente
+      
       if (decodedData is List) {
-        return decodedData.map((hour) => hour.toString()).toList();
+        // Obtener la fecha actual y la fecha seleccionada
+        final now = DateTime.now();
+        final selectedDate = DateTime.parse(date);
+        
+        // Filtrar los horarios
+        return decodedData.map((dynamic hour) => hour.toString()).where((hour) {
+          // Crear un DateTime para la hora del horario
+          final timeComponents = hour.split(':');
+          final hourDateTime = DateTime(
+            selectedDate.year,
+            selectedDate.month,
+            selectedDate.day,
+            int.parse(timeComponents[0]),
+            int.parse(timeComponents[1])
+          );
+          
+          // Si es el día actual, solo mostrar horarios futuros
+          if (selectedDate.year == now.year && 
+              selectedDate.month == now.month && 
+              selectedDate.day == now.day) {
+            return hourDateTime.isAfter(now);
+          }
+          
+           return true;
+        }).toList();
       } else {
-        debugPrint('Error: la respuesta no es una lista de strings');
+        debugPrint('Error: la respuesta no es una lista: $decodedData');
         return [];
       }
-    } else {
-      debugPrint('Error: código de estado ${response.statusCode}');
-      return [];
     }
-  } catch (e) {
+    return [];
+  } catch (e, stackTrace) {
     debugPrint('Error getting available hours: $e');
+    debugPrint('Stack trace: $stackTrace');
     return [];
   }
 }
 
-// Método para obtener el día de la semana en inglés
-String _getDayOfWeek(DateTime date) {
-  switch (date.weekday) {
-    case DateTime.monday:
-      return 'monday';
-    case DateTime.tuesday:
-      return 'tuesday';
-    case DateTime.wednesday:
-      return 'wednesday';
-    case DateTime.thursday:
-      return 'thursday';
-    case DateTime.friday:
-      return 'friday';
-    case DateTime.saturday:
-      return 'saturday';
-    case DateTime.sunday:
-      return 'sunday';
-    default:
-      throw Exception('Día de la semana no válido');
+  String _getDayOfWeek(String date) {
+    // Parsea la fecha en formato String a un objeto DateTime
+    final DateTime dateTime = DateTime.parse(date);
+
+    // Usa el paquete `intl` para obtener el día de la semana en formato largo (por ejemplo, "Monday")
+    final String dayName = DateFormat('EEEE').format(dateTime);
+
+    // Convierte el nombre del día a minúsculas y en inglés para que coincida con las claves del JSON
+    switch (dayName.toLowerCase()) {
+      case 'monday':
+        return 'monday';
+      case 'tuesday':
+        return 'tuesday';
+      case 'wednesday':
+        return 'wednesday';
+      case 'thursday':
+        return 'thursday';
+      case 'friday':
+        return 'friday';
+      case 'saturday':
+        return 'saturday';
+      case 'sunday':
+        return 'sunday';
+      default:
+        throw Exception('Día de la semana no válido');
+    }
   }
-}
 
   Future<List<Booking>> getActiveReservations() async {
     try {
@@ -130,57 +153,49 @@ String _getDayOfWeek(DateTime date) {
     }
   }
 
-   Future<Map<String, dynamic>> createBooking({
-  required int fieldId,
-  required String date,
-  required String startTime,
-  int? playersNeeded,
-}) async {
-  try {
-          final token = await storage.getToken();
+  Future<Map<String, dynamic>> createBooking({
+    required int fieldId,
+    required String date,
+    required String startTime,
+    int? playersNeeded,
+  }) async {
+    try {
+      final token = await storage.getToken();
+    debugPrint("Token: $token");  
 
-    final response = await http.post(
-      Uri.parse('$baseUrl/bookings'),
-  headers: {
+      final response = await http.post(
+        Uri.parse('$baseUrl/bookings'),
+        headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
-        },      body: json.encode({
-        'field_id': fieldId,
-        'date': date,
-        'start_time': startTime,
-        'players_needed': playersNeeded,
-      }),
-    );
+        },
+        body: json.encode({
+          'field_id': fieldId,
+          'date': date,
+          'start_time': startTime,
+          'players_needed': playersNeeded,
+        }),
+      );
 
-    debugPrint('Booking Status Code: ${response.statusCode}');
-    debugPrint('Booking Response: ${response.body}');
+debugPrint("Response status code: ${response.statusCode}");
+debugPrint("Response body: ${response.body}");
 
-    if (response.statusCode == 201) {
-      return {
-        'success': true,
-        'message': 'Reserva creada exitosamente'
-      };
-    } else if (response.statusCode == 422) {
-      final responseData = json.decode(response.body);
-      return {
-        'success': false,
-        'message': responseData['message'] ?? 'Horario no disponible'
-      };
-    } else {
-      final responseData = json.decode(response.body);
-      return {
-        'success': false,
-        'message': responseData['message'] ?? 'Error al crear la reserva'
-      };
+      if (response.statusCode == 201) {
+        return {'success': true, 'message': 'Reserva creada exitosamente'};
+      } else if (response.statusCode == 422) {
+        final responseData = json.decode(response.body);
+        return {
+          'success': false,
+          'message': responseData['message'] ?? 'Horario no disponible'
+        };
+      } else {
+        return {'success': false, 'message': 'Error al crear la reserva'};
+      }
+    } catch (e) {
+      print('Error en la reserva: $e');
+      return {'success': false, 'message': e.toString()};
     }
-  } catch (e) {
-    debugPrint('Error en la reserva: $e');
-    return {
-      'success': false,
-      'message': 'Error de conexión: ${e.toString()}'
-    };
   }
-}
 
   Future<List<Booking>> getReservationHistory() async {
     try {

@@ -1,459 +1,258 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
-import 'package:intl/date_symbol_data_local.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-import 'package:user_auth_crudd10/auth/booking_service.dart';
-import 'package:user_auth_crudd10/model/field.dart';
+import 'package:user_auth_crudd10/auth/auth_service.dart';
+import 'package:user_auth_crudd10/model/booking.dart';
+import 'package:user_auth_crudd10/services/storage_service.dart';
+import 'package:user_auth_crudd10/utils/constantes.dart';
 
+class BookingService {
+  final StorageService storage = StorageService();
 
-class BookingDialog extends StatefulWidget {
-  final Field field;
-
-  const BookingDialog({super.key, required this.field});
-
-  @override
-  State<BookingDialog> createState() => _BookingDialogState();
-}
-
-class _BookingDialogState extends State<BookingDialog> {
-  List<String> availableHours = [];
-    final _bookingService = BookingService();
-  DateTime selectedDate = DateTime.now();
-  String? selectedTime;
-  int? playersNeeded;
-  bool isLoading = false;
-  bool isLoadingHours = false;
-
-  @override
-  void initState() {
-    super.initState();
-initializeDateFormatting('en').then((_) {
-    _refreshAvailableHours();
-  });
-  }
-
- Future<void> _refreshAvailableHours() async {
-  setState(() {
-    isLoadingHours = true;
-  });
-
-  try {
-    final availableHours = await _bookingService.getAvailableHours(
-      widget.field.id,
-      DateFormat('yyyy-MM-dd').format(selectedDate),
-    );
-
-    setState(() {
-      this.availableHours = availableHours;
-      if (!availableHours.contains(selectedTime)) {
-        selectedTime = null;
-      }
-    });
-
-    if (availableHours.isEmpty) {
-      Fluttertoast.showToast(
-        msg: 'No hay horarios disponibles para este día',
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.orange,
-        textColor: Colors.white,
-      );
-    }
-  } catch (e) {
-    debugPrint('Error refreshing hours: $e');
-  } finally {
-    setState(() {
-      isLoadingHours = false;
-    });
-  }
-}
-  Future<void> _selectDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: selectedDate,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 30)),
-      builder: (BuildContext context, Widget? child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Colors.blue,
-              onPrimary: Colors.white,
-              onSurface: Colors.black,
-            ),
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.blue,
-              ),
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null && picked != selectedDate) {
-      setState(() {
-        selectedDate = picked;
-        selectedTime = null;
-      });
-      await _refreshAvailableHours();
-    }
-  }
-
-  void _selectTime(String time) {
-    setState(() {
-      selectedTime = time;
-    });
-  }
-
-  Future<void> _createBooking() async {
-    debugPrint("Método _createBooking ejecutado");
-
-    DateTime today = DateTime.now();
-    DateTime selectedOnlyDate = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
-    DateTime todayOnlyDate = DateTime(today.year, today.month, today.day);
-
-    if (selectedOnlyDate.isBefore(todayOnlyDate)) {
-      Fluttertoast.showToast(
-        msg: 'Por favor selecciona una fecha válida',
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-      );
-      return;
-    }
-
-    if (selectedTime == null || selectedTime!.isEmpty) {
-      Fluttertoast.showToast(
-        msg: 'Por favor selecciona un horario',
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-      );
-      return;
-    }
-
-    setState(() {
-      isLoading = true;
-    });
-
+  // Método para cancelar reserva
+  Future<bool> cancelReservation(String reservationId) async {
     try {
-      final result = await _bookingService.createBooking(
-        fieldId: widget.field.id,
-        date: DateFormat('yyyy-MM-dd').format(selectedDate),
-        startTime: selectedTime!,
-        playersNeeded: playersNeeded,
+      final token = await storage.getToken();
+      final response = await http.post(
+        Uri.parse('$baseUrl/cancelReservation/$reservationId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
       );
-      debugPrint("Result from server: $result");
 
-      if (result['success']) {
-        Fluttertoast.showToast(
-          msg: result['message'],
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.green,
-          textColor: Colors.white,
-        );
-        Navigator.pop(context);
+      if (response.statusCode == 200) {
+        print('Reserva cancelada exitosamente');
+        return true;
       } else {
-        Fluttertoast.showToast(
-          msg: result['message'],
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-        );
-
-        await _refreshAvailableHours();
-        
+        print(
+            'Error al cancelar la reserva. Código de estado: ${response.statusCode}');
+        return false;
       }
-} catch (e, stackTrace) {
-      debugPrint("Error: ${e.toString()}");
-        debugPrint("Stack trace: $stackTrace"); // Imprime el stack trace
-
-      Fluttertoast.showToast(
-        msg: 'Error al crear la reserva: ${e.toString()}',
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-      );
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
+    } catch (e) {
+      print('Error al cancelar la reserva: $e');
+      return false;
     }
   }
 
-  Widget _buildDatePicker() {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.calendar_today, color: Colors.blue),
-                SizedBox(width: 8),
-                Text(
-                  DateFormat('EEEE dd/MM/yyyy', 'es').format(selectedDate),
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            TextButton(
-              onPressed: _selectDate,
-              child: Text('Cambiar fecha'),
-            ),
-          ],
-        ),
-      ),
+Future<List<String>> getAvailableHours(int fieldId, String date) async {
+  try {
+    debugPrint('Requesting available hours for field $fieldId on date $date');
+    final Uri url = Uri.parse('$baseUrl/fields/$fieldId/available-hours?date=$date');
+    debugPrint('URL: $url');
+    
+    final response = await http.get(
+      url,
+      headers: await AuthService().getHeaders(),
     );
-  }
+    
+    debugPrint('Response status code: ${response.statusCode}');
+    debugPrint('Response body: ${response.body}');
 
-  Widget _buildTimeSlots() {
-  return Card(
-    elevation: 4,
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Horarios Disponibles',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue,
-                ),
-              ),
-              if (isLoadingHours)
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-            ],
-          ),
-          SizedBox(height: 16),
-          if (availableHours.isEmpty && !isLoadingHours)
-            Container(
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange.shade200),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.orange),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'No hay horarios disponibles para este día',
-                      style: TextStyle(color: Colors.orange[700]),
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: availableHours.map((time) {
-                bool isSelected = time == selectedTime;
-                return FilterChip(
-                  label: Text(time),
-                  selected: isSelected,
-                  onSelected: (_) => setState(() => selectedTime = time),
-                  backgroundColor: isSelected ? Colors.blue : Colors.grey.shade100,
-                  labelStyle: TextStyle(
-                    color: isSelected ? Colors.white : Colors.black87,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                );
-              }).toList(),
-            ),
-        ],
-      ),
-    ),
-  );
+    if (response.statusCode == 200) {
+      final dynamic decodedData = json.decode(response.body);
+      
+      if (decodedData is List) {
+        // Obtener la fecha actual y la fecha seleccionada
+        final now = DateTime.now();
+        final selectedDate = DateTime.parse(date);
+        
+        // Filtrar los horarios
+        return decodedData.map((dynamic hour) => hour.toString()).where((hour) {
+          // Crear un DateTime para la hora del horario
+          final timeComponents = hour.split(':');
+          final hourDateTime = DateTime(
+            selectedDate.year,
+            selectedDate.month,
+            selectedDate.day,
+            int.parse(timeComponents[0]),
+            int.parse(timeComponents[1])
+          );
+          
+          // Si es el día actual, solo mostrar horarios futuros
+          if (selectedDate.year == now.year && 
+              selectedDate.month == now.month && 
+              selectedDate.day == now.day) {
+            return hourDateTime.isAfter(now);
+          }
+          
+           return true;
+        }).toList();
+      } else {
+        debugPrint('Error: la respuesta no es una lista: $decodedData');
+        return [];
+      }
+    }
+    return [];
+  } catch (e, stackTrace) {
+    debugPrint('Error getting available hours: $e');
+    debugPrint('Stack trace: $stackTrace');
+    return [];
+  }
 }
 
-  Widget _buildPlayersNeededInput() {
-    return TextField(
-      style: const TextStyle(
-        color: Colors.black,
-      ),
-      keyboardType: TextInputType.number,
-      decoration: const InputDecoration(
-        fillColor: Colors.green,
-        labelText: 'Jugadores necesarios (opcional)',
-        labelStyle: TextStyle(
-          color: Colors.blue,
-        ),
-        border: OutlineInputBorder(),
-      ),
-      onChanged: (value) {
-        setState(() {
-          playersNeeded = int.tryParse(value);
-        });
-      },
-    );
+  String _getDayOfWeek(String date) {
+    // Parsea la fecha en formato String a un objeto DateTime
+    final DateTime dateTime = DateTime.parse(date);
+
+    // Usa el paquete `intl` para obtener el día de la semana en formato largo (por ejemplo, "Monday")
+    final String dayName = DateFormat('EEEE').format(dateTime);
+
+    // Convierte el nombre del día a minúsculas y en inglés para que coincida con las claves del JSON
+    switch (dayName.toLowerCase()) {
+      case 'monday':
+        return 'monday';
+      case 'tuesday':
+        return 'tuesday';
+      case 'wednesday':
+        return 'wednesday';
+      case 'thursday':
+        return 'thursday';
+      case 'friday':
+        return 'friday';
+      case 'saturday':
+        return 'saturday';
+      case 'sunday':
+        return 'sunday';
+      default:
+        throw Exception('Día de la semana no válido');
+    }
   }
 
-  Widget _buildSummary() {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Resumen de Reserva',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue,
-              ),
-            ),
-            Divider(),
-            _buildSummaryRow('Cancha:', widget.field.name),
-            _buildSummaryRow('Fecha:', 
-              DateFormat('EEEE dd/MM/yyyy', 'es').format(selectedDate)),
-            if (selectedTime != null)
-              _buildSummaryRow('Hora:', selectedTime!),
-            _buildSummaryRow('Precio:', 
-              '\$${widget.field.price_per_match}'),
-          ],
-        ),
-      ),
-    );
+  Future<List<Booking>> getActiveReservations() async {
+    try {
+      final token = await storage.getToken();
+      final response = await http.get(
+        Uri.parse('$baseUrl/active-reservations'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      print('Active Reservations - Código de estado: ${response.statusCode}');
+      print('Active Reservations - Cuerpo de respuesta: ${response.body}');
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = json.decode(response.body);
+        print('Active Reservations - Datos recibidos: $data');
+
+        final activeBookings =
+            data.map((item) => Booking.fromJson(item)).toList();
+
+        print('Active Reservations - Reservas activas: $activeBookings');
+        return activeBookings;
+      } else {
+        throw Exception(
+            'No se pudieron cargar las reservas activas. Código de estado: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error al obtener reservas activas: $e');
+      rethrow;
+    }
   }
 
-  Widget _buildSummaryRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: TextStyle(color: Colors.grey[600])),
-          Text(
-            value,
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-    );
+  Future<Map<String, dynamic>> createBooking({
+    required int fieldId,
+    required String date,
+    required String startTime,
+    int? playersNeeded,
+  }) async {
+    try {
+      final token = await storage.getToken();
+    debugPrint("Token: $token");  
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/bookings'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'field_id': fieldId,
+          'date': date,
+          'start_time': startTime,
+          'players_needed': playersNeeded,
+        }),
+      );
+
+debugPrint("Response status code: ${response.statusCode}");
+debugPrint("Response body: ${response.body}");
+
+      if (response.statusCode == 201) {
+        return {'success': true, 'message': 'Reserva creada exitosamente'};
+      } else if (response.statusCode == 422) {
+        final responseData = json.decode(response.body);
+        return {
+          'success': false,
+          'message': responseData['message'] ?? 'Horario no disponible'
+        };
+      } else {
+        return {'success': false, 'message': 'Error al crear la reserva'};
+      }
+    } catch (e) {
+      print('Error en la reserva: $e');
+      return {'success': false, 'message': e.toString()};
+    }
   }
 
-Widget _buildConfirmButton() {
-  final bool isDisabled = isLoading || selectedTime == null;
-  
-  return Container(
-    margin: const EdgeInsets.symmetric(horizontal: 30),
-    child: ElevatedButton(
-      onPressed: isDisabled ? null : _createBooking,
-      style: ElevatedButton.styleFrom(
-        minimumSize: const Size(double.infinity, 50),
-        backgroundColor: Colors.blue,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(25),
-        ),
-        // Añadir el color de fondo cuando está deshabilitado
-        disabledBackgroundColor: Colors.blue.withOpacity(0.6),
-      ),
-      child: isLoading
-          ? const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 2,
-              ),
-            )
-          : Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.sports_soccer,
-                  // Color condicional para el icono
-                  color: isDisabled ? Colors.white : Colors.white,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Confirmar Reserva',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    // Color condicional para el texto
-                    color: isDisabled ? Colors.white : Colors.white,
-                  ),
-                ),
-              ],
-            ),
-    ),
-  );
-}
+  Future<List<Booking>> getReservationHistory() async {
+    try {
+      final token = await storage.getToken();
+      final response = await http.get(
+        Uri.parse('$baseUrl/reservation-history'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
 
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Container(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  margin: EdgeInsets.only(left: 30),
-                  child: Text(
-                    'Reservar Cancha',
-                    style: TextStyle(
-                      color: Colors.green,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            SizedBox(height: 16),
-            _buildDatePicker(),
-            SizedBox(height: 16),
-            _buildTimeSlots(),
-            SizedBox(height: 16),
-            _buildSummary(),
-            SizedBox(height: 24),
-            _buildConfirmButton(),
-                        SizedBox(height: 24),
+      print('Código de estado: ${response.statusCode}');
+      print('Cuerpo de respuesta: ${response.body}');
 
-          ],
-        ),
-      ),
-    );
+      if (response.statusCode == 200) {
+        List<dynamic> data = json.decode(response.body);
+        print('Datos de historial recibidos: $data');
+
+        // Mapea directamente sin filtro adicional
+        final historicalBookings =
+            data.map((item) => Booking.fromJson(item)).toList();
+
+        print('Reservas históricas: $historicalBookings');
+        return historicalBookings;
+      } else {
+        throw Exception(
+            'No se pudo cargar el historial de reservas. Código de estado: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error al obtener historial de reservas: $e');
+      rethrow;
+    }
+  }
+
+  // Método para obtener todas las reservas
+  Future<List<Booking>> getAllReservations() async {
+    try {
+      final token = await storage.getToken();
+      final response = await http.get(
+        Uri.parse('$baseUrl/bookings'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = json.decode(response.body);
+        return data.map((item) => Booking.fromJson(item)).toList();
+      } else {
+        throw Exception(
+            'No se pudieron cargar las reservas. Código de estado: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error al obtener todas las reservas: $e');
+      rethrow;
+    }
   }
 }
