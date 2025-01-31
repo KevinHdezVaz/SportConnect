@@ -40,7 +40,7 @@ class Field {
       duration_per_match: json['duration_per_match'],
       latitude: json['latitude']?.toDouble(),
       longitude: json['longitude']?.toDouble(),
-      is_active: json['is_active'] == 1, // Convertir el 1/0 a boolean
+      is_active: json['is_active'],
       type: json['type'],
       available_hours: Map<String, List<String>>.from(json['available_hours']
           .map((key, value) => MapEntry(key, List<String>.from(value)))), // Convertir directamente
