@@ -8,9 +8,13 @@ class StorageService {
     await prefs.setString(tokenKey, token);
   }
 
-  Future<String?> getToken() async {
+ Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(tokenKey);
+    String? token = prefs.getString(tokenKey);
+
+    print("token laravel ${token ?? 'No hay token'}"); // Agregar log
+
+    return token;
   }
 
   Future<void> removeToken() async {

@@ -9,7 +9,7 @@ class BookingService {
   final AuthService _authService = AuthService();
 
 
-Future<List<String>> getAvailableHours(int fieldId, String date) async {
+Future<List<String>> getAvailableHoursx(int fieldId, String date) async {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/fields/$fieldId/available-hours?date=$date'),
@@ -26,6 +26,8 @@ Future<List<String>> getAvailableHours(int fieldId, String date) async {
       return [];
     }
   }
+
+  
 Future<Map<String, dynamic>> createBooking({
     required int fieldId,
     required String date,

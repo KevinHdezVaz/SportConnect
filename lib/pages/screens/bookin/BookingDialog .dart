@@ -17,7 +17,7 @@ class BookingDialog extends StatefulWidget {
 
 class _BookingDialogState extends State<BookingDialog> {
   List<String> availableHours = [];
-  final _bookingService = BookingService();
+    final _bookingService = BookingService();
   DateTime selectedDate = DateTime.now();
   String? selectedTime;
   int? playersNeeded;
@@ -32,7 +32,7 @@ initializeDateFormatting('en').then((_) {
   });
   }
 
-Future<void> _refreshAvailableHours() async {
+ Future<void> _refreshAvailableHours() async {
   setState(() {
     isLoadingHours = true;
   });
@@ -67,7 +67,6 @@ Future<void> _refreshAvailableHours() async {
     });
   }
 }
-
   Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -219,7 +218,8 @@ Future<void> _refreshAvailableHours() async {
       ),
     );
   }
-Widget _buildTimeSlots() {
+
+  Widget _buildTimeSlots() {
   return Card(
     elevation: 4,
     child: Padding(

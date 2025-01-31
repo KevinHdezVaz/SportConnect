@@ -21,6 +21,8 @@ class _FieldDetailScreenState extends State<FieldDetailScreen>
   DateTime selectedDate = DateTime.now();
   String? selectedTime;
   final _authService = AuthService();
+ List<String> availableHours = [];  
+  bool isLoadingHours = false;
 
   @override
   void initState() {
@@ -435,6 +437,7 @@ class _FieldDetailScreenState extends State<FieldDetailScreen>
       ),
     );
   }
+  
 }
 
 IconData _getAmenityIcon(String amenity) {
@@ -459,6 +462,9 @@ Widget _buildShimmer() {
     child: Container(color: Colors.white),
   );
 }
+
+
+
 
 class AmenityTile extends StatelessWidget {
   final IconData icon;
