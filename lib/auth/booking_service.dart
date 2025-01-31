@@ -36,61 +36,33 @@ class BookingService {
     }
   }
 
-Future<List<String>> getAvailableHours(int fieldId, String date) async {
-  try {
-    debugPrint('Requesting available hours for field $fieldId on date $date');
-    final Uri url = Uri.parse('$baseUrl/fields/$fieldId/available-hours?date=$date');
-    debugPrint('URL: $url');
-    
-    final response = await http.get(
-      url,
-      headers: await AuthService().getHeaders(),
-    );
-    
-    debugPrint('Response status code: ${response.statusCode}');
-    debugPrint('Response body: ${response.body}');
+  Future<List<String>> getAvailableHours(int fieldId, String date) async {
+    try {
+      debugPrint('Requesting available hours for field $fieldId on date $date');
+      final Uri url =
+          Uri.parse('$baseUrl/fields/$fieldId/available-hours?date=$date');
 
-    if (response.statusCode == 200) {
-      final dynamic decodedData = json.decode(response.body);
-      
-      if (decodedData is List) {
-        // Obtener la fecha actual y la fecha seleccionada
-        final now = DateTime.now();
-        final selectedDate = DateTime.parse(date);
-        
-        // Filtrar los horarios
-        return decodedData.map((dynamic hour) => hour.toString()).where((hour) {
-          // Crear un DateTime para la hora del horario
-          final timeComponents = hour.split(':');
-          final hourDateTime = DateTime(
-            selectedDate.year,
-            selectedDate.month,
-            selectedDate.day,
-            int.parse(timeComponents[0]),
-            int.parse(timeComponents[1])
-          );
-          
-          // Si es el día actual, solo mostrar horarios futuros
-          if (selectedDate.year == now.year && 
-              selectedDate.month == now.month && 
-              selectedDate.day == now.day) {
-            return hourDateTime.isAfter(now);
-          }
-          
-           return true;
-        }).toList();
+      final response = await http.get(
+        url,
+        headers: await AuthService().getHeaders(),
+      );
+
+      debugPrint('Response status code: ${response.statusCode}');
+      debugPrint('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final List<dynamic> decodedData = json.decode(response.body);
+        return decodedData.map((hour) => hour.toString()).toList();
       } else {
-        debugPrint('Error: la respuesta no es una lista: $decodedData');
+        debugPrint('Error en la respuesta: ${response.statusCode}');
         return [];
       }
+    } catch (e, stackTrace) {
+      debugPrint('Error getting available hours: $e');
+      debugPrint('Stack trace: $stackTrace');
+      throw Exception('Error al obtener horarios disponibles: $e');
     }
-    return [];
-  } catch (e, stackTrace) {
-    debugPrint('Error getting available hours: $e');
-    debugPrint('Stack trace: $stackTrace');
-    return [];
   }
-}
 
   String _getDayOfWeek(String date) {
     // Parsea la fecha en formato String a un objeto DateTime
@@ -161,7 +133,7 @@ Future<List<String>> getAvailableHours(int fieldId, String date) async {
   }) async {
     try {
       final token = await storage.getToken();
-    debugPrint("Token: $token");  
+      debugPrint("Token: $token");
 
       final response = await http.post(
         Uri.parse('$baseUrl/bookings'),
@@ -177,8 +149,8 @@ Future<List<String>> getAvailableHours(int fieldId, String date) async {
         }),
       );
 
-debugPrint("Response status code: ${response.statusCode}");
-debugPrint("Response body: ${response.body}");
+      debugPrint("Response status code: ${response.statusCode}");
+      debugPrint("Response body: ${response.body}");
 
       if (response.statusCode == 201) {
         return {'success': true, 'message': 'Reserva creada exitosamente'};

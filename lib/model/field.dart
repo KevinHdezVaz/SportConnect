@@ -1,15 +1,15 @@
+import 'dart:convert'; // Asegúrate de importar esto
+
 class Field {
   final int id;
   final String name;
   final String description;
   final String location;
-  final String price_per_hour;
-  final int duration_per_match;
   final double? latitude;
   final double? longitude;
   final bool is_active;
   final String type;
-  final Map<String, List<String>> available_hours; // Cambiado a Map<String, List<String>>
+  final dynamic available_hours; // Puede ser un Map o List
   final List<String>? amenities;
   final List<String>? images;
   final String price_per_match;
@@ -19,13 +19,11 @@ class Field {
     required this.name,
     required this.description,
     required this.location,
-    required this.price_per_hour,
-    required this.duration_per_match,
     this.latitude,
     this.longitude,
     required this.is_active,
     required this.type,
-    required this.available_hours, // Cambiado a Map<String, List<String>>
+    required this.available_hours,
     this.amenities,
     this.images,
     required this.price_per_match,
@@ -37,20 +35,22 @@ class Field {
       name: json['name'],
       description: json['description'],
       location: json['location'],
-      price_per_hour: json['price_per_hour'],
-      duration_per_match: json['duration_per_match'],
       latitude: json['latitude']?.toDouble(),
       longitude: json['longitude']?.toDouble(),
-      is_active: json['is_active'],
+      is_active: json['is_active'] == 1, // Convertir el 1/0 a boolean
       type: json['type'],
-      available_hours: (json['available_hours'] as Map<String, dynamic>).map(
-        (key, value) => MapEntry(key, List<String>.from(value)),
-      ), // Convertir el mapa correctamente
-      amenities: json['amenities'] != null
-          ? List<String>.from(json['amenities'])
+      available_hours: json['available_hours'] != null
+          ? jsonDecode(json['available_hours']) // Parsear la cadena JSON
           : null,
-      images: json['images'] != null ? List<String>.from(json['images']) : null,
-      price_per_match: json['price_per_match'],
+      amenities: json['amenities'] != null
+          ? List<String>.from(
+              jsonDecode(json['amenities'])) // Parsear la cadena JSON
+          : null,
+      images: json['images'] != null
+          ? List<String>.from(
+              jsonDecode(json['images'])) // Parsear la cadena JSON
+          : null,
+      price_per_match: json['price_per_match'].toString(), // Convertir a String
     );
   }
 
