@@ -8,9 +8,14 @@ import 'package:user_auth_crudd10/model/field.dart';
 
 class BookingDialog extends StatefulWidget {
   final Field field;
+  final VoidCallback? onBookingComplete;  // Añade esta línea
 
-  const BookingDialog({super.key, required this.field});
-
+  const BookingDialog({
+    super.key, 
+    required this.field,
+    this.onBookingComplete,  // Añade esta línea
+  });
+  
   @override
   State<BookingDialog> createState() => _BookingDialogState();
 }
@@ -49,16 +54,7 @@ initializeDateFormatting('en').then((_) {
         selectedTime = null;
       }
     });
-
-    if (availableHours.isEmpty) {
-      Fluttertoast.showToast(
-        msg: 'No hay horarios disponibles para este día',
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.orange,
-        textColor: Colors.white,
-      );
-    }
+ 
   } catch (e) {
     debugPrint('Error refreshing hours: $e');
   } finally {
@@ -157,7 +153,10 @@ initializeDateFormatting('en').then((_) {
           backgroundColor: Colors.green,
           textColor: Colors.white,
         );
-        Navigator.pop(context);
+            widget.onBookingComplete?.call();
+      Navigator.pop(context);
+
+     
       } else {
         Fluttertoast.showToast(
           msg: result['message'],
@@ -204,6 +203,7 @@ initializeDateFormatting('en').then((_) {
                   DateFormat('EEEE dd/MM/yyyy', 'es').format(selectedDate),
                   style: TextStyle(
                     fontSize: 16,
+                    color: Colors.blue,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -353,10 +353,10 @@ initializeDateFormatting('en').then((_) {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: Colors.grey[600])),
+          Text(label, style: TextStyle(color: Colors.black)),
           Text(
             value,
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
           ),
         ],
       ),

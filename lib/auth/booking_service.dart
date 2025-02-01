@@ -4,12 +4,40 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:user_auth_crudd10/auth/auth_service.dart';
 import 'package:user_auth_crudd10/model/booking.dart';
+import 'package:user_auth_crudd10/model/field.dart';
 import 'package:user_auth_crudd10/services/storage_service.dart';
 import 'package:user_auth_crudd10/utils/constantes.dart';
 
 class BookingService {
   final StorageService storage = StorageService();
 
+
+
+ Future<Field> getFieldDetails(int fieldId) async {
+    try {
+      final token = await storage.getToken();
+      final response = await http.get(
+        Uri.parse('$baseUrl/fields/$fieldId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return Field.fromJson(data);
+      } else {
+        throw Exception('Error al obtener los detalles del campo');
+      }
+    } catch (e) {
+      print('Error getting field details: $e');
+      rethrow;
+    }
+  }
+
+
+  
   // Método para cancelar reserva
   Future<bool> cancelReservation(String reservationId) async {
     try {
@@ -74,6 +102,9 @@ Future<List<String>> getAvailableHours(int fieldId, String date) async {
     return [];
   }
 }
+
+
+
 
 // Método para obtener el día de la semana en inglés
 String _getDayOfWeek(DateTime date) {
