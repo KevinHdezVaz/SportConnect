@@ -1,7 +1,11 @@
+import 'package:carousel_slider/carousel_options.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:user_auth_crudd10/pages/screens/TournamentScreen.dart';
+import 'package:user_auth_crudd10/model/Torneo.dart';
+import 'package:user_auth_crudd10/pages/screens/Tournaments/TournamentScreen.dart';
+import 'package:user_auth_crudd10/services/torneo_service.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -9,6 +13,14 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  late Future<List<Torneo>> futureTorneos;
+
+  @override
+  void initState() {
+    super.initState();
+    futureTorneos = TorneoService().getTorneos();
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -86,106 +98,53 @@ class _HomePageState extends State<HomePage> {
                       ),
                       SizedBox(height: 12),
                       SizedBox(
-                        height: 180,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          padding: EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: 5,
-                          itemBuilder: (context, index) {
-                            return Container(
-                              width: 280,
-                              margin: EdgeInsets.only(right: 16),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                color: Colors.white,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 10,
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Stack(
-                                    children: [
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.vertical(
-                                            top: Radius.circular(12)),
-                                        child: Image.network(
-                                          'https://img.olympics.com/images/image/private/t_s_16_9_g_auto/t_s_w1460/f_auto/primary/ngdjbafv3twathukjbq2',
-                                          height: 100,
-                                          width: double.infinity,
-                                          fit: BoxFit.cover,
-                                        ),
-                                      ),
-                                      Positioned(
-                                        top: 8,
-                                        right: 8,
-                                        child: Container(
-                                          padding: EdgeInsets.symmetric(
-                                              horizontal: 8, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: Colors.green,
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                          ),
-                                          child: Text(
-                                            'Inscripciones Abiertas',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  Padding(
-                                    padding: EdgeInsets.all(12),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Copa Verano 2025',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            Icon(Icons.people,
-                                                size: 14, color: Colors.grey),
-                                            SizedBox(width: 4),
-                                            Text(
-                                              '8 equipos inscritos',
-                                              style:
-                                                  TextStyle(color: Colors.grey),
-                                            ),
-                                            Spacer(),
-                                            Text(
-                                              '\$5,000',
-                                              style: TextStyle(
-                                                color: Colors.green,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
+                        height: 200, // Altura fija para la sección de torneos
+                        child: FutureBuilder<List<Torneo>>(
+                          future: futureTorneos,
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return Center(child: CircularProgressIndicator());
+                            } else if (snapshot.hasError) {
+                              return Center(
+                                  child: Text('Error: ${snapshot.error}'));
+                            } else if (!snapshot.hasData ||
+                                snapshot.data!.isEmpty) {
+                              return Center(
+                                  child: Text('No hay torneos disponibles.'));
+                            } else {
+                              return CarouselSlider.builder(
+                                itemCount: snapshot.data!.length,
+                                itemBuilder: (context, index, realIndex) {
+                                  Torneo torneo = snapshot.data![index];
+                                  return Container(
+                                    width: 320, // Ancho fijo para cada tarjeta
+                                    margin: EdgeInsets.only(
+                                        right: 8), // Espacio entre tarjetas
+                                    child: _buildTorneoCard(torneo),
+                                  );
+                                },
+                                options: CarouselOptions(
+                                  height: 220,
+                                  aspectRatio: 16 / 9,
+                                  viewportFraction:
+                                      0.8, // Muestra parcialmente las tarjetas adyacentes
+                                  initialPage: 0,
+                                  enableInfiniteScroll: true,
+                                  reverse: false,
+                                  autoPlay: true,
+                                  autoPlayInterval: Duration(seconds: 5),
+                                  autoPlayAnimationDuration:
+                                      Duration(milliseconds: 800),
+                                  autoPlayCurve: Curves.fastOutSlowIn,
+                                  enlargeCenterPage: true,
+                                  scrollDirection: Axis.horizontal,
+                                ),
+                              );
+                            }
                           },
                         ),
                       ),
-
                       SizedBox(height: 24),
 
                       // Sección de partidos disponibles
@@ -225,6 +184,89 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+}
+
+Widget _buildTorneoCard(Torneo torneo) {
+  return Card(
+    margin: EdgeInsets.all(8),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Stack(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+              child: Image.network(
+                torneo.imagenesTorneo!.isNotEmpty
+                    ? torneo.imagenesTorneo![0]
+                    : 'https://via.placeholder.com/150',
+                height: 100, // Altura más pequeña para la imagen
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.green,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'Inscripciones Abiertas',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        Padding(
+          padding: EdgeInsets.all(12), // Padding más pequeño
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                torneo.nombre,
+                style: TextStyle(
+                  fontSize: 16, // Tamaño de fuente más pequeño
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(Icons.people,
+                      size: 12, color: Colors.grey), // Ícono más pequeño
+                  SizedBox(width: 4),
+                  Text(
+                    '${torneo.minimoEquipos} equipos inscritos',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 12, // Tamaño de fuente más pequeño
+                    ),
+                  ),
+                  Spacer(),
+                  Text(
+                    '\$${torneo.cuotaInscripcion}',
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12, // Tamaño de fuente más pequeño
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 // Widget para tarjeta de partido disponible

@@ -4,7 +4,7 @@ class Field {
   final int id;
   final String name;
   final String description;
-  final String location;
+  final String municipio;
   final int duration_per_match;
   final double? latitude;
   final double? longitude;
@@ -12,14 +12,14 @@ class Field {
   final String type;
   final Map<String, List<String>> available_hours;
   final List<String>? amenities;
-  final List<String>? images;
+  final List<String>? images; // Permitir que sea null
   final String price_per_match;
 
   Field({
     required this.id,
     required this.name,
     required this.description,
-    required this.location,
+    required this.municipio,
     required this.duration_per_match,
     this.latitude,
     this.longitude,
@@ -36,19 +36,22 @@ class Field {
       id: json['id'],
       name: json['name'],
       description: json['description'],
-      location: json['location'],
+      municipio: json['municipio'],
       duration_per_match: json['duration_per_match'],
       latitude: json['latitude']?.toDouble(),
       longitude: json['longitude']?.toDouble(),
       is_active: json['is_active'],
       type: json['type'],
       available_hours: Map<String, List<String>>.from(json['available_hours']
-          .map((key, value) => MapEntry(key, List<String>.from(value)))), // Convertir directamente
+          .map((key, value) => MapEntry(
+              key, List<String>.from(value)))), // Convertir directamente
       amenities: json['amenities'] != null
-          ? List<String>.from(jsonDecode(json['amenities'])) // Decodificar la cadena JSON
+          ? List<String>.from(
+              jsonDecode(json['amenities'])) // Decodificar la cadena JSON
           : null,
       images: json['images'] != null
-          ? List<String>.from(jsonDecode(json['images'])) // Decodificar la cadena JSON
+          ? List<String>.from(
+              jsonDecode(json['images'])) // Decodificar la cadena JSON
           : null,
       price_per_match: json['price_per_match'],
     );
@@ -56,6 +59,6 @@ class Field {
 
   @override
   String toString() {
-    return 'Field(id: $id, name: $name, description: $description, location: $location, price_per_match: $price_per_match, availableHours: $available_hours, amenities: $amenities, images: $images)';
+    return 'Field(id: $id, name: $name, description: $description, municipio: $municipio, price_per_match: $price_per_match, availableHours: $available_hours, amenities: $amenities, images: $images)';
   }
 }

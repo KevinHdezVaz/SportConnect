@@ -2,11 +2,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:user_auth_crudd10/auth/auth_check.dart';
 import 'package:user_auth_crudd10/onscreen/onboardingWrapper.dart';
- import 'package:user_auth_crudd10/services/functions/firebase_notification.dart';
+import 'package:user_auth_crudd10/services/functions/firebase_notification.dart';
 import 'package:user_auth_crudd10/services/providers/storage_ans_provider.dart';
 import 'package:user_auth_crudd10/services/providers/storage_provider.dart';
 import 'package:user_auth_crudd10/services/settings/theme_data.dart';
@@ -19,7 +20,8 @@ void main() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   int isviewed = prefs.getInt('onBoard') ?? 1;
 
- 
+  OneSignal.initialize("90fd23c4-a605-40ed-ab39-78405c75a705"); // Tu App ID
+
   await dotenv.load(fileName: '.env');
 
   await Firebase.initializeApp(
@@ -34,7 +36,8 @@ void main() async {
   );
 }
 
-  GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 
 class MyApp extends StatelessWidget {
   final int isviewed;

@@ -58,6 +58,8 @@ dependencies:
   intl: ^0.18.0
   flutter_launcher_icons: ^0.14.3
   fluttertoast: ^8.2.2
+  onesignal_flutter: ^5.0.4
+
 
 
 
