@@ -1,20 +1,18 @@
+import 'package:user_auth_crudd10/model/Miembro.dart';
+
 class Equipo {
   final int id;
   final String nombre;
   final String? logo;
   final String colorUniforme;
-  final String nombreCapitan;
-  final String telefonoCapitan;
-  final String emailCapitan;
+  final List<Miembro> miembros;
 
   Equipo({
     required this.id,
     required this.nombre,
     this.logo,
     required this.colorUniforme,
-    required this.nombreCapitan,
-    required this.telefonoCapitan,
-    required this.emailCapitan,
+    required this.miembros,
   });
 
   factory Equipo.fromJson(Map<String, dynamic> json) {
@@ -23,9 +21,10 @@ class Equipo {
       nombre: json['nombre'],
       logo: json['logo'],
       colorUniforme: json['color_uniforme'],
-      nombreCapitan: json['nombre_capitan'],
-      telefonoCapitan: json['telefono_capitan'],
-      emailCapitan: json['email_capitan'],
+      miembros: (json['miembros'] as List<dynamic>?)
+              ?.map((m) => Miembro.fromJson(m))
+              .toList() ??
+          [],
     );
   }
 }
