@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:user_auth_crudd10/auth/auth_check.dart';
@@ -59,137 +60,460 @@ class _ProfilePageState extends State<ProfilePage> {
       print('Error cerrando sesión: $e');
     }
   }
-
-  @override
-  Widget build(BuildContext context) {
-    print('User Data: $userData');
-
-    return Scaffold(
+ 
+@override
+Widget build(BuildContext context) {
+  return DefaultTabController(
+    length: 2,
+    child: Scaffold(
       backgroundColor: Colors.white,
       body: userData == null
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: Column(
-                children: [
-                  ProfilePic(
-                    userData: userData,
-                  ),
-                  const SizedBox(height: 20),
-                  Padding(
-                    padding: const EdgeInsets.all(12.0),
+          : NestedScrollView(
+              headerSliverBuilder: (context, innerBoxIsScrolled) {
+                return [
+                  SliverToBoxAdapter(
                     child: Column(
                       children: [
-                        Card(
-                          elevation: 10,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(32),
-                          ),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20),
-                              gradient: LinearGradient(
-                                colors: [
-                                  const Color.fromARGB(255, 127, 205, 234),
-                                  const Color.fromARGB(255, 104, 151, 193)
-                                ], // Degradado
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
+                        ProfilePic(userData: userData),
+                        const SizedBox(height: 20),
+                        Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Card(
+                            elevation: 10,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(32),
                             ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 50, vertical: 10),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.person,
-                                          color: Colors.blueGrey, size: 24),
-                                      const SizedBox(width: 20),
-                                      Text(
-                                        userData!['name'] ?? '',
-                                        style: GoogleFonts.inter(
-                                          color: Colors.white,
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.email,
-                                          color: Colors.blueGrey, size: 24),
-                                      const SizedBox(width: 20),
-                                      Text(
-                                        userData!['email'] ?? '',
-                                        style: GoogleFonts.inter(
-                                          fontSize: 13,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 16),
-                                  GestureDetector(
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              UserProfileEdit(),
-                                        ),
-                                      );
-                                    },
-                                    child: Row(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color.fromARGB(255, 127, 205, 234),
+                                    Color.fromARGB(255, 104, 151, 193)
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 50, vertical: 10),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
                                       children: [
-                                        const Icon(Icons.edit,
+                                        const Icon(Icons.person,
                                             color: Colors.blueGrey, size: 24),
                                         const SizedBox(width: 20),
                                         Text(
-                                          "Editar",
+                                          userData!['name'] ?? '',
                                           style: GoogleFonts.inter(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.green,
+                                            color: Colors.white,
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w600,
                                           ),
                                         ),
                                       ],
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(height: 16),
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.email,
+                                            color: Colors.blueGrey, size: 24),
+                                        const SizedBox(width: 20),
+                                        Text(
+                                          userData!['email'] ?? '',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 13,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    GestureDetector(
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => UserProfileEdit(),
+                                          ),
+                                        );
+                                      },
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.edit,
+                                              color: Colors.blueGrey, size: 24),
+                                          const SizedBox(width: 20),
+                                          Text(
+                                            "Editar",
+                                            style: GoogleFonts.inter(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.green,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        ProfileMenu(
-                          text: "Notificaciones",
-                          icon: Icons.notifications,
-                          press: () {},
-                        ),
-                        ProfileMenu(
-                          text: "Ajustes",
-                          icon: Icons.settings,
-                          press: () {},
-                        ),
-                        const SizedBox(height: 20),
-                        ProfileMenu(
-                          text: "Cerrar sesión",
-                          icon: Icons.logout,
-                          press: _logout,
-                        ),
                       ],
                     ),
+                  ),
+                  SliverPersistentHeader(
+                    delegate: _SliverAppBarDelegate(
+                      TabBar(
+                        tabs: [
+                          Tab(
+                            child: Text(
+                              'OPCIONES',
+                              style: GoogleFonts.inter(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Tab(
+                            child: Text(
+                              'ESTADÍSTICAS',
+                              style: GoogleFonts.inter(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                        indicatorColor: Colors.green,
+                        labelColor: Colors.green,
+                        unselectedLabelColor: Colors.grey,
+                      ),
+                    ),
+                    pinned: true,
+                  ),
+                ];
+              },
+              body: TabBarView(
+                children: [
+                  // Tab de Opciones
+                  ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      _buildMenuItem(
+                        icon: Icons.person,
+                        title: 'Editar Perfil',
+                        subtitle: 'Datos de usuario',
+                        onTap: () {},
+                      ),
+                      _buildMenuItem(
+                        icon: Icons.exit_to_app,
+                        title: 'Cerrar sesión',
+                        subtitle: 'Salir',
+                        onTap: _logout,
+                      ),
+                    ],
+                  ),
+                  // Tab de Estadísticas
+                  ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      const SizedBox(height: 20),
+                      Text(
+                        'Información',
+                        style: GoogleFonts.inter(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildStatCard('29', 'Partidos'),
+                          _buildStatCard('1', 'Seguidores'),
+                          _buildStatCard('2', 'MVP'),
+                        ],
+                      ),
+                      const SizedBox(height: 32),
+                      Text(
+                        'Evaluación',
+                        style: GoogleFonts.inter(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _buildEvaluationRow('Nivel', 5, 5),
+                      _buildEvaluationRow('Actitud', 4, 5),
+                      _buildEvaluationRow('Part.', 0, 5),
+                      _buildEvaluationRow('Nº. MVP', 37, 100, isCount: true),
+                      _buildEvaluationRow('Usuarios', 10, 100, isCount: true),
+                      const SizedBox(height: 32),
+                      Text(
+                        'Eventos',
+                        style: GoogleFonts.inter(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Número de partidos jugados en los últimos 5 meses.',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        height: 200,
+                        child: LineChart(
+                          LineChartData(
+                            gridData: FlGridData(show: true),
+                            titlesData: FlTitlesData(
+                              bottomTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  getTitlesWidget: (value, meta) {
+                                    const titles = ['Sep', 'Oct', 'Nov', 'Dic', 'Ene'];
+                                    if (value.toInt() < 0 || value.toInt() >= titles.length) {
+                                      return const Text('');
+                                    }
+                                    return Text(
+                                      titles[value.toInt()],
+                                      style: GoogleFonts.inter(
+                                        color: Colors.grey,
+                                        fontSize: 12,
+                                      ),
+                                    );
+                                  },
+                                  reservedSize: 30,
+                                ),
+                              ),
+                              leftTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  interval: 0.5,
+                                  getTitlesWidget: (value, meta) {
+                                    return Text(
+                                      value.toString(),
+                                      style: GoogleFonts.inter(
+                                        color: Colors.grey,
+                                        fontSize: 12,
+                                      ),
+                                    );
+                                  },
+                                  reservedSize: 30,
+                                ),
+                              ),
+                              topTitles: AxisTitles(
+                                sideTitles: SideTitles(showTitles: false),
+                              ),
+                              rightTitles: AxisTitles(
+                                sideTitles: SideTitles(showTitles: false),
+                              ),
+                            ),
+                            borderData: FlBorderData(show: false),
+                            minX: 0,
+                            maxX: 4,
+                            minY: -1,
+                            maxY: 1,
+                            lineBarsData: [
+                              LineChartBarData(
+                                spots: const [
+                                  FlSpot(0, 0),
+                                  FlSpot(1, 0),
+                                  FlSpot(2, 0),
+                                  FlSpot(3, 0),
+                                  FlSpot(4, 0),
+                                ],
+                                isCurved: false,
+                                color: Colors.green,
+                                dotData: FlDotData(show: true),
+                                belowBarData: BarAreaData(show: false),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-    );
-  }
+    ),
+  );
+}
+}
+
+Widget _buildStatCard(String value, String label) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.grey.withOpacity(0.1),
+          spreadRadius: 1,
+          blurRadius: 2,
+          offset: const Offset(0, 1),
+        ),
+      ],
+    ),
+    child: Column(
+      children: [
+        Text(
+          value,
+          style: GoogleFonts.inter(
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            color: Colors.grey,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _buildEvaluationRow(String label, int value, int maxValue,
+    {bool isCount = false}) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Row(
+      children: [
+        SizedBox(
+          width: 100,
+          child: Row(
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.inter(fontSize: 16),
+              ),
+              const SizedBox(width: 4),
+              Icon(Icons.info_outline, size: 16, color: Colors.grey),
+            ],
+          ),
+        ),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: value / maxValue,
+              backgroundColor: Colors.grey[200],
+              color: Colors.green,
+              minHeight: 8,
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Text(
+          isCount ? value.toString() : '$value/$maxValue',
+          style: GoogleFonts.inter(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _buildMenuItem({
+  required IconData icon,
+  required String title,
+  required String subtitle,
+  required VoidCallback onTap,
+}) {
+  return ListTile(
+    leading: Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            spreadRadius: 1,
+            blurRadius: 2,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Icon(icon, color: Colors.black),
+    ),
+    title: Text(
+      title,
+      style: GoogleFonts.inter(
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+      ),
+    ),
+    subtitle: Text(
+      subtitle,
+      style: GoogleFonts.inter(
+        fontSize: 14,
+        color: Colors.grey,
+      ),
+    ),
+    trailing: const Icon(
+      Icons.chevron_right,
+      color: Colors.green,
+    ),
+    onTap: onTap,
+  );
+}
+
+Widget _buildNotificationItem() {
+  return ListTile(
+    leading: Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            spreadRadius: 1,
+            blurRadius: 2,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: const Icon(Icons.notifications_outlined, color: Colors.black),
+    ),
+    title: Text(
+      'Notificaciones',
+      style: GoogleFonts.inter(
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+      ),
+    ),
+    subtitle: Text(
+      'Activado',
+      style: GoogleFonts.inter(
+        fontSize: 14,
+        color: Colors.grey,
+      ),
+    ),
+    trailing: Switch(
+      value: true,
+      onChanged: (value) {},
+      activeColor: Colors.green,
+    ),
+  );
 }
 
 class ProfilePic extends StatelessWidget {
@@ -306,5 +630,30 @@ class ProfileMenu extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+
+class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
+  _SliverAppBarDelegate(this._tabBar);
+
+  final TabBar _tabBar;
+
+  @override
+  double get minExtent => _tabBar.preferredSize.height;
+  @override
+  double get maxExtent => _tabBar.preferredSize.height;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: Colors.white,
+      child: _tabBar,
+    );
+  }
+
+  @override
+  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
+    return false;
   }
 }

@@ -1,8 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:user_auth_crudd10/model/field.dart';
 
 class ExploreScreen extends StatefulWidget {
   @override
@@ -113,16 +116,33 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  Future<void> _getCurrentLocation() async {
+Future<void> _getCurrentLocation() async {
+  try {
     Position position = await Geolocator.getCurrentPosition();
+    print("Current Position: $position");
     setState(() => _currentPosition = position);
-    _getNearbyFields();
-  }
-
-  Future<void> _getNearbyFields() async {
-    // API call to get nearby fields
+    if (_currentPosition != null) {
+      _getNearbyFields();
+    } else {
+      print("Current position is null");
+    }
+  } catch (e) {
+    print("Error getting location: $e");
   }
 }
+
+Future<void> _getNearbyFields() async {
+  print("Getting nearby fields...");
+  Fluttertoast.showToast(
+    msg: 'Por favor selecciona una fecha válida',
+    toastLength: Toast.LENGTH_SHORT,
+    gravity: ToastGravity.BOTTOM,
+    backgroundColor: Colors.red,
+    textColor: Colors.white,
+  );
+}
+}
+
 
 class FieldCard extends StatelessWidget {
   final Field field;
@@ -148,7 +168,7 @@ class FieldCard extends StatelessWidget {
                 Row(
                   children: [
                     Icon(Icons.star, color: Colors.amber),
-                    Text(field.rating.toString()),
+                    Text(field.description.toString()),
                   ],
                 ),
               ],
@@ -157,9 +177,9 @@ class FieldCard extends StatelessWidget {
             Row(
               children: [
                 Icon(Icons.location_on, size: 16),
-                Text(' ${field.distance.toStringAsFixed(1)} km'),
+              //  Text(' ${field..toStringAsFixed(1)} km'),
                 Spacer(),
-                Text('${field.activeGames} partidos activos'),
+               // Text('${field.activeGames} partidos activos'),
               ],
             ),
             SizedBox(height: 12),
@@ -180,16 +200,4 @@ class FieldCard extends StatelessWidget {
   }
 }
 
-class Field {
-  final String name;
-  final double rating;
-  final double distance;
-  final int activeGames;
-
-  Field({
-    required this.name,
-    required this.rating,
-    required this.distance,
-    required this.activeGames,
-  });
-}
+ 

@@ -1,12 +1,15 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:user_auth_crudd10/model/field.dart';
 import 'package:user_auth_crudd10/pages/screens/field_detail_screen.dart';
 import 'package:user_auth_crudd10/services/field_service.dart';
+import 'package:user_auth_crudd10/utils/constantes.dart';
 
 class FieldsScreen extends StatefulWidget {
   @override
@@ -21,6 +24,9 @@ class _FieldsScreenState extends State<FieldsScreen>
   Position? _currentPosition;
   GoogleMapController? _mapController;
   bool _isLocationServiceDialogShown = false;
+BitmapDescriptor _myLocationIcon = BitmapDescriptor.defaultMarker;
+  String? _mapStyle;
+
 
   @override
   void initState() {
@@ -29,7 +35,14 @@ class _FieldsScreenState extends State<FieldsScreen>
     _requestLocationPermission();
     _loadFields();
     _getSavedLocation();
+       _loadMapStyle();
   }
+
+    Future<void> _loadMapStyle() async {
+    // Cargar el archivo JSON desde los assets
+    _mapStyle = await DefaultAssetBundle.of(context).loadString('assets/map_style.json');
+  }
+
 
   @override
   void dispose() {
@@ -43,6 +56,37 @@ class _FieldsScreenState extends State<FieldsScreen>
       _checkLocationService();
     }
   }
+
+
+Set<Marker> _getMarkers() {
+  Set<Marker> markers = {};
+
+  if (fields != null) {
+    for (var field in fields!) {
+      markers.add(
+        Marker(
+          markerId: MarkerId(field.id.toString()),
+          position: LatLng(field.latitude!, field.longitude!),
+          infoWindow: InfoWindow(
+            title: field.name,
+            snippet: field.description,
+          ),
+          onTap: () {
+          
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => FieldDetailScreen(field: field),
+              ),
+            );
+          },
+        ),
+      );
+    }
+  }
+
+  return markers;
+}
 
   Future<void> _checkLocationService() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -75,52 +119,62 @@ class _FieldsScreenState extends State<FieldsScreen>
     prefs.setDouble('longitude', position.longitude);
   }
 
-  Future<void> _loadFields() async {
-    try {
-      print('Solicitando canchas...');
-      final loadedFields = await _fieldService.getFields();
-      print('Respuesta: $loadedFields');
-      setState(() => fields = loadedFields);
-    } catch (e) {
-      print('Error: $e');
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Error: $e')));
-    }
-  }
-
-  Future<Position> _getCurrentLocation() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      _showLocationServiceDialog();
-      return Future.error('El servicio de ubicación está desactivado');
-    }
-
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        return Future.error('Permiso de ubicación denegado');
-      }
-    }
-
-    Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
-
-    setState(() {
-      _currentPosition = position;
-      _initialPosition = LatLng(position.latitude, position.longitude);
-    });
-
-    _saveCurrentLocation(_initialPosition);
-
-    if (_mapController != null) {
-      _mapController?.animateCamera(
-        CameraUpdate.newLatLng(_initialPosition),
+Future<void> _loadFields() async {
+  try {
+    print('Solicitando canchas...');
+    if (_currentPosition != null) {
+      final loadedFields = await _fieldService.getNearbyFields( 
       );
+      print('Canchas cercanas: $loadedFields');
+      setState(() => fields = loadedFields);
+    } else {
+      print('Ubicación actual no disponible');
     }
-
-    return position;
+  } catch (e) {
+    print('Error: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error: $e')),
+    );
   }
+}
+
+Future<Position> _getCurrentLocation() async {
+  bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+  if (!serviceEnabled) {
+    _showLocationServiceDialog();
+    return Future.error('El servicio de ubicación está desactivado');
+  }
+
+  LocationPermission permission = await Geolocator.checkPermission();
+  if (permission == LocationPermission.denied) {
+    permission = await Geolocator.requestPermission();
+    if (permission == LocationPermission.denied) {
+      return Future.error('Permiso de ubicación denegado');
+    }
+  }
+
+  Position position = await Geolocator.getCurrentPosition(
+    desiredAccuracy: LocationAccuracy.high,
+  );
+
+  setState(() {
+    _currentPosition = position;
+    _initialPosition = LatLng(position.latitude, position.longitude);
+  });
+
+  _saveCurrentLocation(_initialPosition);
+
+  if (_mapController != null) {
+    _mapController?.animateCamera(
+      CameraUpdate.newLatLng(_initialPosition),
+    );
+  }
+
+  // Cargar canchas cercanas después de obtener la ubicación
+  _loadFields();
+
+  return position;
+}
 
   Future<void> _requestLocationPermission() async {
     PermissionStatus status = await Permission.location.request();
@@ -192,6 +246,7 @@ class _FieldsScreenState extends State<FieldsScreen>
   @override
   Widget build(BuildContext context) {
     double screenHeight = MediaQuery.of(context).size.height;
+ 
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -201,36 +256,40 @@ class _FieldsScreenState extends State<FieldsScreen>
             Container(
               height: screenHeight * 0.8, // 75% de la altura de la pantalla
               child: GoogleMap(
-                onMapCreated: (GoogleMapController controller) {
-                  _mapController = controller;
-                  if (_currentPosition != null) {
-                    _mapController!.animateCamera(
-                      CameraUpdate.newLatLng(LatLng(_currentPosition!.latitude,
-                          _currentPosition!.longitude)),
-                    );
-                  }
-                },
-                initialCameraPosition: CameraPosition(
-                  target: _initialPosition,
-                  zoom: 14.0,
-                ),
-                markers: {
-                  Marker(
-                    markerId: MarkerId('current_location'),
-                    position: _initialPosition,
-                    infoWindow: InfoWindow(title: 'Tu Ubicación'),
-                  ),
-                },
+                mapType: MapType.normal,
+              onMapCreated: (GoogleMapController controller) {
+                _mapController = controller;
+                controller .setMapStyle(_mapStyle);
+                if (_currentPosition != null) {
+                  _mapController!.animateCamera(
+                    CameraUpdate.newLatLng(
+                      LatLng(
+                        _currentPosition!.latitude,
+                        _currentPosition!.longitude,
+                      ),
+                    ),
+                  );
+                }
+              },
+              initialCameraPosition: CameraPosition(
+                target: _initialPosition,
+                zoom: 13.0,
               ),
+              markers: _getMarkers(),  
+              myLocationEnabled: true, 
+              myLocationButtonEnabled: true,  
+            ),
+          
             ),
 
-            // DraggableScrollableSheet para la sección de canchas
-            DraggableScrollableSheet(
-              initialChildSize: 0.25, // Tamaño inicial (1/4 de la pantalla)
-              minChildSize: 0.25, // Tamaño mínimo (1/4 de la pantalla)
-              maxChildSize: 0.75, // Tamaño máximo (3/4 de la pantalla)
+             DraggableScrollableSheet(
+              initialChildSize: 0.25,  
+              minChildSize: 0.25, 
+              maxChildSize: 0.75, 
               builder:
                   (BuildContext context, ScrollController scrollController) {
+
+                    
                 return Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -272,18 +331,24 @@ class _FieldsScreenState extends State<FieldsScreen>
                                   return false;
                                 },
                                 child: PageView.builder(
+
+                                  
                                   controller:
                                       PageController(viewportFraction: 0.8),
                                   itemCount: fields!.length,
                                   itemBuilder: (context, index) {
                                     final field = fields![index];
+                                  
+ 
                                     return Padding(
                                       padding: const EdgeInsets.all(2.0),
                                       child: _buildVenueCard(
                                         name: field.name,
                                         descripcion: field.description,
                                         distance: '2.5 km',
-                                        address: 'Calle Deportiva 456',
+        images: field.images,  
+
+                                         address: 'Calle Deportiva 456',
                                         activeGames: 5,
                                         onPressed: () {
                                           Navigator.push(
@@ -311,14 +376,26 @@ class _FieldsScreenState extends State<FieldsScreen>
     );
   }
 
+Widget _buildShimmer() {
+  return Shimmer.fromColors(
+    baseColor: Colors.grey[300]!,
+    highlightColor: Colors.grey[100]!,
+    child: Container(color: Colors.white),
+  );
+}
+
+
   Widget _buildVenueCard({
     required String name,
     required String descripcion,
     required String distance,
     required String address,
     required int activeGames,
+  required List<String>? images, // Changed this line
     required VoidCallback onPressed,
   }) {
+ 
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -340,21 +417,31 @@ class _FieldsScreenState extends State<FieldsScreen>
           ),
           child: Row(
             children: [
-              Container(
-                width: 100,
-                height: 120,
-                decoration: const BoxDecoration(
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(10),
-                    bottomLeft: Radius.circular(10),
-                  ),
-                  image: DecorationImage(
-                    image: NetworkImage(
-                        'https://picsum.photos/seed/picsum/200/300'),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
+     Container(
+  width: 100,
+  height: 120,
+  child: ClipRRect(
+    borderRadius: BorderRadius.only(
+      topLeft: Radius.circular(10),
+      bottomLeft: Radius.circular(10),
+    ),
+    child: CachedNetworkImage(
+      imageUrl: images?.isNotEmpty == true 
+        ? Uri.parse(baseUrl).replace(path: images!.first).toString()
+        : 'https://via.placeholder.com/200',
+      fit: BoxFit.cover,
+      placeholder: (context, url) => _buildShimmer(),
+      errorWidget: (context, url, error) => Container(
+        color: Colors.grey[200],
+        child: Icon(
+          Icons.image_not_supported,
+          color: Colors.grey[400],
+        ),
+      ),
+    ),
+  ),
+),
+
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),

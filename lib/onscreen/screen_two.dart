@@ -84,7 +84,7 @@ class OnboardingScreenTwo extends StatelessWidget {
                       const Padding(
                         padding: const EdgeInsets.only(top: 50),
                         child: Text(
-                          "Encuentra tu cancha cercana",
+                          "tu cancha cercEncuentra ana",
                           textAlign: TextAlign.start,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
@@ -111,19 +111,20 @@ class OnboardingScreenTwo extends StatelessWidget {
                                       fontFamily: 'Viga-Regular',
                                       color: Colors.black),
                                   text:
-                                      "Disfruta partidos en tu zona, "),
+                                  // Organizá tu semana  y elegí el horario que más te convenga. Jugando solo o con amigos.
+                                      "Organizá tu semana y elegí el horario"),
                               TextSpan(
                                   style: TextStyle(
                                     fontWeight: FontWeight.w900,
                                     color: Colors.black,
                                     fontSize: getResponsiveText(24),
                                   ),
-                                  text: "unete a torneos, amistosos o renta una cancha"),
+                                  text: " que más te convenga."),
                               TextSpan(
                                   style: TextStyle(
                                       fontSize: getResponsiveText(24),
                                       color: Colors.black),
-                                  text: " para disfrutar con amigos. "),
+                                  text: " Jugando solo o con amigos."),
                             ],
                           ),
                         ),

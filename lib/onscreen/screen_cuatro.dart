@@ -82,7 +82,7 @@ class OnBoardingCuatro extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        "Demuestra tus skills futbolisticas",
+                        "Jugá en proximos torneos",
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
@@ -108,21 +108,20 @@ class OnBoardingCuatro extends StatelessWidget {
 
                                       fontSize: getResponsiveText(24),
                                        color: Colors.black),
-                                       
-                                  text:
-                                      "Compite con otros jugadores, "),
+                                                                      text:
+                                      "Disfruta de torneos amistosos"),
                               TextSpan(
                                   style: TextStyle(
                                     fontWeight: FontWeight.w900,
                                     color: Colors.black,
                                     fontSize: getResponsiveText(24),
                                   ),
-                                  text: "vuelvete MVP del partido y escala hasta el primer puesto del ranking"),
+                                  text: " o competitivos organizados "),
                               TextSpan(
                                   style: TextStyle(
                                       fontSize: getResponsiveText(24),
                                       color: Colors.black),
-                                  text: " para demostrar que eres el mejor. "),
+                                  text: "por FUTPLAY "),
                             ],
                           ),
                         ),

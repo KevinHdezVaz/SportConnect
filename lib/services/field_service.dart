@@ -27,6 +27,21 @@ class FieldService {
     throw Exception('Error al cargar canchas');
   }
 
+ Future<List<Field>> getNearbyFields() async {
+  final response = await http.get(
+    Uri.parse('$baseUrl/fields'), // Ahora usa el endpoint general
+    headers: await _authService.getHeaders(),
+  );
+
+  if (response.statusCode == 200) {
+    final List<dynamic> data = json.decode(response.body);
+    return data.map((json) => Field.fromJson(json)).toList();
+  }
+  throw Exception('Error al obtener canchas');
+}
+
+
+
   Future<Map<String, dynamic>> checkAvailability(
       int fieldId, DateTime date) async {
     final response = await http.get(

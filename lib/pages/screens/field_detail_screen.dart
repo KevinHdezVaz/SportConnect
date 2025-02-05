@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:user_auth_crudd10/auth/auth_service.dart';
 import 'package:user_auth_crudd10/auth/booking_service.dart';
 import 'package:user_auth_crudd10/model/field.dart';
@@ -88,13 +89,12 @@ class _FieldDetailScreenState extends State<FieldDetailScreen>
           backgroundColor: Colors.grey[100],
           body: Column(
             children: [
-              // Header fijo (no scrolleable)
-              Container(
+               Container(
                 color: Color(0xFF00BFFF),
                 padding: EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                  children: [ 
                     Text(
                       currentField.name ?? 'Nombre no disponible',
                       style: const TextStyle(
@@ -213,7 +213,7 @@ class _FieldDetailScreenState extends State<FieldDetailScreen>
                                   maxScale: 4.0,
                                   child: CachedNetworkImage(
                                     imageUrl:
-                                        fullImageUrl, // Usar la URL completa
+                                        fullImageUrl,  
                                     fit: BoxFit.cover,
                                     placeholder: (context, url) =>
                                         _buildShimmer(),
@@ -295,7 +295,7 @@ class _FieldDetailScreenState extends State<FieldDetailScreen>
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
+                                    const Text(
                                       'Localización',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
@@ -311,29 +311,51 @@ class _FieldDetailScreenState extends State<FieldDetailScreen>
                                           fontSize: 16, color: Colors.black),
                                     ),
                                     SizedBox(height: 8),
-                                    Card(
-                                      elevation: 5,
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Icon(Icons.near_me,
-                                                color: Colors.blue),
-                                            SizedBox(width: 8),
-                                            Text(
-                                              '¿Cómo llegar?',
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 16,
-                                                color: Colors.blue,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
+ 
+Card(
+  elevation: 5,
+  child: InkWell( // Añadir InkWell para el efecto táctil
+    onTap: () async {
+     
+      final lat = currentField.latitude;
+      final lng = currentField.longitude;
+      
+      if (lat != null && lng != null) {
+        final url = 'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng';
+        
+        try {
+          if (await canLaunchUrl(Uri.parse(url))) {
+            await launchUrl(Uri.parse(url), 
+              mode: LaunchMode.externalApplication
+            );
+          } else {
+            debugPrint('No se pudo abrir el mapa');
+          }
+        } catch (e) {
+          debugPrint('Error al abrir el mapa: $e');
+        }
+      }
+    },
+    child: const Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.near_me, color: Colors.blue),
+          SizedBox(width: 8),
+          Text(
+            '¿Cómo llegar?',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: Colors.blue,
+            ),
+          ),
+        ],
+      ),
+    ),
+  ),
+),
                                   ],
                                 ),
                               ),

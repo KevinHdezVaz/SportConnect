@@ -59,8 +59,8 @@ dependencies:
   flutter_launcher_icons: ^0.14.3
   fluttertoast: ^8.2.2
   onesignal_flutter: ^5.0.4
-
-
+  url_launcher: ^6.1.14
+  fl_chart: ^0.65.0
 
 
 
@@ -95,6 +95,8 @@ flutter:
     - assets/images/
     - assets/icons/
     - assets/grid/
+    - assets/map_style.json
+
     - .env
 
 
