@@ -5,8 +5,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:user_auth_crudd10/auth/auth_service.dart';
 import 'package:user_auth_crudd10/model/Torneo.dart';
+import 'package:user_auth_crudd10/pages/screens/Equipos/invitaciones.screen.dart';
 import 'package:user_auth_crudd10/pages/screens/Tournaments/TournamentDetails.dart';
 import 'package:user_auth_crudd10/pages/screens/Tournaments/TournamentScreen.dart';
+import 'package:user_auth_crudd10/services/equipo_service.dart';
 import 'package:user_auth_crudd10/services/torneo_service.dart';
 
 class HomePage extends StatefulWidget {
@@ -16,12 +18,18 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   late Future<List<Torneo>> futureTorneos;
+  final int count = 0;
+    int _invitacionesPendientes = 0; // Agregar esta variable
+  final _equipoService = EquipoService();
+
 
   @override
   void initState() {
     super.initState();
     futureTorneos = TorneoService().getTorneos();
         _loadUserProfile();
+     _loadInvitaciones(); // Agregar esta llamada
+
 
   }
 
@@ -29,6 +37,17 @@ class _HomePageState extends State<HomePage> {
   Map<String, dynamic>? userData; 
  
   String? imageUrl;
+
+  Future<void> _loadInvitaciones() async {
+    try {
+      final count = await _equipoService.getInvitacionesPendientesCount();
+      setState(() {
+        _invitacionesPendientes = count;
+      });
+    } catch (e) {
+      print('Error cargando invitaciones: $e');
+    }
+  }
 
   Future<void> _loadUserProfile() async {
     try {
@@ -129,18 +148,46 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
       // Botones
-      Container(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.blue.withOpacity(0.1),
-        ),
-        child: IconButton(
+      //aqui va las notificaciones de invitaciones
+ Container(
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      color: Colors.blue.withOpacity(0.1),
+    ),
+    child: Stack(
+      children: [
+        IconButton(
           icon: Icon(Icons.notifications_none, color: Colors.blue),
           onPressed: () {
-            // Implementar notificaciones
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => InvitacionesScreen()),
+            ).then((_) => _loadInvitaciones()); 
           },
         ),
-      ),
+        if (_invitacionesPendientes > 0)
+          Positioned(
+            right: 8,
+            top: 8,
+            child: Container(
+              padding: EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+              child: Text(
+                _invitacionesPendientes.toString(),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+      ],
+    ),
+  )
      
     ],
   ),

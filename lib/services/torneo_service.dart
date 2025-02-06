@@ -32,6 +32,9 @@ class TorneoService {
     }
   }
 
+
+  
+
   Future<Map<String, dynamic>> getTorneoDetails(int torneoId) async {
     try {
       final response = await http.get(

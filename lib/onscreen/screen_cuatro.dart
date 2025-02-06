@@ -199,12 +199,12 @@ class OnBoardingCuatro extends StatelessWidget {
                       child: FloatingActionButton(
                         onPressed: () {
                            _storeOnboardInfo();
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => AuthCheckMain(),
-                            ),
-                          );
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => AuthCheckMain(),
+                              ),
+                            );
                         },
                         backgroundColor: white,
                         child: const Icon(

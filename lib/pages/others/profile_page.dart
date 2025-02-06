@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:user_auth_crudd10/auth/auth_check.dart';
 import 'package:user_auth_crudd10/auth/auth_service.dart';
-import 'package:user_auth_crudd10/pages/screens/Equipos/crear_equipo_screen.dart';
+import 'package:user_auth_crudd10/pages/screens/Equipos/detalle_equipo.screen.dart';
+import 'package:user_auth_crudd10/pages/screens/Equipos/invitaciones.screen.dart';
 import 'package:user_auth_crudd10/pages/screens/Equipos/lista_equipos_screen.dart';
 import 'package:user_auth_crudd10/pages/userProfileEdit_page.dart';
+import 'package:user_auth_crudd10/services/equipo_service.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({
@@ -21,11 +23,70 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   final _authService = AuthService();
   Map<String, dynamic>? userData;
+  final _equipoService = EquipoService();
+  bool _isLoadingEquipos = false;
+    int _invitacionesPendientes = 0; 
 
   @override
   void initState() {
     super.initState();
     _loadUserProfile();
+         _loadInvitaciones(); 
+
+  }
+
+
+ Future<void> _loadInvitaciones() async {
+    try {
+      final count = await _equipoService.getInvitacionesPendientesCount();
+      setState(() {
+        _invitacionesPendientes = count;
+      });
+    } catch (e) {
+      print('Error cargando invitaciones: $e');
+    }
+  }
+
+  Future<void> navegarEquipos(BuildContext context) async {
+    setState(() => _isLoadingEquipos = true);
+
+    try {
+      if (userData == null || userData!['id'] == null) {
+        throw Exception('No hay datos del usuario');
+      }
+
+      final userId = userData!['id'];
+      final equipos = await _equipoService.getEquipos();
+
+      // Buscar el equipo donde el usuario es miembro
+      final miEquipo = equipos
+          .where((e) => e.miembros.any((m) => m.id == userId))
+          .firstOrNull; // Usamos firstOrNull en lugar de firstWhere
+
+      if (miEquipo != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DetalleEquipoScreen(
+              equipo: miEquipo,
+              userId: userId,
+            ),
+          ),
+        );
+      } else {
+        // Si no tiene equipo, ir a lista de equipos
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => ListaEquiposScreen()),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al cargar equipos: $e')),
+      );
+    } finally {
+      setState(() => _isLoadingEquipos = false);
+    }
   }
 
   Future<void> _loadUserProfile() async {
@@ -136,6 +197,21 @@ class _ProfilePageState extends State<ProfilePage> {
                                         ],
                                       ),
                                       const SizedBox(height: 16),
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.key,
+                                              color: Colors.blueGrey, size: 24),
+                                          const SizedBox(width: 20),
+                                          Text(
+                                            userData!['invite_code'] ?? '',
+                                            style: GoogleFonts.inter(
+                                              fontSize: 13,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 16),
                                       GestureDetector(
                                         onTap: () {
                                           Navigator.push(
@@ -224,9 +300,16 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                         _buildMenuItem(
                           icon: Icons.group,
-                          title: 'Crear equipos',
-                          subtitle: 'Salir',
-                          onTap: () => canchas(context),
+                          title: 'Mi Equipo',
+                          subtitle: 'Ver equipo',
+                          onTap: () => navegarEquipos(context),
+                        ),
+                        _buildMenuItem(
+                          icon: Icons.group,
+                          title: 'Invitaciones',
+                          subtitle: 'Ver invitaciones',
+                            count: _invitacionesPendientes, 
+                          onTap: () => invitaciones(),
                         ),
                       ],
                     ),
@@ -368,6 +451,15 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
   }
+
+  void invitaciones() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => InvitacionesScreen(),
+      ),
+    );
+  }
 }
 
 Widget _buildStatCard(String value, String label) {
@@ -449,58 +541,83 @@ Widget _buildEvaluationRow(String label, int value, int maxValue,
   );
 }
 
-void canchas(BuildContext context) {
-  Navigator.push(
-    // cambiado de pushReplacement a push
-    context,
-    MaterialPageRoute(builder: (context) => ListaEquiposScreen()),
-  );
+ Widget _buildMenuItem({
+ required IconData icon,
+ required String title,
+ required String subtitle,
+ required VoidCallback onTap,
+ int count = 0, // Inicializado con 0 por defecto
+}) {
+ return ListTile(
+   leading: Container(
+     padding: const EdgeInsets.all(8),
+     decoration: BoxDecoration(
+       color: Colors.white,
+       borderRadius: BorderRadius.circular(8),
+       boxShadow: [
+         BoxShadow(
+           color: Colors.grey.withOpacity(0.2),
+           spreadRadius: 1,
+           blurRadius: 2,
+           offset: const Offset(0, 1),
+         ),
+       ],
+     ),
+     child: Stack(
+       clipBehavior: Clip.none,
+       children: [
+         Icon(icon, color: Colors.black),
+         if (count > 0)
+           Positioned(
+             right: -8,
+             top: -8,
+             child: Container(
+               padding: EdgeInsets.all(4),
+               decoration: BoxDecoration(
+                 color: Colors.red,
+                 shape: BoxShape.circle,
+               ),
+               constraints: BoxConstraints(
+                 minWidth: 16,
+                 minHeight: 16,
+               ),
+               child: Center(
+                 child: Text(
+                   count.toString(),
+                   style: TextStyle(
+                     color: Colors.white,
+                     fontSize: 10,
+                     fontWeight: FontWeight.bold,
+                   ),
+                 ),
+               ),
+             ),
+           ),
+       ],
+     ),
+   ),
+   title: Text(
+     title,
+     style: GoogleFonts.inter(
+       fontSize: 16,
+       fontWeight: FontWeight.w500,
+     ),
+   ),
+   subtitle: Text(
+     subtitle,
+     style: GoogleFonts.inter(
+       fontSize: 14,
+       color: Colors.grey,
+     ),
+   ),
+   trailing: const Icon(
+     Icons.chevron_right,
+     color: Colors.green,
+   ),
+   onTap: onTap,
+ );
 }
 
-Widget _buildMenuItem({
-  required IconData icon,
-  required String title,
-  required String subtitle,
-  required VoidCallback onTap,
-}) {
-  return ListTile(
-    leading: Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 1,
-            blurRadius: 2,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Icon(icon, color: Colors.black),
-    ),
-    title: Text(
-      title,
-      style: GoogleFonts.inter(
-        fontSize: 16,
-        fontWeight: FontWeight.w500,
-      ),
-    ),
-    subtitle: Text(
-      subtitle,
-      style: GoogleFonts.inter(
-        fontSize: 14,
-        color: Colors.grey,
-      ),
-    ),
-    trailing: const Icon(
-      Icons.chevron_right,
-      color: Colors.green,
-    ),
-    onTap: onTap,
-  );
-}
 
 Widget _buildNotificationItem() {
   return ListTile(

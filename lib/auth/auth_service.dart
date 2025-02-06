@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -24,9 +23,11 @@ class AuthService {
         }),
       );
 
-      if (response.statusCode != 200) {
-        throw Exception('Error: ${response.statusCode}');
-      }
+ 
+      if (response.statusCode != 200 && response.statusCode != 201) {
+  throw Exception('Error: ${response.statusCode}');
+}
+
 
       final data = json.decode(response.body);
       if (data['token'] != null) {
@@ -224,9 +225,10 @@ Future<Map<String, dynamic>> getProfile() async {
       print('Response status: ${response.statusCode}');
       print('Response body: $responseBody');
 
-      if (response.statusCode != 200) {
-        throw Exception('Error: ${response.statusCode}');
-      }
+    if (response.statusCode != 200 && response.statusCode != 201) {
+  throw Exception('Error: ${response.statusCode}');
+} 
+
 
       final data = json.decode(responseBody);
       if (data['token'] != null) {
