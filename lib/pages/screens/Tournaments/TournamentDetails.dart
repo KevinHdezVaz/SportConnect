@@ -1,7 +1,11 @@
+import 'dart:io';
+
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:user_auth_crudd10/model/Torneo.dart';
+import 'package:user_auth_crudd10/services/equipo_service.dart';
 import 'package:user_auth_crudd10/services/torneo_service.dart';
 
 class TournamentDetails extends StatefulWidget {
@@ -18,6 +22,9 @@ class _TournamentDetailsState extends State<TournamentDetails>
   final TorneoService _torneoService = TorneoService();
   Map<String, dynamic>? _torneoDetails;
   bool _isLoading = true;
+
+  final _equipoService = EquipoService();
+  bool _inscribiendose = false;
 
   @override
   void initState() {
@@ -128,6 +135,132 @@ class _TournamentDetailsState extends State<TournamentDetails>
                 ),
               ),
             ),
+      floatingActionButton: widget.torneo.estado == 'abierto'
+          ? FloatingActionButton.extended(
+              onPressed: _inscribiendose ? null : _mostrarDialogoInscripcion,
+              icon: Icon(Icons.sports_soccer),
+              label: Text('Inscribir Equipo'),
+              backgroundColor: Colors.lightBlue,
+            )
+          : null,
+    );
+  }
+
+// Agrega estos métodos:
+  void _mostrarDialogoInscripcion() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Inscripción al Torneo'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('¿Deseas inscribir tu equipo a este torneo?'),
+            SizedBox(height: 16),
+            if (widget.torneo.cuotaInscripcion > 0)
+              Text(
+                'Cuota de inscripción: \$${widget.torneo.cuotaInscripcion}',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _inscribirEquipo();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+            ),
+            child: Text('Confirmar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _inscribirEquipo() async {
+    setState(() => _inscribiendose = true);
+
+    try {
+      // Si hay cuota, pedir comprobante
+      File? comprobante;
+      if (widget.torneo.cuotaInscripcion > 0) {
+        comprobante = await _seleccionarComprobante();
+        if (comprobante == null) {
+          setState(() => _inscribiendose = false);
+          return;
+        }
+      }
+
+      await _equipoService.inscribirseATorneo(
+        equipoId: widget.torneo.id, // Asegúrate de tener el ID del equipo
+        torneoId: widget.torneo.id,
+        comprobantePago: comprobante,
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 8),
+              Text('¡Inscripción exitosa!'),
+            ],
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() => _inscribiendose = false);
+    }
+  }
+
+  Future<File?> _seleccionarComprobante() async {
+    return await showDialog<File>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Comprobante de Pago'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Por favor, sube una foto del comprobante de pago'),
+            SizedBox(height: 16),
+            ElevatedButton.icon(
+              icon: Icon(Icons.photo_library),
+              label: Text('Seleccionar Foto'),
+              onPressed: () async {
+                final ImagePicker picker = ImagePicker();
+                final XFile? image = await picker.pickImage(
+                  source: ImageSource.gallery,
+                  maxWidth: 1000,
+                  maxHeight: 1000,
+                );
+                Navigator.pop(context, image != null ? File(image.path) : null);
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancelar'),
+          ),
+        ],
+      ),
     );
   }
 

@@ -32,7 +32,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
     return Scaffold(
       body: _pages[_selectedIndex],
       bottomNavigationBar: Container(
-        color: Colors.blue, // Fondo azul para el BottomNavigationBar
+        color: Colors.white, // Fondo azul para el BottomNavigationBar
         child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: ClipRRect(

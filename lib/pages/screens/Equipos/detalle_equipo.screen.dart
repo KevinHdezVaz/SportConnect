@@ -29,9 +29,40 @@ class _DetalleEquipoScreenState extends State<DetalleEquipoScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.equipo.nombre),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back,
+              color: Colors.white), // Cambia el icono aquí
+          onPressed: () {
+            Navigator.pop(context); // Acción al presionar el botón
+          },
+        ),
+        title: Text(
+          widget.equipo.nombre,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: Colors.transparent, // Hace el AppBar transparente
+        elevation: 0, // Sin sombra
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color.fromARGB(255, 127, 205, 234),
+                Color.fromARGB(255, 104, 151, 193),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         bottom: TabBar(
           controller: _tabController,
+          indicatorColor: Colors.green,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
           tabs: [
             Tab(icon: Icon(Icons.info), text: 'Información'),
             Tab(icon: Icon(Icons.group), text: 'Miembros'),
@@ -91,7 +122,8 @@ class _DetalleEquipoScreenState extends State<DetalleEquipoScreen>
                             if (loadingProgress == null) return child;
                             return Center(
                               child: CircularProgressIndicator(
-                                value: loadingProgress.expectedTotalBytes != null
+                                value: loadingProgress.expectedTotalBytes !=
+                                        null
                                     ? loadingProgress.cumulativeBytesLoaded /
                                         loadingProgress.expectedTotalBytes!
                                     : null,
@@ -102,7 +134,8 @@ class _DetalleEquipoScreenState extends State<DetalleEquipoScreen>
                             return Center(
                               child: Text(
                                 widget.equipo.nombre[0].toUpperCase(),
-                                style: TextStyle(fontSize: 50),
+                                style: TextStyle(
+                                    fontSize: 50, color: Colors.blueAccent),
                               ),
                             );
                           },
@@ -111,7 +144,8 @@ class _DetalleEquipoScreenState extends State<DetalleEquipoScreen>
                     : Center(
                         child: Text(
                           widget.equipo.nombre[0].toUpperCase(),
-                          style: TextStyle(fontSize: 50),
+                          style:
+                              TextStyle(fontSize: 50, color: Colors.blueAccent),
                         ),
                       ),
               ),
@@ -148,26 +182,38 @@ class _DetalleEquipoScreenState extends State<DetalleEquipoScreen>
               return Card(
                 margin: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                 elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundImage: imageUrl != null
-                        ? NetworkImage(imageUrl)
-                        : null,
+                    backgroundImage:
+                        imageUrl != null ? NetworkImage(imageUrl) : null,
                     child: imageUrl == null
-                        ? Text(miembro.name[0].toUpperCase())
+                        ? Text(miembro.name[0].toUpperCase(),
+                            style: TextStyle(color: Colors.white))
                         : null,
+                    backgroundColor: Colors.blueAccent,
                   ),
                   title: Row(
                     children: [
-                      Text(miembro.name),
+                      Text(
+                        miembro.name,
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
                       if (esCapitan)
                         Padding(
                           padding: EdgeInsets.only(left: 8),
-                          child: Icon(Icons.stars, size: 16, color: Colors.amber),
+                          child:
+                              Icon(Icons.stars, size: 16, color: Colors.amber),
                         ),
                     ],
                   ),
-                  subtitle: Text(miembro.email),
+                  subtitle: Text(
+                    miembro.email,
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  ),
                   trailing: !esCapitan
                       ? PopupMenuButton(
                           itemBuilder: (context) => [
@@ -194,7 +240,10 @@ class _DetalleEquipoScreenState extends State<DetalleEquipoScreen>
 
   Widget _buildTorneosTab() {
     return Center(
-      child: Text('Próximamente: Torneos'),
+      child: Text(
+        'Próximamente: Torneos',
+        style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+      ),
     );
   }
 
@@ -213,12 +262,15 @@ class _DetalleEquipoScreenState extends State<DetalleEquipoScreen>
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => InvitarPorCodigoScreen(equipoId: widget.equipo.id),
+                builder: (_) =>
+                    InvitarPorCodigoScreen(equipoId: widget.equipo.id),
               ),
             );
           },
           icon: Icon(Icons.group, color: Colors.white),
-          label: Text('Invitar jugadores', style: TextStyle(color: Colors.white)),
+          label:
+              Text('Invitar jugadores', style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.blueAccent,
         ),
       ],
     );
@@ -236,6 +288,9 @@ class _DetalleEquipoScreenState extends State<DetalleEquipoScreen>
           decoration: InputDecoration(
             labelText: 'Email del jugador',
             hintText: 'ejemplo@email.com',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
           keyboardType: TextInputType.emailAddress,
         ),
@@ -247,6 +302,9 @@ class _DetalleEquipoScreenState extends State<DetalleEquipoScreen>
           ElevatedButton(
             onPressed: () => Navigator.pop(context, emailController.text),
             child: Text('Invitar'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blueAccent,
+            ),
           ),
         ],
       ),
@@ -275,7 +333,8 @@ class _DetalleEquipoScreenState extends State<DetalleEquipoScreen>
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Eliminar miembro'),
-        content: Text('¿Estás seguro de eliminar a ${miembro.name} del equipo?'),
+        content:
+            Text('¿Estás seguro de eliminar a ${miembro.name} del equipo?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -330,6 +389,7 @@ class _DetalleEquipoScreenState extends State<DetalleEquipoScreen>
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
+                color: Colors.blueAccent,
               ),
             ),
             SizedBox(height: 16),
@@ -358,6 +418,7 @@ class _DetalleEquipoScreenState extends State<DetalleEquipoScreen>
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
+              color: Colors.blueAccent,
             ),
           ),
         ],

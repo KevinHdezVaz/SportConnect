@@ -61,6 +61,7 @@ dependencies:
   onesignal_flutter: ^5.0.4
   url_launcher: ^6.1.14
   fl_chart: ^0.65.0
+  path_provider: ^2.0.15
 
 
 
@@ -96,7 +97,7 @@ flutter:
     - assets/icons/
     - assets/grid/
     - assets/map_style.json
-
+    - assets/logos/
     - .env
 
 

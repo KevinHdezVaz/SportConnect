@@ -25,18 +25,16 @@ class _ProfilePageState extends State<ProfilePage> {
   Map<String, dynamic>? userData;
   final _equipoService = EquipoService();
   bool _isLoadingEquipos = false;
-    int _invitacionesPendientes = 0; 
+  int _invitacionesPendientes = 0;
 
   @override
   void initState() {
     super.initState();
     _loadUserProfile();
-         _loadInvitaciones(); 
-
+    _loadInvitaciones();
   }
 
-
- Future<void> _loadInvitaciones() async {
+  Future<void> _loadInvitaciones() async {
     try {
       final count = await _equipoService.getInvitacionesPendientesCount();
       setState(() {
@@ -132,321 +130,226 @@ class _ProfilePageState extends State<ProfilePage> {
         backgroundColor: Colors.white,
         body: userData == null
             ? const Center(child: CircularProgressIndicator())
-            : NestedScrollView(
-                headerSliverBuilder: (context, innerBoxIsScrolled) {
-                  return [
-                    SliverToBoxAdapter(
-                      child: Column(
-                        children: [
-                          ProfilePic(userData: userData),
-                          const SizedBox(height: 20),
-                          Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: Card(
-                              elevation: 10,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(32),
-                              ),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(20),
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      Color.fromARGB(255, 127, 205, 234),
-                                      Color.fromARGB(255, 104, 151, 193)
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 50, vertical: 10),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          const Icon(Icons.person,
-                                              color: Colors.blueGrey, size: 24),
-                                          const SizedBox(width: 20),
-                                          Text(
-                                            userData!['name'] ?? '',
-                                            style: GoogleFonts.inter(
-                                              color: Colors.white,
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Row(
-                                        children: [
-                                          const Icon(Icons.email,
-                                              color: Colors.blueGrey, size: 24),
-                                          const SizedBox(width: 20),
-                                          Text(
-                                            userData!['email'] ?? '',
-                                            style: GoogleFonts.inter(
-                                              fontSize: 13,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Row(
-                                        children: [
-                                          const Icon(Icons.key,
-                                              color: Colors.blueGrey, size: 24),
-                                          const SizedBox(width: 20),
-                                          Text(
-                                            userData!['invite_code'] ?? '',
-                                            style: GoogleFonts.inter(
-                                              fontSize: 13,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 16),
-                                      GestureDetector(
-                                        onTap: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  UserProfileEdit(),
-                                            ),
-                                          );
-                                        },
-                                        child: Row(
-                                          children: [
-                                            const Icon(Icons.edit,
-                                                color: Colors.blueGrey,
-                                                size: 24),
-                                            const SizedBox(width: 20),
-                                            Text(
-                                              "Editar",
-                                              style: GoogleFonts.inter(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.green,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+            : Column(
+                children: [
+                  ProfilePic(userData: userData),
+                  const SizedBox(height: 20),
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Card(
+                      elevation: 10,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(32),
                       ),
-                    ),
-                    SliverPersistentHeader(
-                      delegate: _SliverAppBarDelegate(
-                        TabBar(
-                          tabs: [
-                            Tab(
-                              child: Text(
-                                'OPCIONES',
-                                style: GoogleFonts.inter(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                            Tab(
-                              child: Text(
-                                'ESTADÍSTICAS',
-                                style: GoogleFonts.inter(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
-                          indicatorColor: Colors.green,
-                          labelColor: Colors.green,
-                          unselectedLabelColor: Colors.grey,
-                        ),
-                      ),
-                      pinned: true,
-                    ),
-                  ];
-                },
-                body: TabBarView(
-                  children: [
-                    // Tab de Opciones
-                    ListView(
-                      padding: const EdgeInsets.all(16),
-                      children: [
-                        _buildMenuItem(
-                          icon: Icons.person,
-                          title: 'Editar Perfil',
-                          subtitle: 'Datos de usuario',
-                          onTap: () {},
-                        ),
-                        _buildMenuItem(
-                          icon: Icons.exit_to_app,
-                          title: 'Cerrar sesión',
-                          subtitle: 'Salir',
-                          onTap: _logout,
-                        ),
-                        _buildMenuItem(
-                          icon: Icons.group,
-                          title: 'Mi Equipo',
-                          subtitle: 'Ver equipo',
-                          onTap: () => navegarEquipos(context),
-                        ),
-                        _buildMenuItem(
-                          icon: Icons.group,
-                          title: 'Invitaciones',
-                          subtitle: 'Ver invitaciones',
-                            count: _invitacionesPendientes, 
-                          onTap: () => invitaciones(),
-                        ),
-                      ],
-                    ),
-                    // Tab de Estadísticas
-                    ListView(
-                      padding: const EdgeInsets.all(16),
-                      children: [
-                        const SizedBox(height: 20),
-                        Text(
-                          'Información',
-                          style: GoogleFonts.inter(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color.fromARGB(255, 127, 205, 234),
+                              Color.fromARGB(255, 104, 151, 193)
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            _buildStatCard('29', 'Partidos'),
-                            _buildStatCard('1', 'Seguidores'),
-                            _buildStatCard('2', 'MVP'),
-                          ],
-                        ),
-                        const SizedBox(height: 32),
-                        Text(
-                          'Evaluación',
-                          style: GoogleFonts.inter(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        _buildEvaluationRow('Nivel', 5, 5),
-                        _buildEvaluationRow('Actitud', 4, 5),
-                        _buildEvaluationRow('Part.', 0, 5),
-                        _buildEvaluationRow('Nº. MVP', 37, 100, isCount: true),
-                        _buildEvaluationRow('Usuarios', 10, 100, isCount: true),
-                        const SizedBox(height: 32),
-                        Text(
-                          'Eventos',
-                          style: GoogleFonts.inter(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Número de partidos jugados en los últimos 5 meses.',
-                          style: GoogleFonts.inter(
-                            fontSize: 14,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          height: 200,
-                          child: LineChart(
-                            LineChartData(
-                              gridData: FlGridData(show: true),
-                              titlesData: FlTitlesData(
-                                bottomTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    getTitlesWidget: (value, meta) {
-                                      const titles = [
-                                        'Sep',
-                                        'Oct',
-                                        'Nov',
-                                        'Dic',
-                                        'Ene'
-                                      ];
-                                      if (value.toInt() < 0 ||
-                                          value.toInt() >= titles.length) {
-                                        return const Text('');
-                                      }
-                                      return Text(
-                                        titles[value.toInt()],
-                                        style: GoogleFonts.inter(
-                                          color: Colors.grey,
-                                          fontSize: 12,
-                                        ),
-                                      );
-                                    },
-                                    reservedSize: 30,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 50, vertical: 10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.person,
+                                      color: Colors.blueGrey, size: 24),
+                                  const SizedBox(width: 20),
+                                  Text(
+                                    userData!['name'] ?? '',
+                                    style: GoogleFonts.inter(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
-                                ),
-                                leftTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    interval: 0.5,
-                                    getTitlesWidget: (value, meta) {
-                                      return Text(
-                                        value.toString(),
-                                        style: GoogleFonts.inter(
-                                          color: Colors.grey,
-                                          fontSize: 12,
-                                        ),
-                                      );
-                                    },
-                                    reservedSize: 30,
-                                  ),
-                                ),
-                                topTitles: AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
-                                ),
-                                rightTitles: AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
-                                ),
+                                ],
                               ),
-                              borderData: FlBorderData(show: false),
-                              minX: 0,
-                              maxX: 4,
-                              minY: -1,
-                              maxY: 1,
-                              lineBarsData: [
-                                LineChartBarData(
-                                  spots: const [
-                                    FlSpot(0, 0),
-                                    FlSpot(1, 0),
-                                    FlSpot(2, 0),
-                                    FlSpot(3, 0),
-                                    FlSpot(4, 0),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  const Icon(Icons.email,
+                                      color: Colors.blueGrey, size: 24),
+                                  const SizedBox(width: 20),
+                                  Text(
+                                    userData!['email'] ?? '',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  const Icon(Icons.key,
+                                      color: Colors.blueGrey, size: 24),
+                                  const SizedBox(width: 20),
+                                  Text(
+                                    userData!['invite_code'] ?? '',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => UserProfileEdit(),
+                                    ),
+                                  );
+                                },
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.edit,
+                                        color: Colors.blueGrey, size: 24),
+                                    const SizedBox(width: 20),
+                                    Text(
+                                      "Editar",
+                                      style: GoogleFonts.inter(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.green,
+                                      ),
+                                    ),
                                   ],
-                                  isCurved: false,
-                                  color: Colors.green,
-                                  dotData: FlDotData(show: true),
-                                  belowBarData: BarAreaData(show: false),
                                 ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  TabBar(
+                    tabs: [
+                      Tab(
+                        child: Text(
+                          'OPCIONES',
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      Tab(
+                        child: Text(
+                          'ESTADÍSTICAS',
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                    indicatorColor: Colors.green,
+                    labelColor: Colors.green,
+                    unselectedLabelColor: Colors.grey,
+                  ),
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+                        // Tab de Opciones
+                        SingleChildScrollView(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              children: [
+                                _buildMenuItem(
+                                  icon: Icons.person,
+                                  title: 'Editar Perfil',
+                                  subtitle: 'Datos de usuario',
+                                  onTap: () {},
+                                ),
+                                _buildMenuItem(
+                                  icon: Icons.notifications,
+                                  title: 'Invitaciones',
+                                  subtitle: 'Ver invitaciones',
+                                  count: _invitacionesPendientes,
+                                  onTap: () => invitaciones(),
+                                ),
+                                _buildMenuItem(
+                                  icon: Icons.group,
+                                  title: 'Mi Equipo',
+                                  subtitle: 'Ver equipo',
+                                  onTap: () => navegarEquipos(context),
+                                ),
+                                _buildMenuItem(
+                                  icon: Icons.exit_to_app,
+                                  title: 'Cerrar sesión',
+                                  subtitle: 'Salir',
+                                  onTap: _logout,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        // Tab de Estadísticas
+                        SingleChildScrollView(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 20),
+                                Text(
+                                  'Información',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceAround,
+                                  children: [
+                                    _buildStatCard('29', 'Partidos'),
+                                    _buildStatCard('1', 'Seguidores'),
+                                    _buildStatCard('2', 'MVP'),
+                                  ],
+                                ),
+                                const SizedBox(height: 32),
+                                Text(
+                                  'Evaluación',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                _buildEvaluationRow('Nivel', 5, 5),
+                                _buildEvaluationRow('Actitud', 4, 5),
+                                _buildEvaluationRow('Part.', 0, 5),
+                                _buildEvaluationRow('Nº. MVP', 37, 100,
+                                    isCount: true),
+                                _buildEvaluationRow('Usuarios', 10, 100,
+                                    isCount: true),
+                                const SizedBox(height: 32),
                               ],
                             ),
                           ),
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
       ),
     );
@@ -541,83 +444,82 @@ Widget _buildEvaluationRow(String label, int value, int maxValue,
   );
 }
 
- Widget _buildMenuItem({
- required IconData icon,
- required String title,
- required String subtitle,
- required VoidCallback onTap,
- int count = 0, // Inicializado con 0 por defecto
+Widget _buildMenuItem({
+  required IconData icon,
+  required String title,
+  required String subtitle,
+  required VoidCallback onTap,
+  int count = 0, // Inicializado con 0 por defecto
 }) {
- return ListTile(
-   leading: Container(
-     padding: const EdgeInsets.all(8),
-     decoration: BoxDecoration(
-       color: Colors.white,
-       borderRadius: BorderRadius.circular(8),
-       boxShadow: [
-         BoxShadow(
-           color: Colors.grey.withOpacity(0.2),
-           spreadRadius: 1,
-           blurRadius: 2,
-           offset: const Offset(0, 1),
-         ),
-       ],
-     ),
-     child: Stack(
-       clipBehavior: Clip.none,
-       children: [
-         Icon(icon, color: Colors.black),
-         if (count > 0)
-           Positioned(
-             right: -8,
-             top: -8,
-             child: Container(
-               padding: EdgeInsets.all(4),
-               decoration: BoxDecoration(
-                 color: Colors.red,
-                 shape: BoxShape.circle,
-               ),
-               constraints: BoxConstraints(
-                 minWidth: 16,
-                 minHeight: 16,
-               ),
-               child: Center(
-                 child: Text(
-                   count.toString(),
-                   style: TextStyle(
-                     color: Colors.white,
-                     fontSize: 10,
-                     fontWeight: FontWeight.bold,
-                   ),
-                 ),
-               ),
-             ),
-           ),
-       ],
-     ),
-   ),
-   title: Text(
-     title,
-     style: GoogleFonts.inter(
-       fontSize: 16,
-       fontWeight: FontWeight.w500,
-     ),
-   ),
-   subtitle: Text(
-     subtitle,
-     style: GoogleFonts.inter(
-       fontSize: 14,
-       color: Colors.grey,
-     ),
-   ),
-   trailing: const Icon(
-     Icons.chevron_right,
-     color: Colors.green,
-   ),
-   onTap: onTap,
- );
+  return ListTile(
+    leading: Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            spreadRadius: 1,
+            blurRadius: 2,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Icon(icon, color: Colors.black),
+          if (count > 0)
+            Positioned(
+              right: -8,
+              top: -8,
+              child: Container(
+                padding: EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+                constraints: BoxConstraints(
+                  minWidth: 16,
+                  minHeight: 16,
+                ),
+                child: Center(
+                  child: Text(
+                    count.toString(),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    ),
+    title: Text(
+      title,
+      style: GoogleFonts.inter(
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+      ),
+    ),
+    subtitle: Text(
+      subtitle,
+      style: GoogleFonts.inter(
+        fontSize: 14,
+        color: Colors.grey,
+      ),
+    ),
+    trailing: const Icon(
+      Icons.chevron_right,
+      color: Colors.green,
+    ),
+    onTap: onTap,
+  );
 }
-
 
 Widget _buildNotificationItem() {
   return ListTile(
