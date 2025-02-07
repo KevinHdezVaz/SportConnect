@@ -165,78 +165,96 @@ class _DetalleEquipoScreenState extends State<DetalleEquipoScreen>
     );
   }
 
-  Widget _buildMiembrosTab() {
-    return Column(
-      children: [
-        Expanded(
-          child: ListView.builder(
-            itemCount: widget.equipo.miembros.length,
-            itemBuilder: (context, index) {
-              final miembro = widget.equipo.miembros[index];
-              final esCapitan = miembro.pivot.rol == 'capitan';
+Widget _buildMiembrosTab() {
+  return Column(
+    children: [
+      Expanded(
+        child: ListView.builder(
+          itemCount: widget.equipo.miembros.length,
+          itemBuilder: (context, index) {
+            final miembro = widget.equipo.miembros[index];
+            final esCapitan = miembro.pivot.rol == 'capitan';
+            final pendiente = miembro.pivot.estado == 'pendiente';
 
-              final imageUrl = miembro.profileImage != null
-                  ? 'https://proyect.aftconta.mx/storage/${miembro.profileImage}'
-                  : null;
+            final imageUrl = miembro.profileImage != null
+                ? 'https://proyect.aftconta.mx/storage/${miembro.profileImage}'
+                : null;
 
-              return Card(
-                margin: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundImage:
-                        imageUrl != null ? NetworkImage(imageUrl) : null,
-                    child: imageUrl == null
-                        ? Text(miembro.name[0].toUpperCase(),
-                            style: TextStyle(color: Colors.white))
-                        : null,
-                    backgroundColor: Colors.blueAccent,
-                  ),
-                  title: Row(
-                    children: [
-                      Text(
-                        miembro.name,
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      if (esCapitan)
-                        Padding(
-                          padding: EdgeInsets.only(left: 8),
-                          child:
-                              Icon(Icons.stars, size: 16, color: Colors.amber),
-                        ),
-                    ],
-                  ),
-                  subtitle: Text(
-                    miembro.email,
-                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                  ),
-                  trailing: !esCapitan
-                      ? PopupMenuButton(
-                          itemBuilder: (context) => [
-                            PopupMenuItem(
-                              value: 'eliminar',
-                              child: Text('Eliminar del equipo'),
-                            ),
-                          ],
-                          onSelected: (value) {
-                            if (value == 'eliminar') {
-                              _confirmarEliminarMiembro(miembro);
-                            }
-                          },
-                        )
+            return Card(
+              margin: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundImage: imageUrl != null ? NetworkImage(imageUrl) : null,
+                  child: imageUrl == null
+                      ? Text(miembro.name[0].toUpperCase(),
+                          style: TextStyle(color: Colors.white))
                       : null,
+                  backgroundColor: Colors.blueAccent,
                 ),
-              );
-            },
-          ),
+                title: Row(
+                  children: [
+                    Text(
+                      miembro.name,
+                      style: TextStyle(
+                        fontSize: 16, 
+                        fontWeight: FontWeight.bold,
+                        color: pendiente ? Colors.grey : Colors.black,
+                      ),
+                    ),
+                    if (esCapitan)
+                      Padding(
+                        padding: EdgeInsets.only(left: 8),
+                        child: Icon(Icons.stars, size: 16, color: Colors.amber),
+                      ),
+                    if (pendiente)
+                      Container(
+                        margin: EdgeInsets.only(left: 8),
+                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.orange,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'Pendiente',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                subtitle: Text(
+                  miembro.email,
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                ),
+                trailing: !esCapitan && !pendiente
+                    ? PopupMenuButton(
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: 'eliminar',
+                            child: Text('Eliminar del equipo'),
+                          ),
+                        ],
+                        onSelected: (value) {
+                          if (value == 'eliminar') {
+                            _confirmarEliminarMiembro(miembro);
+                          }
+                        },
+                      )
+                    : null,
+              ),
+            );
+          },
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
+}
 
   Widget _buildTorneosTab() {
     return Center(

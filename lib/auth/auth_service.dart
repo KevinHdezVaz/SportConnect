@@ -41,6 +41,25 @@ class AuthService {
     }
   }
 
+
+Future<void> updateDeviceToken(String token) async {
+  try {
+    final response = await http.post(
+      Uri.parse('$baseUrl/update-device-token'),
+      headers: await getHeaders(),
+      body: json.encode({'device_token': token}),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Error actualizando token');
+    }
+  } catch (e) {
+    print('Error: $e');
+    throw e;
+  }
+}
+
+
 Future<Map<String, dynamic>> getProfile() async {
   try {
     final response = await http.get(

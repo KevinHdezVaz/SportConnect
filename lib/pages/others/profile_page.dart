@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:user_auth_crudd10/auth/auth_check.dart';
 import 'package:user_auth_crudd10/auth/auth_service.dart';
@@ -86,6 +87,67 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() => _isLoadingEquipos = false);
     }
   }
+
+
+
+void _mostrarCodigo() {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text('Mi Código para unirme a equipos.', style: TextStyle(color: Colors.black),),
+      content: Container(
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.qr_code, size: 50, color: Colors.blue),
+            SizedBox(height: 20),
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    userData!['invite_code'] ?? '',
+                    style: TextStyle(
+                      fontSize: 24,
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  SizedBox(width: 10),
+                  IconButton(
+                    icon: Icon(Icons.copy),
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(
+                        text: userData!['invite_code'] ?? '',
+                      ));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Código copiado!',)),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('Cerrar', style: TextStyle(color: Colors.black),),
+        ),
+      ],
+    ),
+  );
+}
 
   Future<void> _loadUserProfile() async {
     try {
@@ -190,46 +252,8 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ],
                               ),
                               const SizedBox(height: 16),
-                              Row(
-                                children: [
-                                  const Icon(Icons.key,
-                                      color: Colors.blueGrey, size: 24),
-                                  const SizedBox(width: 20),
-                                  Text(
-                                    userData!['invite_code'] ?? '',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 13,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => UserProfileEdit(),
-                                    ),
-                                  );
-                                },
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.edit,
-                                        color: Colors.blueGrey, size: 24),
-                                    const SizedBox(width: 20),
-                                    Text(
-                                      "Editar",
-                                      style: GoogleFonts.inter(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.green,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                             
+                            
                             ],
                           ),
                         ),
@@ -283,6 +307,12 @@ class _ProfilePageState extends State<ProfilePage> {
                                   count: _invitacionesPendientes,
                                   onTap: () => invitaciones(),
                                 ),
+                                _buildMenuItem(
+  icon: Icons.qr_code,
+  title: 'Mi Código',
+  subtitle: 'Para unirme a equipos',
+  onTap: _mostrarCodigo,
+),
                                 _buildMenuItem(
                                   icon: Icons.group,
                                   title: 'Mi Equipo',
@@ -400,6 +430,7 @@ Widget _buildStatCard(String value, String label) {
     ),
   );
 }
+ 
 
 Widget _buildEvaluationRow(String label, int value, int maxValue,
     {bool isCount = false}) {
@@ -486,6 +517,7 @@ Widget _buildMenuItem({
                 ),
                 child: Center(
                   child: Text(
+                    
                     count.toString(),
                     style: TextStyle(
                       color: Colors.white,
@@ -502,6 +534,7 @@ Widget _buildMenuItem({
     title: Text(
       title,
       style: GoogleFonts.inter(
+        color: Colors.blue,
         fontSize: 16,
         fontWeight: FontWeight.w500,
       ),

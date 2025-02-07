@@ -14,38 +14,44 @@ class _InvitarPorCodigoScreenState extends State<InvitarPorCodigoScreen> {
   final _codigoController = TextEditingController();
   final _equipoService = EquipoService();
   bool _isLoading = false;
-  bool _isSearching = false; // Nuevo estado para indicar si se está buscando
+  bool _isSearching = false;  
   User? _usuarioEncontrado;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Invitar Jugador')),
+      appBar: AppBar(title: Text('Invitar Jugador', style: TextStyle(color: Colors.black),)),
       body: Padding(
         padding: EdgeInsets.all(16),
         child: Column(
           children: [
             Card(
+              elevation: 10,
               child: Padding(
                 padding: EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _codigoController,
-                        decoration: InputDecoration(
-                          labelText: 'Código del jugador',
-                          hintText: 'Ingresa el código de 8 dígitos',
-                          prefixIcon: Icon(Icons.key),
-                        ),
-                      ),
-                    ),
+                   Expanded(
+  child: TextField(
+    controller: _codigoController,
+    style: TextStyle(color: Colors.black),  
+    decoration: InputDecoration(
+      labelText: 'Código del jugador',
+      labelStyle: TextStyle(color: Colors.black),  
+      hintText: 'Ingresa el código de 8 dígitos',
+      hintStyle: TextStyle(color: Colors.grey), 
+      prefixIcon: Icon(Icons.key, color: Colors.green), 
+       
+    ),
+  ),
+),
+
                     SizedBox(width: 10),
                     _isSearching
-                        ? CircularProgressIndicator() // Indicador de progreso
+                        ? CircularProgressIndicator() 
                         : ElevatedButton(
                             onPressed: _buscarUsuario,
-                            child: Text('Buscar'),
+                            child: Text('Buscar', style: TextStyle(fontWeight: FontWeight.bold),),
                           ),
                   ],
                 ),
@@ -66,8 +72,8 @@ class _InvitarPorCodigoScreenState extends State<InvitarPorCodigoScreen> {
                         ? Text(_usuarioEncontrado!.name[0].toUpperCase())
                         : null,
                   ),
-                  title: Text(_usuarioEncontrado!.name),
-                  subtitle: Text(_usuarioEncontrado!.email),
+                  title: Text(_usuarioEncontrado!.name, style: TextStyle(color: Colors.black),),
+                  subtitle: Text(_usuarioEncontrado!.email, style: TextStyle(color: Colors.black)),
                   trailing: IconButton(
                     icon: _isLoading
                         ? CircularProgressIndicator()
@@ -91,7 +97,7 @@ class _InvitarPorCodigoScreenState extends State<InvitarPorCodigoScreen> {
     }
 
     setState(() {
-      _isSearching = true; // Activar el indicador de búsqueda
+      _isSearching = true; 
       _isLoading = true;
     });
 
@@ -107,7 +113,7 @@ class _InvitarPorCodigoScreenState extends State<InvitarPorCodigoScreen> {
       setState(() => _usuarioEncontrado = null);
     } finally {
       setState(() {
-        _isSearching = false; // Desactivar el indicador de búsqueda
+        _isSearching = false; 
         _isLoading = false;
       });
     }
@@ -123,9 +129,16 @@ class _InvitarPorCodigoScreenState extends State<InvitarPorCodigoScreen> {
       );
 
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Jugador invitado exitosamente, espera a que acepte la invitacion.', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),  )),
-      );
+     ScaffoldMessenger.of(context).showSnackBar(
+  SnackBar(
+    content: Text(
+      'Jugador invitado exitosamente, espera a que acepte la invitación.',
+      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+    ),
+    backgroundColor: Colors.green,  
+   ),
+);
+
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString())),

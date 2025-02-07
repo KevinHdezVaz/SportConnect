@@ -66,7 +66,7 @@ class _InvitacionesScreenState extends State<InvitacionesScreen> {
                   itemBuilder: (context, index) {
                     final equipo = _invitaciones[index];
                     return Card(
-                      elevation: 4,
+                      elevation: 10,
                       margin: EdgeInsets.only(bottom: 16),
                       child: Column(
                         children: [
@@ -87,7 +87,7 @@ class _InvitacionesScreenState extends State<InvitacionesScreen> {
                               ),
                             ),
                             subtitle: Text(
-                              'Color de uniforme: ${equipo.colorUniforme}',
+                              'Color de uniforme: ${equipo.colorUniforme}', style: TextStyle(color: Colors.black),
                             ),
                           ),
                           Padding(
@@ -99,7 +99,7 @@ class _InvitacionesScreenState extends State<InvitacionesScreen> {
                                     onPressed: () => _rechazarInvitacion(equipo.id),
                                     child: Text('Rechazar'),
                                     style: OutlinedButton.styleFrom(
-                                      foregroundColor: Colors.red,
+                                      foregroundColor: Colors.black,
                                     ),
                                   ),
                                 ),
@@ -107,9 +107,9 @@ class _InvitacionesScreenState extends State<InvitacionesScreen> {
                                 Expanded(
                                   child: ElevatedButton(
                                     onPressed: () => _aceptarInvitacion(equipo.id),
-                                    child: Text('Aceptar'),
+                                    child: Text('Aceptar', style: TextStyle(color: Colors.white),),
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.green,
+                                      backgroundColor: Colors.blue,
                                     ),
                                   ),
                                 ),
@@ -130,11 +130,13 @@ class _InvitacionesScreenState extends State<InvitacionesScreen> {
       await _cargarInvitaciones();
       
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Invitación aceptada')),
+        SnackBar(content: Text('Invitación aceptada')
+        ,
+            backgroundColor: Colors.green,  
+            ),
       );
       
-      // Opcional: navegar a los detalles del equipo
-      Navigator.pushReplacement(
+       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (_) => const ProfilePage(),
