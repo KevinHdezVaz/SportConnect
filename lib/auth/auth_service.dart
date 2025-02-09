@@ -23,11 +23,9 @@ class AuthService {
         }),
       );
 
- 
       if (response.statusCode != 200 && response.statusCode != 201) {
-  throw Exception('Error: ${response.statusCode}');
-}
-
+        throw Exception('Error: ${response.statusCode}');
+      }
 
       final data = json.decode(response.body);
       if (data['token'] != null) {
@@ -41,44 +39,41 @@ class AuthService {
     }
   }
 
+  Future<void> updateDeviceToken(String token) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/update-device-token'),
+        headers: await getHeaders(),
+        body: json.encode({'device_token': token}),
+      );
 
-Future<void> updateDeviceToken(String token) async {
-  try {
-    final response = await http.post(
-      Uri.parse('$baseUrl/update-device-token'),
-      headers: await getHeaders(),
-      body: json.encode({'device_token': token}),
-    );
-
-    if (response.statusCode != 200) {
-      throw Exception('Error actualizando token');
+      if (response.statusCode != 200) {
+        throw Exception('Error actualizando token');
+      }
+    } catch (e) {
+      print('Error: $e');
+      throw e;
     }
-  } catch (e) {
-    print('Error: $e');
-    throw e;
   }
-}
 
+  Future<Map<String, dynamic>> getProfile() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/profile'),
+        headers: await getHeaders(),
+      );
 
-Future<Map<String, dynamic>> getProfile() async {
-  try {
-    final response = await http.get(
-      Uri.parse('$baseUrl/profile'),
-      headers: await getHeaders(),
-    );
+      if (response.statusCode != 200) {
+        throw Exception('Error obteniendo perfil');
+      }
 
-    if (response.statusCode != 200) {
-      throw Exception('Error obteniendo perfil');
+      final data = json.decode(response.body);
+      print('Profile Data: $data'); // Agrega esto para depurar
+      return data;
+    } catch (e) {
+      throw Exception('Error: $e');
     }
-
-    final data = json.decode(response.body);
-    print('Profile Data: $data'); // Agrega esto para depurar
-    return data;
-  } catch (e) {
-    throw Exception('Error: $e');
   }
-}
- 
 
   Future<void> logout() async {
     try {
@@ -244,10 +239,9 @@ Future<Map<String, dynamic>> getProfile() async {
       print('Response status: ${response.statusCode}');
       print('Response body: $responseBody');
 
-    if (response.statusCode != 200 && response.statusCode != 201) {
-  throw Exception('Error: ${response.statusCode}');
-} 
-
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('Error: ${response.statusCode}');
+      }
 
       final data = json.decode(responseBody);
       if (data['token'] != null) {

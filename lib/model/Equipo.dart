@@ -5,6 +5,8 @@ class Equipo {
   final String nombre;
   final String? logo;
   final String colorUniforme;
+  final bool esAbierto;
+  final int plazasDisponibles;
   final List<Miembro> miembros;
 
   Equipo({
@@ -12,19 +14,32 @@ class Equipo {
     required this.nombre,
     this.logo,
     required this.colorUniforme,
+    required this.esAbierto,
+    required this.plazasDisponibles,
     required this.miembros,
   });
 
   factory Equipo.fromJson(Map<String, dynamic> json) {
-    return Equipo(
-      id: json['id'],
-      nombre: json['nombre'],
-      logo: json['logo'],
-      colorUniforme: json['color_uniforme'],
-      miembros: (json['miembros'] as List<dynamic>?)
-              ?.map((m) => Miembro.fromJson(m))
-              .toList() ??
-          [],
-    );
+    try {
+      return Equipo(
+        id: json['id'] ?? 0,
+        nombre: json['nombre']?.toString() ?? '', // Convertir a String de forma segura
+        logo: json['logo']?.toString(), // Ya es nullable
+        colorUniforme: json['color_uniforme']?.toString() ?? '',
+        esAbierto: (json['es_abierto'] == 1 || json['es_abierto'] == true),
+        plazasDisponibles: json['plazas_disponibles'] ?? 0,
+        miembros: (json['miembros'] as List<dynamic>?)?.map((miembro) {
+          if (miembro is Map<String, dynamic>) {
+            return Miembro.fromJson(miembro);
+          }
+          throw FormatException('Formato de miembro inválido: $miembro');
+        }).toList() ?? [],
+      );
+    } catch (e, stack) {
+      print('Error parseando equipo: $e');
+      print('Stack trace: $stack');
+      print('JSON problemático: $json');
+      rethrow;
+    }
   }
 }

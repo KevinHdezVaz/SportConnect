@@ -17,6 +17,7 @@ class _CrearEquipoScreenState extends State<CrearEquipoScreen> {
   bool _isLoading = false;
   final _equipoService = EquipoService();
   String? _selectedPredefinedLogo;
+  bool _esAbierto = false; // Por defecto, equipo abierto
 
   final List<String> _predefinedLogos = [
     'assets/logos/logo1.png',
@@ -40,6 +41,7 @@ class _CrearEquipoScreenState extends State<CrearEquipoScreen> {
           colorUniforme: _colorController.text,
           logo: _logoFile,
           logoPredefinido: _selectedPredefinedLogo,
+          esAbierto: _esAbierto,
         );
 
         // Mostrar SnackBar de éxito

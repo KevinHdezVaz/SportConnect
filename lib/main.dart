@@ -21,7 +21,15 @@ void main() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   int isviewed = prefs.getInt('onBoard') ?? 1;
 
-  await NotificationService.init();
+  try {
+    // Inicializar NotificationService
+    await NotificationService.setupNotifications();
+
+    print('NotificationService inicializado correctamente');
+  } catch (e) {
+    print('Error al inicializar NotificationService: $e');
+  }
+
   await dotenv.load(fileName: '.env');
 
   await Firebase.initializeApp(

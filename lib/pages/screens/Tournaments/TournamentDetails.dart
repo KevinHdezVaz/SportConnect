@@ -4,12 +4,15 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:user_auth_crudd10/model/Equipo.dart';
 import 'package:user_auth_crudd10/model/Torneo.dart';
+import 'package:user_auth_crudd10/pages/screens/Tournaments/SeleccionarEquipoScreen.dart';
 import 'package:user_auth_crudd10/services/equipo_service.dart';
 import 'package:user_auth_crudd10/services/torneo_service.dart';
 
 class TournamentDetails extends StatefulWidget {
   final Torneo torneo;
+
   const TournamentDetails({Key? key, required this.torneo}) : super(key: key);
 
   @override
@@ -22,6 +25,7 @@ class _TournamentDetailsState extends State<TournamentDetails>
   final TorneoService _torneoService = TorneoService();
   Map<String, dynamic>? _torneoDetails;
   bool _isLoading = true;
+  Map<String, dynamic>? userData;
 
   final _equipoService = EquipoService();
   bool _inscribiendose = false;
@@ -137,9 +141,25 @@ class _TournamentDetailsState extends State<TournamentDetails>
             ),
       floatingActionButton: widget.torneo.estado == 'abierto'
           ? FloatingActionButton.extended(
-              onPressed: _inscribiendose ? null : _mostrarDialogoInscripcion,
-              icon: Icon(Icons.sports_soccer),
-              label: Text('Inscribir Equipo'),
+              onPressed: () {
+                // Navegar a la pantalla SeleccionarEquipoScreen
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SeleccionarEquipoScreen(
+                      torneoId: widget.torneo.id, // Pasar el ID del torneo
+                    ),
+                  ),
+                );
+              },
+              icon: Icon(
+                Icons.sports_soccer,
+                color: Colors.white,
+              ),
+              label: Text(
+                'Unirme al Torneo',
+                style: TextStyle(color: Colors.white),
+              ),
               backgroundColor: Colors.lightBlue,
             )
           : null,
@@ -173,7 +193,7 @@ class _TournamentDetailsState extends State<TournamentDetails>
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              _inscribirEquipo();
+              //   _inscribirEquipo();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
@@ -183,50 +203,6 @@ class _TournamentDetailsState extends State<TournamentDetails>
         ],
       ),
     );
-  }
-
-  Future<void> _inscribirEquipo() async {
-    setState(() => _inscribiendose = true);
-
-    try {
-      // Si hay cuota, pedir comprobante
-      File? comprobante;
-      if (widget.torneo.cuotaInscripcion > 0) {
-        comprobante = await _seleccionarComprobante();
-        if (comprobante == null) {
-          setState(() => _inscribiendose = false);
-          return;
-        }
-      }
-
-      await _equipoService.inscribirseATorneo(
-        equipoId: widget.torneo.id, // Asegúrate de tener el ID del equipo
-        torneoId: widget.torneo.id,
-        comprobantePago: comprobante,
-      );
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.check_circle, color: Colors.white),
-              SizedBox(width: 8),
-              Text('¡Inscripción exitosa!'),
-            ],
-          ),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      setState(() => _inscribiendose = false);
-    }
   }
 
   Future<File?> _seleccionarComprobante() async {
@@ -530,7 +506,7 @@ class _TournamentDetailsState extends State<TournamentDetails>
                 children: [
                   Icon(Icons.gavel, color: Theme.of(context).primaryColor),
                   SizedBox(width: 8),
-                  Text(
+                  const Text(
                     'Reglas del Torneo',
                     style: TextStyle(
                       fontSize: 18,

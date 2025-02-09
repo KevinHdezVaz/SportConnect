@@ -229,7 +229,7 @@ Widget _buildMiembrosTab() {
                   ],
                 ),
                 subtitle: Text(
-                  miembro.email,
+                  miembro.email!,
                   style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                 ),
                 trailing: !esCapitan && !pendiente
