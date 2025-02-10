@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:user_auth_crudd10/auth/booking_service.dart';
 import 'package:user_auth_crudd10/model/booking.dart';
+import 'package:user_auth_crudd10/pages/screens/bookin/BookingDetailsScreen.dart';
 
 class BookingScreen extends StatefulWidget {
   const BookingScreen({Key? key}) : super(key: key);
@@ -170,36 +171,49 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
-  Widget _buildReservationList(List<Booking> reservations, bool isActive) {
-    if (reservations.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.calendar_today,
-              size: 50,
-              color: Colors.grey[400],
+
+Widget _buildReservationList(List<Booking> reservations, bool isActive) {
+  if (reservations.isEmpty) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.calendar_today,
+            size: 50,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            isActive ? 'No tienes reservas activas' : 'No hay historial de reservas',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.bold,
             ),
-            const SizedBox(height: 16),
-            Text(
-              isActive ? 'No tienes reservas activas' : 'No hay historial de reservas',
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.bold,
+          ),
+        ],
+      ),
+    );
+  }
+  
+  return ListView.builder(
+    itemCount: reservations.length,
+    itemBuilder: (context, index) {
+      final reservation = reservations[index];
+      return InkWell( // Agregar este widget
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BookingDetailsScreen(
+                booking: reservation,
+                isActive: isActive,
               ),
             ),
-          ],
-        ),
-      );
-    }
-
-    return ListView.builder(
-      itemCount: reservations.length,
-      itemBuilder: (context, index) {
-        final reservation = reservations[index];
-        return Card(
+          );
+        },
+        child: Card(
           margin: const EdgeInsets.symmetric(vertical: 8),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -216,17 +230,18 @@ class _BookingScreenState extends State<BookingScreen> {
               ],
             ),
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 
   Widget _buildReservationHeader(Booking reservation, bool isActive) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          'Cancha ${reservation.fieldId}',
+          'Cancha ${reservation.fieldName}',
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,

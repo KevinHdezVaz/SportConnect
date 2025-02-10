@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:user_auth_crudd10/model/Equipo.dart';
 import 'package:user_auth_crudd10/model/Miembro.dart';
+import 'package:user_auth_crudd10/pages/screens/Equipos/ChatTabWidget.dart';
 import 'package:user_auth_crudd10/pages/screens/Equipos/InvitarPorCodigoScreen.dart';
 import 'package:user_auth_crudd10/services/equipo_service.dart';
 
@@ -22,7 +23,19 @@ class _DetalleEquipoScreenState extends State<DetalleEquipoScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
+        _tabController.addListener(_handleTabSelection);
+  }
+
+ @override
+  void dispose() {
+    _tabController.removeListener(_handleTabSelection);
+    _tabController.dispose();
+    super.dispose();
+  }
+  void _handleTabSelection() {
+    // Forzar rebuild cuando cambia la tab para actualizar el FAB
+    if (mounted) setState(() {});
   }
 
   @override
@@ -67,6 +80,7 @@ class _DetalleEquipoScreenState extends State<DetalleEquipoScreen>
             Tab(icon: Icon(Icons.info), text: 'Información'),
             Tab(icon: Icon(Icons.group), text: 'Miembros'),
             Tab(icon: Icon(Icons.emoji_events), text: 'Torneos'),
+            Tab(icon: Icon(Icons.message), text: 'Chat'),
           ],
         ),
       ),
@@ -76,6 +90,11 @@ class _DetalleEquipoScreenState extends State<DetalleEquipoScreen>
           _buildInfoTab(),
           _buildMiembrosTab(),
           _buildTorneosTab(),
+                    ChatTab(
+                      equipoId: widget.equipo.id ,
+                      userId: widget.userId ,
+                    ),
+
         ],
       ),
       floatingActionButton: _buildFloatingActionButton(),
@@ -165,96 +184,99 @@ class _DetalleEquipoScreenState extends State<DetalleEquipoScreen>
     );
   }
 
-Widget _buildMiembrosTab() {
-  return Column(
-    children: [
-      Expanded(
-        child: ListView.builder(
-          itemCount: widget.equipo.miembros.length,
-          itemBuilder: (context, index) {
-            final miembro = widget.equipo.miembros[index];
-            final esCapitan = miembro.pivot.rol == 'capitan';
-            final pendiente = miembro.pivot.estado == 'pendiente';
+  Widget _buildMiembrosTab() {
+    return Column(
+      children: [
+        Expanded(
+          child: ListView.builder(
+            itemCount: widget.equipo.miembros.length,
+            itemBuilder: (context, index) {
+              final miembro = widget.equipo.miembros[index];
+              final esCapitan = miembro.pivot.rol == 'capitan';
+              final pendiente = miembro.pivot.estado == 'pendiente';
 
-            final imageUrl = miembro.profileImage != null
-                ? 'https://proyect.aftconta.mx/storage/${miembro.profileImage}'
-                : null;
+              final imageUrl = miembro.profileImage != null
+                  ? 'https://proyect.aftconta.mx/storage/${miembro.profileImage}'
+                  : null;
 
-            return Card(
-              margin: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundImage: imageUrl != null ? NetworkImage(imageUrl) : null,
-                  child: imageUrl == null
-                      ? Text(miembro.name[0].toUpperCase(),
-                          style: TextStyle(color: Colors.white))
+              return Card(
+                margin: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundImage:
+                        imageUrl != null ? NetworkImage(imageUrl) : null,
+                    child: imageUrl == null
+                        ? Text(miembro.name[0].toUpperCase(),
+                            style: TextStyle(color: Colors.white))
+                        : null,
+                    backgroundColor: Colors.blueAccent,
+                  ),
+                  title: Row(
+                    children: [
+                      Text(
+                        miembro.name,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: pendiente ? Colors.grey : Colors.black,
+                        ),
+                      ),
+                      if (esCapitan)
+                        Padding(
+                          padding: EdgeInsets.only(left: 8),
+                          child:
+                              Icon(Icons.stars, size: 16, color: Colors.amber),
+                        ),
+                      if (pendiente)
+                        Container(
+                          margin: EdgeInsets.only(left: 8),
+                          padding:
+                              EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.orange,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'Pendiente',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  subtitle: Text(
+                    miembro.email!,
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  ),
+                  trailing: !esCapitan && !pendiente
+                      ? PopupMenuButton(
+                          itemBuilder: (context) => [
+                            PopupMenuItem(
+                              value: 'eliminar',
+                              child: Text('Eliminar del equipo'),
+                            ),
+                          ],
+                          onSelected: (value) {
+                            if (value == 'eliminar') {
+                              _confirmarEliminarMiembro(miembro);
+                            }
+                          },
+                        )
                       : null,
-                  backgroundColor: Colors.blueAccent,
                 ),
-                title: Row(
-                  children: [
-                    Text(
-                      miembro.name,
-                      style: TextStyle(
-                        fontSize: 16, 
-                        fontWeight: FontWeight.bold,
-                        color: pendiente ? Colors.grey : Colors.black,
-                      ),
-                    ),
-                    if (esCapitan)
-                      Padding(
-                        padding: EdgeInsets.only(left: 8),
-                        child: Icon(Icons.stars, size: 16, color: Colors.amber),
-                      ),
-                    if (pendiente)
-                      Container(
-                        margin: EdgeInsets.only(left: 8),
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.orange,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          'Pendiente',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                subtitle: Text(
-                  miembro.email!,
-                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                ),
-                trailing: !esCapitan && !pendiente
-                    ? PopupMenuButton(
-                        itemBuilder: (context) => [
-                          PopupMenuItem(
-                            value: 'eliminar',
-                            child: Text('Eliminar del equipo'),
-                          ),
-                        ],
-                        onSelected: (value) {
-                          if (value == 'eliminar') {
-                            _confirmarEliminarMiembro(miembro);
-                          }
-                        },
-                      )
-                    : null,
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
-      ),
-    ],
-  );
-}
+      ],
+    );
+  }
 
   Widget _buildTorneosTab() {
     return Center(
@@ -266,6 +288,9 @@ Widget _buildMiembrosTab() {
   }
 
   Widget _buildFloatingActionButton() {
+    // No mostrar el FAB si estamos en la pestaña de chat (índice 3)
+    if (_tabController.index == 3) return SizedBox.shrink();
+
     final esCaptain = widget.equipo.miembros
         .any((m) => m.pivot.rol == 'capitan' && m.id == widget.userId);
 
@@ -280,14 +305,12 @@ Widget _buildMiembrosTab() {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) =>
-                    InvitarPorCodigoScreen(equipoId: widget.equipo.id),
+                builder: (_) => InvitarPorCodigoScreen(equipoId: widget.equipo.id),
               ),
             );
           },
           icon: Icon(Icons.group, color: Colors.white),
-          label:
-              Text('Invitar jugadores', style: TextStyle(color: Colors.white)),
+          label: Text('Invitar jugadores', style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.blueAccent,
         ),
       ],
@@ -443,4 +466,6 @@ Widget _buildMiembrosTab() {
       ),
     );
   }
+  
+  
 }

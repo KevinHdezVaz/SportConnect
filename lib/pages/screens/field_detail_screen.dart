@@ -445,8 +445,7 @@ Card(
     );
   }
 
-// Funciones auxiliares
-  String _getDayInSpanish(String englishDay) {
+   String _getDayInSpanish(String englishDay) {
     final Map<String, String> dayTranslations = {
       'monday': 'Lunes',
       'tuesday': 'Martes',

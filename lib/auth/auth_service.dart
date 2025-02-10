@@ -8,6 +8,70 @@ import 'package:user_auth_crudd10/utils/constantes.dart';
 
 class AuthService {
   final storage = StorageService();
+ 
+
+Future<bool> updateProfile({
+    String? name,
+    String? phone,
+    String? postalCode,
+    String? posicion,
+    File? profileImage,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrl/profile');
+      
+      // Crear el mapa de datos
+      Map<String, String> fields = {};
+      if (name != null) fields['name'] = name;
+      if (phone != null) fields['phone'] = phone;
+      if (postalCode != null) fields['codigo_postal'] = postalCode;
+      if (posicion != null) fields['posicion'] = posicion;
+
+      // Obtener headers
+      final headers = await getHeaders();
+      
+      // Si hay imagen, usar MultipartRequest
+      if (profileImage != null) {
+        final request = http.MultipartRequest('POST', uri)  // Cambiar a POST
+          ..headers.addAll(headers)
+          ..fields.addAll(fields);
+        
+        final fileStream = http.ByteStream(profileImage.openRead());
+        final length = await profileImage.length();
+        final multipartFile = http.MultipartFile(
+          'profile_image',
+          fileStream,
+          length,
+          filename: profileImage.path.split('/').last,
+        );
+        request.files.add(multipartFile);
+        
+        // Agregar _method field para simular PUT
+        request.fields['_method'] = 'PUT';
+        
+        final streamedResponse = await request.send();
+        final response = await http.Response.fromStream(streamedResponse);
+        
+        print('Respuesta: ${response.body}');
+        return response.statusCode == 200;
+      } 
+      // Si no hay imagen, usar PUT normal
+      else {
+        final response = await http.put(
+          uri,
+          headers: headers,
+          body: json.encode(fields),
+        );
+        
+        print('Respuesta: ${response.body}');
+        return response.statusCode == 200;
+      }
+    } catch (e) {
+      print('Error actualizando perfil: $e');
+      return false;
+    }
+  }
+
 
   Future<bool> login(String email, String password,
       {double? latitude, double? longitude}) async {
@@ -86,42 +150,7 @@ class AuthService {
       throw Exception('Error al cerrar sesión');
     }
   }
-
-  Future<bool> updateProfile({
-    String? name,
-    String? phone,
-    String? businessName,
-    String? businessAddress,
-    double? latitude,
-    double? longitude,
-  }) async {
-    try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/profile'),
-        headers: await getHeaders(),
-        body: json.encode({
-          'name': name,
-          'phone': phone,
-          'business_name': businessName,
-          'business_address': businessAddress,
-          'latitude': latitude,
-          'longitude': longitude,
-        }),
-      );
-
-      if (response.statusCode != 200) {
-        throw Exception('Error actualizando perfil');
-      }
-
-      final data = json.decode(response.body);
-      //   await storage.saveUser(data);
-      return true;
-    } catch (e) {
-      print('Error: $e');
-      return false;
-    }
-  }
-
+ 
   Future<Map<String, String>> getHeaders() async {
     final token = await storage.getToken();
     return {

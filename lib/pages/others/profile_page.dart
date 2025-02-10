@@ -9,6 +9,7 @@ import 'package:user_auth_crudd10/auth/auth_service.dart';
 import 'package:user_auth_crudd10/pages/screens/Equipos/detalle_equipo.screen.dart';
 import 'package:user_auth_crudd10/pages/screens/Equipos/invitaciones.screen.dart';
 import 'package:user_auth_crudd10/pages/screens/Equipos/lista_equipos_screen.dart';
+ import 'package:user_auth_crudd10/pages/screens/UpdateProfileScreen.dart';
 import 'package:user_auth_crudd10/pages/userProfileEdit_page.dart';
 import 'package:user_auth_crudd10/services/equipo_service.dart';
 
@@ -298,7 +299,15 @@ void _mostrarCodigo() {
                                   icon: Icons.person,
                                   title: 'Editar Perfil',
                                   subtitle: 'Datos de usuario',
-                                  onTap: () {},
+                                  onTap: () {
+                                      Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => UpdateProfileScreen(),
+                ),
+              );
+            
+                                  },
                                 ),
                                 _buildMenuItem(
                                   icon: Icons.notifications,
