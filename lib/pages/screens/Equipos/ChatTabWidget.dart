@@ -140,22 +140,20 @@ class _ChatTabState extends State<ChatTab> {
     }
   }
 
-  Future<void> _loadMessages() async {
-    setState(() => isLoading = true);
-    try {
-      final loadedMessages = await _chatService.getMessages(widget.equipoId);
-      setState(() {
-        messages = loadedMessages;
-        isLoading = false;
-      });
-      _scrollToBottom();
-    } catch (e) {
-      setState(() => isLoading = false);
-      _showErrorSnackBar('Error al cargar los mensajes: $e');
-    }
+ Future<void> _loadMessages() async {
+  setState(() => isLoading = true);
+  try {
+    final loadedMessages = await _chatService.getMessages(widget.equipoId);
+    setState(() {
+      messages = loadedMessages.reversed.toList(); // Invertir orden
+      isLoading = false;
+    });
+    _scrollToBottom();
+  } catch (e) {
+    setState(() => isLoading = false);
+    _showErrorSnackBar('Error al cargar los mensajes: $e');
   }
-
- 
+}
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -586,9 +584,9 @@ Widget _buildMessageContent(ChatMessage message, bool isMe) {
             Expanded(
               child: TextField(
                 controller: _messageController,
-                              focusNode: _focusNode, // Agregar esto
-
+                focusNode: _focusNode,  
                 decoration: InputDecoration(
+                  hintStyle: TextStyle(color: Colors.black),
                   hintText: 'Escribe un mensaje...',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(20),
