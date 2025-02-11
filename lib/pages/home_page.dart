@@ -9,9 +9,9 @@ import 'package:user_auth_crudd10/model/Torneo.dart';
 import 'package:user_auth_crudd10/pages/screens/Equipos/invitaciones.screen.dart';
 import 'package:user_auth_crudd10/pages/screens/Tournaments/TournamentDetails.dart';
 import 'package:user_auth_crudd10/pages/screens/Tournaments/TournamentScreen.dart';
-import 'package:user_auth_crudd10/pages/screens/stories/Storieswidget.dart';
+import 'package:user_auth_crudd10/pages/screens/stories/StoriesSection.dart';
 import 'package:user_auth_crudd10/services/StoriesService.dart';
- import 'package:user_auth_crudd10/services/equipo_service.dart';
+import 'package:user_auth_crudd10/services/equipo_service.dart';
 import 'package:user_auth_crudd10/services/torneo_service.dart';
 
 class HomePage extends StatefulWidget {
@@ -24,14 +24,14 @@ class _HomePageState extends State<HomePage> {
   final int count = 0;
   int _invitacionesPendientes = 0;
   final _equipoService = EquipoService();
-late Future<List<Story>> futureStories;
+  late Future<List<Story>> futureStories;
 
   @override
   void initState() {
     super.initState();
-          _cargarDatos();
-  futureStories = StoriesService().getStories();
-   }
+    _cargarDatos();
+    futureStories = StoriesService().getStories();
+  }
 
   final _authService = AuthService();
   Map<String, dynamic>? userData;
@@ -48,13 +48,14 @@ late Future<List<Story>> futureStories;
       print('Error cargando invitaciones: $e');
     }
   }
-Future<void> _cargarDatos() async {
-  setState(() {
-    futureTorneos = TorneoService().getTorneos();
-    _loadUserProfile();
-    _loadInvitaciones();
-  });
-}
+
+  Future<void> _cargarDatos() async {
+    setState(() {
+      futureTorneos = TorneoService().getTorneos();
+      _loadUserProfile();
+      _loadInvitaciones();
+    });
+  }
 
   Future<void> _loadUserProfile() async {
     try {
@@ -205,20 +206,11 @@ Future<void> _cargarDatos() async {
                                 ],
                               ),
                             ),
-    
-                            const SizedBox(height: 24),
-    
 
-    // Add after search container
-FutureBuilder<List<Story>>(
-  future: futureStories,
-  builder: (context, snapshot) {
-    if (snapshot.hasData) {
-      return StoriesPreview(stories: snapshot.data!);
-    }
-    return SizedBox.shrink();
-  },
-),
+                            const SizedBox(height: 24),
+
+                            // Add after search container
+                            const StoriesSection(),
 
                             // Sección de canchas destacadas
                             Row(
@@ -245,73 +237,81 @@ FutureBuilder<List<Story>>(
                               ],
                             ),
                             SizedBox(height: 12),
-                     SizedBox(
-      height: 200,
-      child: FutureBuilder<List<Torneo>>(
-        future: futureTorneos,
-        builder: (context, snapshot) {
-    if (snapshot.connectionState == ConnectionState.waiting) {
-      return Center(child: CircularProgressIndicator());
-    } else if (snapshot.hasError) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('Error de conexión',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  futureTorneos = TorneoService().getTorneos();
-                });
-              },
-              child: Text('Reintentar'),
-            ),
-          ],
-        ),
-      );
-    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-      return Center(child: Text('No hay torneos disponibles.'));
-    }
-    
-                                    return CarouselSlider.builder(
-                                      itemCount: snapshot.data!.length,
-                                      itemBuilder: (context, index, realIndex) {
-                                        Torneo torneo = snapshot.data![index];
-                                        return Container(
-                                          width:
-                                              320, // Ancho fijo para cada tarjeta
-                                          margin: EdgeInsets.only(
-                                              right:
-                                                  8), // Espacio entre tarjetas
-                                          child:
-                                              _buildTorneoCard(context, torneo),
-                                        );
-                                      },
-                                      options: CarouselOptions(
-                                        height: 220,
-                                        aspectRatio: 16 / 9,
-                                        viewportFraction:
-                                            0.8, // Muestra parcialmente las tarjetas adyacentes
-                                        initialPage: 0,
-                                        enableInfiniteScroll: true,
-                                        reverse: false,
-                                        autoPlay: true,
-                                        autoPlayInterval: Duration(seconds: 5),
-                                        autoPlayAnimationDuration:
-                                            Duration(milliseconds: 800),
-                                        autoPlayCurve: Curves.fastOutSlowIn,
-                                        enlargeCenterPage: true,
-                                        scrollDirection: Axis.horizontal,
+                            SizedBox(
+                              height: 200,
+                              child: FutureBuilder<List<Torneo>>(
+                                future: futureTorneos,
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState ==
+                                      ConnectionState.waiting) {
+                                    return Center(
+                                        child: CircularProgressIndicator());
+                                  } else if (snapshot.hasError) {
+                                    return Center(
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Text('Error de conexión',
+                                              style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold)),
+                                          SizedBox(height: 8),
+                                          ElevatedButton(
+                                            onPressed: () {
+                                              setState(() {
+                                                futureTorneos = TorneoService()
+                                                    .getTorneos();
+                                              });
+                                            },
+                                            child: Text('Reintentar'),
+                                          ),
+                                        ],
                                       ),
                                     );
-                                 },
-      ),
-    ),
-                          
+                                  } else if (!snapshot.hasData ||
+                                      snapshot.data!.isEmpty) {
+                                    return Center(
+                                        child: Text(
+                                            'No hay torneos disponibles.'));
+                                  }
+
+                                  return CarouselSlider.builder(
+                                    itemCount: snapshot.data!.length,
+                                    itemBuilder: (context, index, realIndex) {
+                                      Torneo torneo = snapshot.data![index];
+                                      return Container(
+                                        width:
+                                            320, // Ancho fijo para cada tarjeta
+                                        margin: EdgeInsets.only(
+                                            right: 8), // Espacio entre tarjetas
+                                        child:
+                                            _buildTorneoCard(context, torneo),
+                                      );
+                                    },
+                                    options: CarouselOptions(
+                                      height: 220,
+                                      aspectRatio: 16 / 9,
+                                      viewportFraction:
+                                          0.8, // Muestra parcialmente las tarjetas adyacentes
+                                      initialPage: 0,
+                                      enableInfiniteScroll: true,
+                                      reverse: false,
+                                      autoPlay: true,
+                                      autoPlayInterval: Duration(seconds: 5),
+                                      autoPlayAnimationDuration:
+                                          Duration(milliseconds: 800),
+                                      autoPlayCurve: Curves.fastOutSlowIn,
+                                      enlargeCenterPage: true,
+                                      scrollDirection: Axis.horizontal,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+
                             SizedBox(height: 24),
-    
+
                             // Sección de partidos disponibles
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
