@@ -67,7 +67,7 @@ class OnBoardingCuatro extends StatelessWidget {
                       clipper: SlandingClipper(),
                       child: Container(
                         height: size.height * 0.4,
-                        color: const Color.fromARGB(255, 159, 212, 158),
+                        color: Colors.lightBlue[100],
                       ),
                     ),
                   ),
@@ -86,17 +86,17 @@ class OnBoardingCuatro extends StatelessWidget {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                           fontSize: 27,
+                          color: Colors.blue,
+                          fontSize: 27,
                         ),
                       ),
                       SizedBox(
                         height: size.height * 0.02,
                       ),
-                        Container(
-  padding: EdgeInsets.symmetric(
-                    horizontal: 10, // Reduje padding lateral
-                  ),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 10, // Reduje padding lateral
+                        ),
                         child: RichText(
                           textAlign: TextAlign.start,
                           text: TextSpan(
@@ -104,12 +104,10 @@ class OnBoardingCuatro extends StatelessWidget {
                             children: <TextSpan>[
                               TextSpan(
                                   style: TextStyle(
-                         fontWeight: FontWeight.w900,
-
+                                      fontWeight: FontWeight.w900,
                                       fontSize: getResponsiveText(24),
-                                       color: Colors.black),
-                                                                      text:
-                                      "Disfruta de torneos amistosos"),
+                                      color: Colors.black),
+                                  text: "Disfruta de torneos amistosos"),
                               TextSpan(
                                   style: TextStyle(
                                     fontWeight: FontWeight.w900,
@@ -198,13 +196,13 @@ class OnBoardingCuatro extends StatelessWidget {
                       padding: EdgeInsets.only(right: appPadding),
                       child: FloatingActionButton(
                         onPressed: () {
-                           _storeOnboardInfo();
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => AuthCheckMain(),
-                              ),
-                            );
+                          _storeOnboardInfo();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AuthCheckMain(),
+                            ),
+                          );
                         },
                         backgroundColor: white,
                         child: const Icon(

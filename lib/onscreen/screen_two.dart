@@ -59,7 +59,7 @@ class OnboardingScreenTwo extends StatelessWidget {
                       clipper: SlandingClipper(),
                       child: Container(
                         height: size.height * 0.5,
-                        color: Colors.orange[200],
+                        color: Colors.lightBlue[100],
                       ),
                     ),
                   ),
@@ -96,10 +96,10 @@ class OnboardingScreenTwo extends StatelessWidget {
                       SizedBox(
                         height: size.height * 0.02,
                       ),
-                         Container(
-  padding: EdgeInsets.symmetric(
-                    horizontal: 20, // Reduje padding lateral
-                  ),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20, // Reduje padding lateral
+                        ),
                         child: RichText(
                           textAlign: TextAlign.start,
                           text: TextSpan(
@@ -111,7 +111,7 @@ class OnboardingScreenTwo extends StatelessWidget {
                                       fontFamily: 'Viga-Regular',
                                       color: Colors.black),
                                   text:
-                                  // Organizá tu semana  y elegí el horario que más te convenga. Jugando solo o con amigos.
+                                      // Organizá tu semana  y elegí el horario que más te convenga. Jugando solo o con amigos.
                                       "Organizá tu semana y elegí el horario"),
                               TextSpan(
                                   style: TextStyle(

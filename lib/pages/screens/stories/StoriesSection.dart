@@ -2,7 +2,79 @@ import 'package:flutter/material.dart';
 import 'package:user_auth_crudd10/model/Story.dart';
 import 'package:user_auth_crudd10/services/StoriesService.dart';
 
-// Modifica la clase StoryViewScreen para ser stateful
+class StoriesSection extends StatefulWidget {
+  const StoriesSection({Key? key}) : super(key: key);
+
+  @override
+  State<StoriesSection> createState() => _StoriesSectionState();
+}
+
+class _StoriesSectionState extends State<StoriesSection> {
+  late Future<List<Story>> futureStories;
+
+  @override
+  void initState() {
+    super.initState();
+    futureStories = StoriesService().getStories();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 110,
+      margin: EdgeInsets.only(top: 16, bottom: 16),
+      child: FutureBuilder<List<Story>>(
+        future: futureStories,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            print('Error: ${snapshot.error}');
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Error al cargar las historias',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        futureStories = StoriesService().getStories();
+                      });
+                    },
+                    child: Text('Reintentar'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(child: Text('No hay historias disponibles'));
+          }
+
+          return ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: snapshot.data!.length,
+            itemBuilder: (context, index) {
+              final story = snapshot.data![index];
+              return StoryItem(
+                story: story,
+                allStories: snapshot.data!,
+                index: index,
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
 class StoryViewScreen extends StatefulWidget {
   final Story story;
   final List<Story> allStories; // Añadir lista de todas las historias
@@ -19,7 +91,8 @@ class StoryViewScreen extends StatefulWidget {
   State<StoryViewScreen> createState() => _StoryViewScreenState();
 }
 
-class _StoryViewScreenState extends State<StoryViewScreen> with SingleTickerProviderStateMixin {
+class _StoryViewScreenState extends State<StoryViewScreen>
+    with SingleTickerProviderStateMixin {
   late PageController _pageController;
   late AnimationController _animationController;
   int _currentIndex = 0;
@@ -30,7 +103,8 @@ class _StoryViewScreenState extends State<StoryViewScreen> with SingleTickerProv
     super.initState();
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: _currentIndex);
-    _animationController = AnimationController(vsync: this, duration: _storyDuration);
+    _animationController =
+        AnimationController(vsync: this, duration: _storyDuration);
 
     _animationController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
@@ -81,28 +155,33 @@ class _StoryViewScreenState extends State<StoryViewScreen> with SingleTickerProv
               left: 10,
               right: 10,
               child: Row(
-                children: widget.allStories.asMap().map((index, story) {
-                  return MapEntry(
-                    index,
-                    Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 2),
-                        child: LinearProgressIndicator(
-                          value: index == _currentIndex
-                              ? _animationController.value
-                              : index < _currentIndex
-                                  ? 1.0
-                                  : 0.0,
-                          backgroundColor: Colors.grey[700],
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                children: widget.allStories
+                    .asMap()
+                    .map((index, story) {
+                      return MapEntry(
+                        index,
+                        Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 2),
+                            child: LinearProgressIndicator(
+                              value: index == _currentIndex
+                                  ? _animationController.value
+                                  : index < _currentIndex
+                                      ? 1.0
+                                      : 0.0,
+                              backgroundColor: Colors.grey[700],
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  );
-                }).values.toList(),
+                      );
+                    })
+                    .values
+                    .toList(),
               ),
             ),
-            
+
             // PageView para las historias
             GestureDetector(
               onTapDown: (details) {
@@ -134,8 +213,8 @@ class _StoryViewScreenState extends State<StoryViewScreen> with SingleTickerProv
                         return Center(
                           child: CircularProgressIndicator(
                             value: loadingProgress.expectedTotalBytes != null
-                                ? loadingProgress.cumulativeBytesLoaded / 
-                                  loadingProgress.expectedTotalBytes!
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
                                 : null,
                           ),
                         );
@@ -146,7 +225,8 @@ class _StoryViewScreenState extends State<StoryViewScreen> with SingleTickerProv
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.error_outline, color: Colors.white, size: 50),
+                              Icon(Icons.error_outline,
+                                  color: Colors.white, size: 50),
                               SizedBox(height: 16),
                               Text(
                                 'Error al cargar la imagen',
@@ -183,7 +263,9 @@ class _StoryViewScreenState extends State<StoryViewScreen> with SingleTickerProv
                   children: [
                     CircleAvatar(
                       radius: 20,
-                      child: Text(widget.allStories[_currentIndex].administrator?['name']?[0] ?? 'A'),
+                      child: Text(widget.allStories[_currentIndex]
+                              .administrator?['name']?[0] ??
+                          'A'),
                     ),
                     SizedBox(width: 8),
                     Expanded(
@@ -191,7 +273,9 @@ class _StoryViewScreenState extends State<StoryViewScreen> with SingleTickerProv
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            widget.allStories[_currentIndex].administrator?['name'] ?? 'Admin',
+                            widget.allStories[_currentIndex]
+                                    .administrator?['name'] ??
+                                'FutPlay',
                             style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -217,9 +301,6 @@ class _StoryViewScreenState extends State<StoryViewScreen> with SingleTickerProv
       ),
     );
   }
-
-
-
 }
 
 class StoryItem extends StatelessWidget {
@@ -240,7 +321,7 @@ class StoryItem extends StatelessWidget {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute( 
+          MaterialPageRoute(
             builder: (_) => StoryViewScreen(
               story: story,
               allStories: allStories,
@@ -292,115 +373,9 @@ class StoryItem extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
+                color: Colors.black,
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// Pantalla para ver la historia completa
-class StoryViewScreen extends StatelessWidget {
-  final Story story;
-
-  const StoryViewScreen({
-    Key? key,
-    required this.story,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            // Imagen principal
-          Center(
-  child: Image.network(
-    story.imageUrl,
-    fit: BoxFit.contain,
-    loadingBuilder: (context, child, loadingProgress) {
-      if (loadingProgress == null) return child;
-      return Center(
-        child: CircularProgressIndicator(
-          value: loadingProgress.expectedTotalBytes != null
-              ? loadingProgress.cumulativeBytesLoaded / 
-                loadingProgress.expectedTotalBytes!
-              : null,
-        ),
-      );
-    },
-    errorBuilder: (context, error, stackTrace) {
-      print('Error loading full story image: $error');
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, color: Colors.white, size: 50),
-            SizedBox(height: 16),
-            Text(
-              'Error al cargar la imagen',
-              style: TextStyle(color: Colors.white),
-            ),
-          ],
-        ),
-      );
-    },
-  ),
-),
-            // Barra superior
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black54,
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 20,
-                      child: Text(story.administrator?['name']?[0] ?? 'A'),
-                    ),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            story.administrator?['name'] ?? 'Admin',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            story.title,
-                            style: TextStyle(color: Colors.white70),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.close, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
               ),
             ),
           ],
