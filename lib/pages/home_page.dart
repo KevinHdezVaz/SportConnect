@@ -1,11 +1,9 @@
-import 'package:carousel_slider/carousel_options.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:user_auth_crudd10/auth/auth_service.dart';
 import 'package:user_auth_crudd10/model/Story.dart';
 import 'package:user_auth_crudd10/model/Torneo.dart';
-import 'package:user_auth_crudd10/pages/Mercadopago/PaymentScreen.dart';
 import 'package:user_auth_crudd10/pages/screens/Equipos/invitaciones.screen.dart';
 import 'package:user_auth_crudd10/pages/screens/Tournaments/TournamentDetails.dart';
 import 'package:user_auth_crudd10/pages/screens/Tournaments/TournamentScreen.dart';
@@ -25,13 +23,15 @@ class _HomePageState extends State<HomePage> {
   int _invitacionesPendientes = 0;
   final _equipoService = EquipoService();
   late Future<List<Story>> futureStories;
-
-  @override
+    @override
   void initState() {
     super.initState();
     _cargarDatos();
     futureStories = StoriesService().getStories();
   }
+
+ 
+
 
   final _authService = AuthService();
   Map<String, dynamic>? userData;
@@ -211,20 +211,6 @@ class _HomePageState extends State<HomePage> {
 
                             // Add after search container
                             const StoriesSection(),
-
-                            ElevatedButton(
-                              onPressed: () {
-                                // Redirige a la SecondScreen
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => PaymentScreen()),
-                                );
-                              },
-                              child: Text('Ir a otra pantalla'),
-                            ),
-
-                            // Sección de canchas destacadas
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [

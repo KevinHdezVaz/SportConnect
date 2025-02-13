@@ -14,7 +14,7 @@ class Field {
   final Map<String, List<String>> available_hours;
   final List<String>? amenities;
   final List<String>? images; // Permitir que sea null
-  final String price_per_match;
+  final double price_per_match; // Asegúrate de que sea double
 
   Field({
     required this.id,
@@ -109,7 +109,7 @@ class Field {
     available_hours: processedHours,
     amenities: amenitiesList,
     images: imagesList,
-    price_per_match: json['price_per_match'].toString(),
+      price_per_match: double.parse(json['price_per_match'].toString()), // Convertir a double
   );
 }
 

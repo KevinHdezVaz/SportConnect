@@ -3,7 +3,9 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:user_auth_crudd10/auth/booking_service.dart';
+import 'package:user_auth_crudd10/model/OrderItem.dart';
 import 'package:user_auth_crudd10/model/field.dart';
+import 'package:user_auth_crudd10/pages/Mercadopago/payment_service.dart';
 
 
 class BookingDialog extends StatefulWidget {
@@ -28,6 +30,9 @@ class _BookingDialogState extends State<BookingDialog> {
   int? playersNeeded;
   bool isLoading = false;
   bool isLoadingHours = false;
+    final _paymentService = PaymentService();
+
+   
 
   @override
   void initState() {
@@ -103,89 +108,82 @@ initializeDateFormatting('en').then((_) {
     });
   }
 
-  Future<void> _createBooking() async {
-    debugPrint("Método _createBooking ejecutado");
+Future<void> _createBooking() async {
+  debugPrint("Método _createBooking ejecutado");
+  
+  // Validaciones de fecha y hora
+  DateTime today = DateTime.now();
+  DateTime selectedOnlyDate = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+  DateTime todayOnlyDate = DateTime(today.year, today.month, today.day);
 
-    DateTime today = DateTime.now();
-    DateTime selectedOnlyDate = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
-    DateTime todayOnlyDate = DateTime(today.year, today.month, today.day);
-
-    if (selectedOnlyDate.isBefore(todayOnlyDate)) {
-      Fluttertoast.showToast(
-        msg: 'Por favor selecciona una fecha válida',
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-      );
-      return;
-    }
-
-    if (selectedTime == null || selectedTime!.isEmpty) {
-      Fluttertoast.showToast(
-        msg: 'Por favor selecciona un horario',
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-      );
-      return;
-    }
-
-    setState(() {
-      isLoading = true;
-    });
-
-    try {
-      final result = await _bookingService.createBooking(
-        fieldId: widget.field.id,
-        date: DateFormat('yyyy-MM-dd').format(selectedDate),
-        startTime: selectedTime!,
-        playersNeeded: playersNeeded,
-      );
-      debugPrint("Result from server: $result");
-
-      if (result['success']) {
-        Fluttertoast.showToast(
-          msg: result['message'],
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.green,
-          textColor: Colors.white,
-        );
-            widget.onBookingComplete?.call();
-      Navigator.pop(context);
-
-     
-      } else {
-        Fluttertoast.showToast(
-          msg: result['message'],
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-        );
-
-        await _refreshAvailableHours();
-        
-      }
-} catch (e, stackTrace) {
-      debugPrint("Error: ${e.toString()}");
-        debugPrint("Stack trace: $stackTrace"); // Imprime el stack trace
-
-      Fluttertoast.showToast(
-        msg: 'Error al crear la reserva: ${e.toString()}',
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-      );
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
-    }
+  if (selectedOnlyDate.isBefore(todayOnlyDate)) {
+    Fluttertoast.showToast(
+      msg: 'Por favor selecciona una fecha válida',
+      backgroundColor: Colors.red,
+    );
+    return;
   }
+
+  if (selectedTime == null || selectedTime!.isEmpty) {
+    Fluttertoast.showToast(
+      msg: 'Por favor selecciona un horario',
+      backgroundColor: Colors.red,
+    );
+    return;
+  }
+
+  setState(() {
+    isLoading = true;
+  });
+
+  try {
+    // 1. Crear items para MercadoPago
+final items = [
+  OrderItem(
+    title: "Reserva - ${widget.field.name}",
+    quantity: 1,
+    unitPrice: double.parse(widget.field.price_per_match.toString()), // Convertir a double
+  ),
+];
+
+    // 2. Procesar el pago con MercadoPago
+    await _paymentService.procesarPago(
+      context, 
+      items,
+      additionalData: {
+        'field_id': widget.field.id,
+        'date': DateFormat('yyyy-MM-dd').format(selectedDate),
+        'start_time': selectedTime!,
+        'players_needed': playersNeeded,
+      }
+    );
+
+    // 3. La reserva se creará en el webhook cuando el pago sea confirmado
+    Fluttertoast.showToast(
+      msg: 'Reserva en proceso. Recibirás una confirmación cuando se complete el pago.',
+      toastLength: Toast.LENGTH_LONG,
+      backgroundColor: Colors.green,
+    );
+
+    widget.onBookingComplete?.call();
+    Navigator.pop(context);
+
+  } catch (e, stackTrace) {
+    debugPrint("Error: ${e.toString()}");
+    debugPrint("Stack trace: $stackTrace");
+    
+    Fluttertoast.showToast(
+      msg: 'Error al procesar el pago: ${e.toString()}',
+      backgroundColor: Colors.red,
+    );
+    
+    await _refreshAvailableHours();
+  } finally {
+    setState(() {
+      isLoading = false;
+    });
+  }
+}
 
   Widget _buildDatePicker() {
     return Card(
@@ -398,7 +396,7 @@ Widget _buildConfirmButton() {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Confirmar Reserva',
+                  'Pagar y resevar',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,

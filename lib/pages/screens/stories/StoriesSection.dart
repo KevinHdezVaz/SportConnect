@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:user_auth_crudd10/model/Story.dart';
 import 'package:user_auth_crudd10/services/StoriesService.dart';
 
@@ -11,12 +12,41 @@ class StoriesSection extends StatefulWidget {
 
 class _StoriesSectionState extends State<StoriesSection> {
   late Future<List<Story>> futureStories;
+  Set<int> viewedStories = {};  
 
-  @override
+
+ @override
   void initState() {
     super.initState();
     futureStories = StoriesService().getStories();
+    _loadViewedStories();
   }
+
+ Future<void> _loadViewedStories() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      viewedStories = Set<int>.from(
+        (prefs.getStringList('viewed_stories') ?? [])
+            .map((s) => int.tryParse(s))
+            .where((id) => id != null)
+            .cast<int>()
+      );
+    });
+  }
+
+
+Future<void> _markStoryAsViewed(int storyId) async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      viewedStories.add(storyId);
+    });
+    await prefs.setStringList(
+      'viewed_stories', 
+      viewedStories.map((id) => id.toString()).toList()
+    );
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -56,16 +86,74 @@ class _StoriesSectionState extends State<StoriesSection> {
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return Center(child: Text('No hay historias disponibles'));
           }
+       
+       final stories = snapshot.data ?? [];
 
           return ListView.builder(
             scrollDirection: Axis.horizontal,
-            itemCount: snapshot.data!.length,
+            itemCount: stories.length,
             itemBuilder: (context, index) {
-              final story = snapshot.data![index];
-              return StoryItem(
-                story: story,
-                allStories: snapshot.data!,
-                index: index,
+              final story = stories[index];
+              final isViewed = viewedStories.contains(story.id);
+              
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: GestureDetector(
+                  onTap: () async {
+                    // Navigate to story view with all required parameters
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => StoryViewScreen(
+                          story: story,
+                          allStories: stories,
+                          initialIndex: index,
+                            onStoryViewed: (storyId) async {
+          await _markStoryAsViewed(storyId);
+        },
+                        ),
+                      ),
+                    );
+                    // Mark as viewed after viewing
+                    await _markStoryAsViewed(story.id);
+                  },
+                  child: Column(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isViewed ? Colors.grey : Colors.blue,
+                            width: 2,
+                          ),
+                        ),
+                        child: Container(
+                          width: 60,
+                          height: 60,
+                          padding: EdgeInsets.all(2),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(30),
+                            child: Image.network(
+                              story.imageUrl,
+                              fit: BoxFit.cover,
+                              opacity: isViewed ? 
+                                AlwaysStoppedAnimation(0.7) : 
+                                AlwaysStoppedAnimation(1.0),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        story.title,
+                        style: TextStyle(
+                          color: isViewed ? Colors.grey : Colors.black,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               );
             },
           );
@@ -75,16 +163,19 @@ class _StoriesSectionState extends State<StoriesSection> {
   }
 }
 
+
 class StoryViewScreen extends StatefulWidget {
   final Story story;
-  final List<Story> allStories; // Añadir lista de todas las historias
-  final int initialIndex; // Índice inicial
+  final List<Story> allStories;
+  final int initialIndex;
+  final Function(int) onStoryViewed; // Añadimos callback para marcar como vista
 
   const StoryViewScreen({
     Key? key,
     required this.story,
     required this.allStories,
     required this.initialIndex,
+    required this.onStoryViewed,
   }) : super(key: key);
 
   @override
@@ -97,14 +188,17 @@ class _StoryViewScreenState extends State<StoryViewScreen>
   late AnimationController _animationController;
   int _currentIndex = 0;
   final Duration _storyDuration = Duration(seconds: 5);
+  Set<int> _viewedInSession = {}; // Para rastrear las historias vistas en esta sesión
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: _currentIndex);
-    _animationController =
-        AnimationController(vsync: this, duration: _storyDuration);
+    _animationController = AnimationController(vsync: this, duration: _storyDuration);
+
+    // Marcar la historia inicial como vista
+    _markCurrentStoryAsViewed();
 
     _animationController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
@@ -113,6 +207,14 @@ class _StoryViewScreenState extends State<StoryViewScreen>
     });
 
     _animationController.forward();
+  }
+
+  void _markCurrentStoryAsViewed() {
+    final currentStory = widget.allStories[_currentIndex];
+    if (!_viewedInSession.contains(currentStory.id)) {
+      _viewedInSession.add(currentStory.id);
+      widget.onStoryViewed(currentStory.id);
+    }
   }
 
   @override
@@ -155,30 +257,25 @@ class _StoryViewScreenState extends State<StoryViewScreen>
               left: 10,
               right: 10,
               child: Row(
-                children: widget.allStories
-                    .asMap()
-                    .map((index, story) {
-                      return MapEntry(
-                        index,
-                        Expanded(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 2),
-                            child: LinearProgressIndicator(
-                              value: index == _currentIndex
-                                  ? _animationController.value
-                                  : index < _currentIndex
-                                      ? 1.0
-                                      : 0.0,
-                              backgroundColor: Colors.grey[700],
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          ),
+                children: widget.allStories.asMap().map((index, story) {
+                  return MapEntry(
+                    index,
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 2),
+                        child: LinearProgressIndicator(
+                          value: index == _currentIndex
+                              ? _animationController.value
+                              : index < _currentIndex
+                                  ? 1.0
+                                  : 0.0,
+                          backgroundColor: Colors.grey[700],
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
-                      );
-                    })
-                    .values
-                    .toList(),
+                      ),
+                    ),
+                  );
+                }).values.toList(),
               ),
             ),
 
@@ -200,6 +297,7 @@ class _StoryViewScreenState extends State<StoryViewScreen>
                     _currentIndex = index;
                     _animationController.reset();
                     _animationController.forward();
+                    _markCurrentStoryAsViewed(); // Marcar como vista al cambiar de página
                   });
                 },
                 itemBuilder: (context, index) {
@@ -220,13 +318,11 @@ class _StoryViewScreenState extends State<StoryViewScreen>
                         );
                       },
                       errorBuilder: (context, error, stackTrace) {
-                        print('Error loading story image: $error');
                         return Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.error_outline,
-                                  color: Colors.white, size: 50),
+                              Icon(Icons.error_outline, color: Colors.white, size: 50),
                               SizedBox(height: 16),
                               Text(
                                 'Error al cargar la imagen',
@@ -242,7 +338,7 @@ class _StoryViewScreenState extends State<StoryViewScreen>
               ),
             ),
 
-            // Barra superior
+            // Barra superior con información del usuario
             Positioned(
               top: 40,
               left: 0,
@@ -253,19 +349,16 @@ class _StoryViewScreenState extends State<StoryViewScreen>
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black54,
-                      Colors.transparent,
-                    ],
+                    colors: [Colors.black54, Colors.transparent],
                   ),
                 ),
                 child: Row(
                   children: [
                     CircleAvatar(
                       radius: 20,
-                      child: Text(widget.allStories[_currentIndex]
-                              .administrator?['name']?[0] ??
-                          'A'),
+                      child: Text(
+                        widget.allStories[_currentIndex].administrator?['name']?[0] ?? 'A'
+                      ),
                     ),
                     SizedBox(width: 8),
                     Expanded(
@@ -273,9 +366,7 @@ class _StoryViewScreenState extends State<StoryViewScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            widget.allStories[_currentIndex]
-                                    .administrator?['name'] ??
-                                'FutPlay',
+                            widget.allStories[_currentIndex].administrator?['name'] ?? 'FutPlay',
                             style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -303,16 +394,20 @@ class _StoryViewScreenState extends State<StoryViewScreen>
   }
 }
 
+
 class StoryItem extends StatelessWidget {
   final Story story;
   final List<Story> allStories;
   final int index;
+  final Function(int) onStoryViewed; // Añadir este parámetro
 
   const StoryItem({
     Key? key,
     required this.story,
     required this.allStories,
     required this.index,
+        required this.onStoryViewed, // Añadir al constructor
+
   }) : super(key: key);
 
   @override
@@ -326,6 +421,8 @@ class StoryItem extends StatelessWidget {
               story: story,
               allStories: allStories,
               initialIndex: index,
+                           onStoryViewed: onStoryViewed, // Pasar la función recibida
+
             ),
           ),
         );
