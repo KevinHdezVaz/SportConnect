@@ -1,3 +1,4 @@
+ 
 class OrderItem {
   final String title;
   final int quantity;
@@ -9,9 +10,11 @@ class OrderItem {
     required this.unitPrice,
   });
 
-  Map<String, dynamic> toJson() => {
-        'title': title,
-        'quantity': quantity,
-        'unit_price': unitPrice,
-      };
+  Map<String, dynamic> toJson() {
+    return {
+      'title': title,
+      'quantity': quantity,
+      'unit_price': unitPrice,
+    };
+  }
 }

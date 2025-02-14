@@ -1,4 +1,5 @@
 // ignore: depend_on_referenced_packages
+import 'dart:async';
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -15,31 +16,40 @@ import 'package:user_auth_crudd10/services/settings/theme_data.dart';
 import 'package:user_auth_crudd10/services/settings/theme_provider.dart';
 import 'firebase_options.dart';
 
-// Agregar esta llave para la navegación global
+// Llaves globales
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
+// Stream controller para estado del pago
+final paymentStatusController = StreamController<PaymentStatus>.broadcast();
+
+enum PaymentStatus {
+  success,
+  failure,
+  pending,
+  unknown
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Inicializaciones
   SharedPreferences prefs = await SharedPreferences.getInstance();
   int isviewed = prefs.getInt('onBoard') ?? 1;
 
-  // Configurar deep links
-  await _setupDeepLinks();
-
-  // Otras inicializaciones
   try {
     await NotificationService.setupNotifications();
-    print('NotificationService inicializado correctamente');
+    debugPrint('NotificationService inicializado correctamente');
   } catch (e) {
-    print('Error al inicializar NotificationService: $e');
+    debugPrint('Error al inicializar NotificationService: $e');
   }
 
   await dotenv.load(fileName: '.env');
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await FirbaseApi().initNotifications();
+
+  // Configurar deep links
+  await _setupDeepLinks();
 
   runApp(
     ChangeNotifierProvider(
@@ -52,45 +62,79 @@ void main() async {
 Future<void> _setupDeepLinks() async {
   final appLinks = AppLinks();
 
-  // Manejar links iniciales (app cerrada)
+  // Manejar deep link inicial (app cerrada)
   try {
     final initialUri = await appLinks.getInitialAppLink();
     if (initialUri != null) {
-      debugPrint('Initial URI: $initialUri');
+      debugPrint('Deep link inicial: $initialUri');
       _handlePaymentDeepLink(initialUri);
     }
   } catch (e) {
-    debugPrint('Error getting initial uri: $e');
+    debugPrint('Error al obtener deep link inicial: $e');
   }
 
-  // Manejar links en primer plano
-  appLinks.uriLinkStream.listen((Uri? uri) {
-    if (uri != null) {
-      debugPrint('Received deep link: $uri');
-      _handlePaymentDeepLink(uri);
-    }
-  }, onError: (err) {
-    debugPrint('Error handling deep link: $err');
-  });
+  // Manejar deep links en primer plano
+  appLinks.uriLinkStream.listen(
+    (Uri? uri) {
+      if (uri != null) {
+        debugPrint('Deep link recibido: $uri');
+        _handlePaymentDeepLink(uri);
+      }
+    },
+    onError: (err) {
+      debugPrint('Error al manejar deep link: $err');
+    },
+  );
 }
 
 void _handlePaymentDeepLink(Uri uri) {
-  // Extraer información del pago
-  final paymentId = uri.queryParameters['payment_id'];
-  final status = uri.queryParameters['status'];
+  debugPrint('Procesando deep link de pago: ${uri.toString()}');
   
-  debugPrint('Payment ID: $paymentId, Status: $status');
+  PaymentStatus status;
+  String message;
+  Color color;
 
-  // Mostrar mensaje según el estado
-  if (uri.path.contains('/payment/success')) {
-    _showPaymentMessage('¡Pago exitoso! Tu reserva ha sido confirmada.', Colors.green);
-    // Refrescar la pantalla de reservas
-    _refreshBookings();
-  } else if (uri.path.contains('/payment/failure')) {
-    _showPaymentMessage('El pago no pudo completarse.', Colors.red);
-  } else if (uri.path.contains('/payment/pending')) {
-    _showPaymentMessage('El pago está pendiente de confirmación.', Colors.orange);
+  // Extraer ID de pago y referencia externa si están presentes
+  final paymentId = uri.queryParameters['payment_id'];
+  final externalReference = uri.queryParameters['external_reference'];
+
+  // Determinar estado basado en la ruta
+  if (uri.path.contains('/checkout/success')) {
+    status = PaymentStatus.success;
+    message = '¡Pago exitoso! Tu reserva ha sido confirmada';
+    color = Colors.green;
+    _onPaymentSuccess(uri);
+  } else if (uri.path.contains('/checkout/failure')) {
+    status = PaymentStatus.failure;
+    message = 'El pago no pudo completarse';
+    color = Colors.red;
+  } else if (uri.path.contains('/checkout/pending')) {
+    status = PaymentStatus.pending;
+    message = 'El pago está pendiente de confirmación';
+    color = Colors.orange;
+  } else {
+    status = PaymentStatus.unknown;
+    message = 'Estado de pago desconocido';
+    color = Colors.grey;
   }
+
+  // Notificar a través del stream
+  paymentStatusController.add(status);
+
+  // Mostrar mensaje al usuario
+  _showPaymentMessage(message, color);
+
+  debugPrint('Detalles del pago:');
+  debugPrint('ID de pago: $paymentId');
+  debugPrint('Referencia externa: $externalReference');
+}
+
+void _onPaymentSuccess(Uri uri) {
+  final paymentId = uri.queryParameters['payment_id'];
+  final externalReference = uri.queryParameters['external_reference'];
+
+  // Aquí puedes implementar llamadas a tu API o actualizar el estado local
+  _refreshBookings();
 }
 
 void _showPaymentMessage(String message, Color color) {
@@ -98,27 +142,30 @@ void _showPaymentMessage(String message, Color color) {
     SnackBar(
       content: Text(
         message,
-        style: TextStyle(color: Colors.white),
+        style: const TextStyle(color: Colors.white),
       ),
       backgroundColor: color,
-      duration: Duration(seconds: 4),
+      duration: const Duration(seconds: 4),
       behavior: SnackBarBehavior.floating,
     ),
   );
 }
 
 void _refreshBookings() {
-  // Aquí puedes implementar la lógica para refrescar la pantalla de reservas
-  // Por ejemplo, usando un provider o un bloc
+  // Implementar lógica para actualizar la lista de reservas
+  // Por ejemplo:
+  // Provider.of<BookingsProvider>(navigatorKey.currentContext!, listen: false).loadBookings();
 }
 
 class MyApp extends StatelessWidget {
   final int isviewed;
+  
   const MyApp({super.key, required this.isviewed});
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => StorageProvider()),
@@ -126,8 +173,8 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        navigatorKey: navigatorKey, // Agregar la llave de navegación
-        scaffoldMessengerKey: scaffoldMessengerKey, // Agregar la llave del scaffold messenger
+        navigatorKey: navigatorKey,
+        scaffoldMessengerKey: scaffoldMessengerKey,
         themeMode: themeProvider.currentTheme,
         theme: lightTheme,
         darkTheme: darkTheme,

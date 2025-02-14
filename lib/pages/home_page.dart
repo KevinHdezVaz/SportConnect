@@ -2,8 +2,10 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:user_auth_crudd10/auth/auth_service.dart';
+import 'package:user_auth_crudd10/model/OrderItem.dart';
 import 'package:user_auth_crudd10/model/Story.dart';
 import 'package:user_auth_crudd10/model/Torneo.dart';
+import 'package:user_auth_crudd10/pages/Mercadopago/paymentScreen.dart';
 import 'package:user_auth_crudd10/pages/screens/Equipos/invitaciones.screen.dart';
 import 'package:user_auth_crudd10/pages/screens/Tournaments/TournamentDetails.dart';
 import 'package:user_auth_crudd10/pages/screens/Tournaments/TournamentScreen.dart';
@@ -183,6 +185,7 @@ class _HomePageState extends State<HomePage> {
                                           Positioned(
                                             right: 8,
                                             top: 8,
+                                            
                                             child: Container(
                                               padding: EdgeInsets.all(4),
                                               decoration: BoxDecoration(
@@ -207,10 +210,48 @@ class _HomePageState extends State<HomePage> {
                               ),
                             ),
 
-                            const SizedBox(height: 15),
+                         const SizedBox(height: 15),
+// Add after search container
+const StoriesSection(),
 
-                            // Add after search container
-                            const StoriesSection(),
+ElevatedButton(
+  onPressed: () async {
+    final items = [
+      OrderItem(
+        title: "Producto 1",
+        quantity: 1,
+        unitPrice: 100.0,
+      ),
+    ];
+
+    try {
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PaymentScreen(
+            items: items,
+            customerName: 'Nombre del Cliente',
+            customerEmail: 'email@cliente.com',
+          ),
+        ),
+      );
+
+      if (result == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('¡Pago exitoso!')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  },
+  child: Text('Pagar ahora'),
+),
+
+ 
+
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [

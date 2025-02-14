@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:user_auth_crudd10/auth/booking_service.dart';
+import 'package:user_auth_crudd10/main.dart';
 import 'package:user_auth_crudd10/model/OrderItem.dart';
 import 'package:user_auth_crudd10/model/field.dart';
 import 'package:user_auth_crudd10/pages/Mercadopago/payment_service.dart';
@@ -107,8 +110,7 @@ initializeDateFormatting('en').then((_) {
       selectedTime = time;
     });
   }
-
-Future<void> _createBooking() async {
+ Future<void> _createBooking() async {
   debugPrint("Método _createBooking ejecutado");
   
   // Validaciones de fecha y hora
@@ -138,13 +140,34 @@ Future<void> _createBooking() async {
 
   try {
     // 1. Crear items para MercadoPago
-final items = [
-  OrderItem(
-    title: "Reserva - ${widget.field.name}",
-    quantity: 1,
-    unitPrice: double.parse(widget.field.price_per_match.toString()), // Convertir a double
-  ),
-];
+    final items = [
+      OrderItem(
+        title: "Reserva - ${widget.field.name}",
+        quantity: 1,
+        unitPrice: double.parse(widget.field.price_per_match.toString()),
+      ),
+    ];
+
+    // Configurar listener para el estado del pago
+    late StreamSubscription paymentSubscription;
+    paymentSubscription = paymentStatusController.stream.listen((status) {
+      paymentSubscription.cancel(); // Cancelar después de recibir el primer evento
+      
+      switch (status) {
+        case PaymentStatus.success:
+          widget.onBookingComplete?.call();
+          Navigator.pop(context, true);
+          break;
+        case PaymentStatus.failure:
+          Navigator.pop(context, false);
+          break;
+        case PaymentStatus.pending:
+          Navigator.pop(context, 'pending');
+          break;
+        default:
+          Navigator.pop(context, false);
+      }
+    });
 
     // 2. Procesar el pago con MercadoPago
     await _paymentService.procesarPago(
@@ -153,20 +176,14 @@ final items = [
       additionalData: {
         'field_id': widget.field.id,
         'date': DateFormat('yyyy-MM-dd').format(selectedDate),
-        'start_time': selectedTime!,
+        'start_time': selectedTime,
         'players_needed': playersNeeded,
+        'customer': {
+          'name': 'Usuario', // Aquí deberías poner el nombre real del usuario
+          'email': 'usuario@ejemplo.com', // Aquí deberías poner el email real del usuario
+        },
       }
     );
-
-    // 3. La reserva se creará en el webhook cuando el pago sea confirmado
-    Fluttertoast.showToast(
-      msg: 'Reserva en proceso. Recibirás una confirmación cuando se complete el pago.',
-      toastLength: Toast.LENGTH_LONG,
-      backgroundColor: Colors.green,
-    );
-
-    widget.onBookingComplete?.call();
-    Navigator.pop(context);
 
   } catch (e, stackTrace) {
     debugPrint("Error: ${e.toString()}");
@@ -184,6 +201,50 @@ final items = [
     });
   }
 }
+
+Widget _buildConfirmButton() {
+  final bool isDisabled = isLoading || selectedTime == null;
+  
+  return Container(
+    margin: const EdgeInsets.symmetric(horizontal: 30),
+    child: ElevatedButton(
+      onPressed: isDisabled ? null : _createBooking,
+      style: ElevatedButton.styleFrom(
+        minimumSize: const Size(double.infinity, 50),
+        backgroundColor: Colors.blue,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(25),
+        ),
+        disabledBackgroundColor: Colors.blue.withOpacity(0.6),
+      ),
+      child: isLoading
+          ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2,
+              ),
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.sports_soccer, color: Colors.white),
+                const SizedBox(width: 8),
+                Text(
+                  'Pagar y reservar',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+    ),
+  );
+}
+
 
   Widget _buildDatePicker() {
     return Card(
@@ -360,56 +421,7 @@ final items = [
       ),
     );
   }
-
-Widget _buildConfirmButton() {
-  final bool isDisabled = isLoading || selectedTime == null;
-  
-  return Container(
-    margin: const EdgeInsets.symmetric(horizontal: 30),
-    child: ElevatedButton(
-      onPressed: isDisabled ? null : _createBooking,
-      style: ElevatedButton.styleFrom(
-        minimumSize: const Size(double.infinity, 50),
-        backgroundColor: Colors.blue,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(25),
-        ),
-        // Añadir el color de fondo cuando está deshabilitado
-        disabledBackgroundColor: Colors.blue.withOpacity(0.6),
-      ),
-      child: isLoading
-          ? const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 2,
-              ),
-            )
-          : Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.sports_soccer,
-                  // Color condicional para el icono
-                  color: isDisabled ? Colors.white : Colors.white,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Pagar y resevar',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    // Color condicional para el texto
-                    color: isDisabled ? Colors.white : Colors.white,
-                  ),
-                ),
-              ],
-            ),
-    ),
-  );
-}
-
+ 
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
