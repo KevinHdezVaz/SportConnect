@@ -1,15 +1,20 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:user_auth_crudd10/auth/auth_service.dart';
+import 'package:user_auth_crudd10/model/MathPartido.dart';
 import 'package:user_auth_crudd10/model/OrderItem.dart';
 import 'package:user_auth_crudd10/model/Story.dart';
 import 'package:user_auth_crudd10/model/Torneo.dart';
 import 'package:user_auth_crudd10/pages/Mercadopago/paymentScreen.dart';
+import 'package:user_auth_crudd10/pages/PartidosDisponibles/AvailableMatchesScreen.dart';
+import 'package:user_auth_crudd10/pages/PartidosDisponibles/MatchDetailsScreen.dart';
 import 'package:user_auth_crudd10/pages/screens/Equipos/invitaciones.screen.dart';
 import 'package:user_auth_crudd10/pages/screens/Tournaments/TournamentDetails.dart';
 import 'package:user_auth_crudd10/pages/screens/Tournaments/TournamentScreen.dart';
 import 'package:user_auth_crudd10/pages/screens/stories/StoriesSection.dart';
+import 'package:user_auth_crudd10/services/MatchService.dart';
 import 'package:user_auth_crudd10/services/StoriesService.dart';
 import 'package:user_auth_crudd10/services/equipo_service.dart';
 import 'package:user_auth_crudd10/services/torneo_service.dart';
@@ -25,15 +30,28 @@ class _HomePageState extends State<HomePage> {
   int _invitacionesPendientes = 0;
   final _equipoService = EquipoService();
   late Future<List<Story>> futureStories;
-    @override
+
+final MatchService _matchService = MatchService();
+late Future<List<MathPartido>> futureMatches;
+
+  DateTime selectedDate = DateTime.now();
+  List<DateTime> next7Days = [];
+
+  @override
   void initState() {
     super.initState();
     _cargarDatos();
     futureStories = StoriesService().getStories();
+    _loadUserProfile();
+    _loadInvitaciones();
+    // Inicializar next7Days
+    for (int i = 0; i < 7; i++) {
+      next7Days.add(DateTime.now().add(Duration(days: i)));
+    }
+      _loadMatches();
+
+
   }
-
- 
-
 
   final _authService = AuthService();
   Map<String, dynamic>? userData;
@@ -50,6 +68,8 @@ class _HomePageState extends State<HomePage> {
       print('Error cargando invitaciones: $e');
     }
   }
+
+  
 
   Future<void> _cargarDatos() async {
     setState(() {
@@ -69,6 +89,12 @@ class _HomePageState extends State<HomePage> {
       print('Error cargando perfil: $e');
     }
   }
+
+  void _loadMatches() {
+  setState(() {
+    futureMatches = _matchService.getAvailableMatches(selectedDate);
+  });
+}
 
   @override
   Widget build(BuildContext context) {
@@ -185,7 +211,6 @@ class _HomePageState extends State<HomePage> {
                                           Positioned(
                                             right: 8,
                                             top: 8,
-                                            
                                             child: Container(
                                               padding: EdgeInsets.all(4),
                                               decoration: BoxDecoration(
@@ -210,47 +235,45 @@ class _HomePageState extends State<HomePage> {
                               ),
                             ),
 
-                         const SizedBox(height: 15),
+                            const SizedBox(height: 15),
 // Add after search container
-const StoriesSection(),
+                            const StoriesSection(),
 
-ElevatedButton(
-  onPressed: () async {
-    final items = [
-      OrderItem(
-        title: "Producto 1",
-        quantity: 1,
-        unitPrice: 100.0,
-      ),
-    ];
+                            ElevatedButton(
+                              onPressed: () async {
+                                final items = [
+                                  OrderItem(
+                                    title: "Producto 1",
+                                    quantity: 1,
+                                    unitPrice: 100.0,
+                                  ),
+                                ];
 
-    try {
-      final result = await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => PaymentScreen(
-            items: items,
-            customerName: 'Nombre del Cliente',
-            customerEmail: 'email@cliente.com',
-          ),
-        ),
-      );
+                                try {
+                                  final result = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => PaymentScreen(
+                                        items: items,
+                                        customerName: 'Nombre del Cliente',
+                                        customerEmail: 'email@cliente.com',
+                                      ),
+                                    ),
+                                  );
 
-      if (result == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('¡Pago exitoso!')),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
-    }
-  },
-  child: Text('Pagar ahora'),
-),
-
- 
+                                  if (result == true) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('¡Pago exitoso!')),
+                                    );
+                                  }
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Error: $e')),
+                                  );
+                                }
+                              },
+                              child: Text('Pagar ahora'),
+                            ),
 
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -352,32 +375,183 @@ ElevatedButton(
                             SizedBox(height: 24),
 
                             // Sección de partidos disponibles
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Partidos Disponibles',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                TextButton(
-                                  onPressed: () {},
-                                  child: Text('Ver todos'),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 16),
-                            ListView.builder(
-                              shrinkWrap: true,
-                              physics: NeverScrollableScrollPhysics(),
-                              itemCount: 3,
-                              itemBuilder: (context, index) {
-                                return AvailableMatchCard();
-                              },
-                            ),
+                           Row(
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  children: [
+    Text(
+      'Partidos Disponibles',
+      style: TextStyle(
+        fontSize: 20,
+        color: Colors.black,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+    TextButton(
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => AvailableMatchesScreen()),
+        );
+      },
+      child: Text('Ver todos'),
+    ),
+  ],
+),
+SizedBox(height: 16),
+Container(
+  height: 100,
+  child: ListView.builder(
+    scrollDirection: Axis.horizontal,
+    itemCount: next7Days.length,
+    itemBuilder: (context, index) {
+      final date = next7Days[index];
+      final isSelected = DateUtils.isSameDay(date, selectedDate);
+      return GestureDetector(
+      onTap: () {
+  setState(() {
+    selectedDate = date;
+    _loadMatches();  
+  });
+},
+        child: Container(
+          width: 70,
+          margin: EdgeInsets.symmetric(horizontal: 4),
+          decoration: BoxDecoration(
+            color: isSelected ? Theme.of(context).primaryColor : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 4,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                DateFormat('EEE').format(date).toUpperCase(),
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.grey,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                DateFormat('d').format(date),
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.black,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  ),
+),
+FutureBuilder<List<MathPartido>>(
+  future: futureMatches,
+  builder: (context, snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return Center(child: CircularProgressIndicator());
+    }
+    
+    if (snapshot.hasError) {
+      return Center(child: Text('Error cargando partidos'));
+    }
+
+    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+      return Center(child: Text('No hay partidos disponibles'));
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.only(top: 45, left: 16, right: 16),
+      itemCount: snapshot.data!.length,
+      itemBuilder: (context, index) {
+        final match = snapshot.data![index];
+        
+        return Card(
+          margin: EdgeInsets.only(bottom: 16),
+          elevation: 6,
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor: Theme.of(context).primaryColor,
+              child: Icon(Icons.sports_soccer, color: Colors.white),
+            ),
+            title: Text(
+              match.fieldName,
+              style: TextStyle(fontWeight: FontWeight.bold , color: Colors.black),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.access_time, size: 16, color: Colors.grey),
+                    SizedBox(width: 4),
+Text('${match.formattedStartTime} - ${match.formattedEndTime}',  style: TextStyle(color: Colors.orange)),                  ],
+                ),
+                SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.people, size: 16, color: Colors.grey),
+                    SizedBox(width: 4),
+                    Text('${match.currentPlayers}/${match.maxPlayers} jugadores',),
+                  ],
+                ),
+              ],
+            ),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '\$${match.price}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).primaryColor,
+                    fontSize: 18,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: match.status == 'open' ? Colors.green : Colors.grey,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    match.status == 'open' ? 'Disponible' : 'Completo',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            onTap: () {
+   Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MatchDetailsScreen(match: match),
+                ),
+              );            },
+          ),
+        );
+      },
+    );
+  },
+),
+                        
                           ],
                         ),
                       ),
@@ -483,91 +657,4 @@ Widget _buildTorneoCard(BuildContext context, Torneo torneo) {
       ),
     ),
   );
-}
-
-// Widget para tarjeta de partido disponible
-class AvailableMatchCard extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 16),
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '15',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue,
-                  ),
-                ),
-                Text(
-                  'ENE',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.blue,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(width: 16),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Partido Amistoso',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.blueAccent,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  '8 jugadores necesarios',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ],
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Text(
-              'Unirse',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
