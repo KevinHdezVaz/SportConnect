@@ -6,6 +6,7 @@ class Order {
   final String status;
   final String? preferenceId;
   final String? paymentId;
+  final String? currencyId;
 
   Order({
     required this.items,
@@ -13,5 +14,6 @@ class Order {
     this.status = 'pending',
     this.preferenceId,
     this.paymentId,
+    this.currencyId = 'MXN',
   });
 }

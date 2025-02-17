@@ -26,6 +26,8 @@ class _FieldsScreenState extends State<FieldsScreen>
   bool _isLocationServiceDialogShown = false;
   BitmapDescriptor _myLocationIcon = BitmapDescriptor.defaultMarker;
   String? _mapStyle;
+  PageController _pageController =
+      PageController(viewportFraction: 0.8); // Agrega esto
 
   @override
   void initState() {
@@ -46,6 +48,7 @@ class _FieldsScreenState extends State<FieldsScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -60,7 +63,8 @@ class _FieldsScreenState extends State<FieldsScreen>
     Set<Marker> markers = {};
 
     if (fields != null) {
-      for (var field in fields!) {
+      for (var i = 0; i < fields!.length; i++) {
+        final field = fields![i];
         markers.add(
           Marker(
             markerId: MarkerId(field.id.toString()),
@@ -70,11 +74,11 @@ class _FieldsScreenState extends State<FieldsScreen>
               snippet: field.description,
             ),
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => FieldDetailScreen(field: field),
-                ),
+              // Desplaza el PageView a la posición correspondiente
+              _pageController.animateToPage(
+                i,
+                duration: Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
               );
             },
           ),
@@ -323,7 +327,7 @@ class _FieldsScreenState extends State<FieldsScreen>
                                 },
                                 child: PageView.builder(
                                   controller:
-                                      PageController(viewportFraction: 0.8),
+                                      _pageController, // Usa el PageController aquí
                                   itemCount: fields!.length,
                                   itemBuilder: (context, index) {
                                     final field = fields![index];

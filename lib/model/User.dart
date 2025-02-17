@@ -3,7 +3,7 @@ class User {
   final String name;
   final String email;
   final String? phone;
-  final String? profileImage;
+  final String? profileImage; // Ya es opcional
   final String? codigoPostal;
   final bool? verified;
   final String? createdAt;
@@ -43,8 +43,8 @@ class User {
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      id: json['id'],
-      name: json['name'],
+      id: json['id'] ?? 0,
+      name: json['name'] ?? '',
       email: json['email'],
       phone: json['phone'],
       profileImage: json['profile_image'],

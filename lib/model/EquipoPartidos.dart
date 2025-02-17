@@ -14,6 +14,19 @@ class EquipoPartido {
     required this.color,
     required this.emoji,
   });
+
+  factory EquipoPartido.fromJson(Map<String, dynamic> json) {
+    return EquipoPartido(
+      id: json['id'],
+      name: json['name'],
+      playerCount: json['player_count'],
+      players: (json['players'] as List)
+          .map((player) => MatchPlayer.fromJson(player))
+          .toList(),
+      color: json['color'],
+      emoji: json['emoji'],
+    );
+  }
 }
 
 class MatchPlayer {
@@ -26,16 +39,32 @@ class MatchPlayer {
     required this.position,
     required this.equipoPartidoId,
   });
+
+  factory MatchPlayer.fromJson(Map<String, dynamic> json) {
+    return MatchPlayer(
+      user: User.fromJson(json['user']),
+      position: json['position'],
+      equipoPartidoId: json['equipo_partido_id'],
+    );
+  }
 }
 
 class User {
   final int id;
   final String name;
   final String? profileImage;
-  
+
   User({
     required this.id,
     required this.name,
     this.profileImage,
   });
+
+  factory User.fromJson(Map<String, dynamic> json) {
+    return User(
+      id: json['id'],
+      name: json['name'],
+      profileImage: json['profile_image'],
+    );
+  }
 }
