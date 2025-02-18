@@ -8,11 +8,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:user_auth_crudd10/TeamPlayer.dart';
 import 'package:user_auth_crudd10/auth/auth_service.dart';
 import 'package:user_auth_crudd10/main.dart';
 import 'package:user_auth_crudd10/model/MatchTeam.dart';
 import 'package:user_auth_crudd10/model/MathPartido.dart';
 import 'package:user_auth_crudd10/model/field.dart';
+import 'package:user_auth_crudd10/pages/PartidosDisponibles/MatchInfoTab.dart';
 import 'package:user_auth_crudd10/services/MatchService.dart';
 import 'package:user_auth_crudd10/services/storage_service.dart';
 import 'package:user_auth_crudd10/utils/constantes.dart';
@@ -34,15 +36,14 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
   late Future<List<MatchTeam>> _teamsFuture;
   late StreamSubscription<PaymentStatus> _paymentSubscription;
   bool _isLoading = false;
-  final List<Map<String, dynamic>> positions = [
-    {'name': 'Portero', 'icon': 'assets/logos/portero.png'},
-    {'name': 'Defensa Central', 'icon': 'assets/logos/patada.png'},
-    {'name': 'Lateral Derecho', 'icon': 'assets/logos/voleo.png'},
-    {'name': 'Lateral Izquierdo', 'icon': 'assets/logos/voleo.png'},
-    {'name': 'Mediocampista Defensivo', 'icon': 'assets/logos/disparar.png'},
-    {'name': 'Mediocampista Ofensivo', 'icon': 'assets/logos/disparar.png'},
-    {'name': 'Delantero', 'icon': 'assets/logos/patear.png'},
-  ];
+ final List<Map<String, dynamic>> positions = [
+  {'name': 'Portero', 'icon': 'assets/logos/portero.png'},
+  {'name': 'L.Derecho', 'icon': 'assets/logos/voleo.png'},
+  {'name': 'L.Izquierdo', 'icon': 'assets/logos/voleo.png'},
+  {'name': 'Central', 'icon': 'assets/logos/patada.png'},
+  {'name': 'Central ofensivo', 'icon': 'assets/logos/disparar.png'},
+  {'name': 'Delantero', 'icon': 'assets/logos/patear.png'},
+];
   int _currentImage = 0;
   late Future<Field> _fieldFuture;
   final StorageService storage = StorageService();
@@ -85,44 +86,39 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
     }
   }
 
-  void _setupPaymentListener() {
-    _paymentSubscription =
-        paymentStatusController.stream.listen((status) async {
-      switch (status) {
-        case PaymentStatus.success:
-          try {
-            if (_selectedTeamId != null && _selectedPosition != null) {
-              await MatchService()
-                  .joinTeam(_selectedTeamId!, _selectedPosition!);
-              setState(() {
-                _loadTeams();
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Te has unido al equipo exitosamente')),
-              );
-            }
-          } catch (e) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Error al unirse al equipo: $e'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-          break;
-        case PaymentStatus.failure:
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('El pago no se completó'),
-              backgroundColor: Colors.red,
-            ),
-          );
-          break;
-        default:
-          break;
-      }
-    });
-  }
+void _setupPaymentListener() {
+  _paymentSubscription = paymentStatusController.stream.listen((status) async {
+    if (!mounted) return;
+
+    switch (status) {
+      case PaymentStatus.success:
+        setState(() {
+          _joinStatus = JoinTeamStatus.success;
+          _loadTeams(); // Recargar los equipos
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Te has unido al equipo exitosamente'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        break;
+
+      case PaymentStatus.failure:
+        setState(() => _joinStatus = JoinTeamStatus.error);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('El pago no se completó'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        break;
+
+      default:
+        break;
+    }
+  });
+}
 
   @override
   void dispose() {
@@ -156,8 +152,12 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildInfoTab(),
-          _buildTeamsTab(),
+ MatchInfoTab(
+            fieldFuture: _fieldFuture,
+            match: widget.match,
+          ),
+          
+                 _buildTeamsTab(),
         ],
       ),
     );
@@ -199,9 +199,7 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
       },
     );
   }
-
-  Widget _buildTeamSection(MatchTeam team, {bool canJoin = true}) {
-    // Mapa de nombres de colores a MaterialColor o Color
+Widget _buildTeamSection(MatchTeam team, {bool canJoin = true}) {
     final Map<String, Color> colorMap = {
       'Rojo': Colors.red,
       'Azul': Colors.blue,
@@ -211,23 +209,25 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
       'Negro': const Color(0xFF000000),
       'Naranja': Colors.orange,
     };
-    final Color teamColor = colorMap[team.color] ?? Colors.grey;
+ 
+    // Mapear jugadores por posición para acceso rápido
+  
 
-// Agregar prints para debug
-    print('Team ${team.name} players: ${team.players.length}');
+   final Color teamColor = colorMap[team.color] ?? Colors.grey;
+
+    // Crear mapa de jugadores por posición
+    final Map<String, TeamPlayer> playersByPosition = {};
+    for (var player in team.players) {
+      debugPrint('Procesando jugador en equipo ${team.name}: posición ${player.position}, usuario: ${player.user?.name}');
+      if (player.position != null) {
+        playersByPosition[player.position] = player;
+      }
+    }
+
+    // Imprimir todos los jugadores para debug
     team.players.forEach((player) {
-      print('Player: ${player.user?.name}, Position: ${player.position}');
+      debugPrint('Jugador en equipo ${team.name}: ${player.user?.name} - ${player.position}');
     });
-
-    final List<String> defaultPositions = [
-      'Portero',
-      'L.Derecho',
-      'L.Izquierdo',
-      'Central',
-      'Central ofensivo',
-      'Delantero'
-    ];
-
     return Card(
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
@@ -256,17 +256,10 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
               padding: EdgeInsets.symmetric(horizontal: 16),
               children: [
                 if (canJoin) _buildJoinButton(team, teamColor),
-                ...defaultPositions.map((position) {
-                  // Buscar si hay un jugador en esta posición
-                  TeamPlayer? player = team.players.firstWhere(
-                    (p) => p.position == position,
-                    orElse: () => TeamPlayer(
-                      position: position,
-                      equipoPartidoId: team.id,
-                    ),
-                  );
-                  print(
-                      'Position: $position, Found player: ${player.user?.name}');
+                ...positions.map((positionData) {
+                  final position = positionData['name'];
+                  final player = playersByPosition[position];
+                  debugPrint('Position: $position, Player: ${player?.user?.name}');
                   return _buildPlayerSlot(position, player, teamColor);
                 }).toList(),
               ],
@@ -275,8 +268,7 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
         ],
       ),
     );
-  }
-
+}
   Widget _buildPlayerSlot(
       String position, TeamPlayer? player, Color teamColor) {
     String? imageUrl;
@@ -331,57 +323,69 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
     );
   }
 
-  Future<bool> _checkUserInTeam(List<MatchTeam> teams) async {
-    final currentUserId = await AuthService().getCurrentUserId();
-    if (currentUserId == null) return false;
 
-    return teams.any((team) =>
-        team.players.any((player) => player.user?.id == currentUserId));
+Future<bool> _checkUserInTeam(List<MatchTeam> teams) async {
+  final currentUserId = await AuthService().getCurrentUserId();
+  if (currentUserId == null) return false;
+
+  // Revisar si el usuario está en cualquier equipo
+  for (var team in teams) {
+    for (var player in team.players) {
+      if (player.user?.id == currentUserId) {
+        debugPrint('Usuario ${currentUserId} encontrado en equipo ${team.name}');
+        return true;
+      }
+    }
   }
+  return false;
+}
 
-  Widget _buildJoinButton(MatchTeam team, Color teamColor) {
-    // Si el equipo está lleno, no mostrar el botón
-    if (team.playerCount >= team.maxPlayers) return SizedBox();
+Widget _buildJoinButton(MatchTeam team, Color teamColor) {
+  return FutureBuilder<bool>(
+    future: _checkUserInTeam([team]), // Comprueba solo este equipo
+    builder: (context, snapshot) {
+      if (snapshot.data == true) {
+        // Si el usuario ya está en un equipo, no mostrar el botón
+        return SizedBox();
+      }
 
-    final currentUserId = AuthService().getCurrentUserId();
+      // Si el equipo está lleno, no mostrar el botón
+      if (team.playerCount >= team.maxPlayers) {
+        return SizedBox();
+      }
 
-    // Verificar si el usuario ya está en algún equipo
-    bool userIsInAnyTeam =
-        team.players.any((player) => player.user?.id == currentUserId);
-
-    // Si el usuario ya está en un equipo, no mostrar el botón de unirse
-    if (userIsInAnyTeam) return SizedBox();
-
-    return Container(
-      width: 80,
-      margin: EdgeInsets.all(8),
-      child: Column(
-        children: [
-          InkWell(
-            onTap: () => _showJoinTeamDialog(team),
-            child: Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: teamColor,
-                  width: 2,
-                  style: BorderStyle.solid,
+      return Container(
+        width: 80,
+        margin: EdgeInsets.all(8),
+        child: Column(
+          children: [
+            InkWell(
+              onTap: () => _showJoinTeamDialog(team),
+              child: Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: teamColor,
+                    width: 2,
+                    style: BorderStyle.solid,
+                  ),
                 ),
+                child: Icon(Icons.add, color: teamColor),
               ),
-              child: Icon(Icons.add, color: teamColor),
             ),
-          ),
-          SizedBox(height: 4),
-          Text(
-            'Unirme',
-            style: TextStyle(color: Colors.black),
-          ),
-        ],
-      ),
-    );
-  }
+            SizedBox(height: 4),
+            Text(
+              'Unirme',
+              style: TextStyle(color: Colors.black),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
 
   Widget _buildPlayerCard(TeamPlayer player) {
     String? imageUrl;
@@ -434,19 +438,17 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
         ],
       ),
     );
-  }
+  } 
 
-  // En el método _joinTeam:
   Future<void> _joinTeam(int teamId, String position) async {
     setState(() {
       _isLoading = true;
       _joinStatus = JoinTeamStatus.processing;
     });
 
-    try {
-      // Pasar el match_id desde widget.match.id
+    try { 
       await MatchService().processTeamJoinPayment(teamId, position,
-          widget.match.price, widget.match.id // Añadir el match_id
+          widget.match.price, widget.match.id 
           );
 
       // No hacer nada más aquí - el listener se encargará del resto
@@ -462,11 +464,13 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
       setState(() => _isLoading = false);
     }
   }
+ 
 
-  void _showJoinTeamDialog(MatchTeam team) {
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(builder: (context, setState) {
+ void _showJoinTeamDialog(MatchTeam team) {
+  showDialog(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) {
         return AlertDialog(
           title: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -475,382 +479,96 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
                 'Seleccionar posición',
                 style: TextStyle(color: Colors.black),
               ),
-              _showStatusIndicator() // Aquí se agrega el indicador
+              _showStatusIndicator()
             ],
           ),
           content: _isLoading
               ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 16),
-                      Text('Procesando pago...'),
-                    ],
-                  ),
+                  child: CircularProgressIndicator(),
                 )
               : SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
-                    children: positions
-                        .map((position) => ListTile(
-                              leading: Image.asset(
-                                position['icon'],
-                                width: 30,
-                                height: 30,
-                              ),
-                              title: Text(
-                                position['name'],
-                                style: TextStyle(color: Colors.black),
-                              ),
-                              onTap: () {
-                                _selectedTeamId = team.id;
-                                _selectedPosition = position['name'];
-                                _joinTeam(team.id, position['name']);
-                              },
-                            ))
-                        .toList(),
+                    children: positions.map((position) => ListTile(
+                      leading: Image.asset(
+                        position['icon'],
+                        width: 30,
+                        height: 30,
+                      ),
+                      title: Text(
+                        position['name'],
+                        style: TextStyle(color: Colors.black),
+                      ),
+                      onTap: () => _handleJoinTeam(team, position['name']),
+                    )).toList(),
                   ),
                 ),
         );
-      }),
-    );
-  }
+      },
+    ),
+  );
+}
+Future<void> _handleJoinTeam(MatchTeam team, String position) async {
+  setState(() {
+    _isLoading = true;
+    _joinStatus = JoinTeamStatus.processing;
+  });
 
-  Widget _buildInfoTab() {
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          FutureBuilder<Field>(
-            future: _fieldFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return Center(child: CircularProgressIndicator());
-              }
-
-              if (snapshot.hasError) {
-                return Center(child: Text('Error cargando la cancha'));
-              }
-
-              if (!snapshot.hasData) {
-                return Center(child: Text('No se encontró la cancha'));
-              }
-
-              final field = snapshot.data!;
-
-              return Column(
-                children: [
-                  // Carrusel de imágenes mejorado
-                  Stack(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(15),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 10,
-                              offset: Offset(0, 5),
-                            ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(15),
-                          child: CarouselSlider(
-                            options: CarouselOptions(
-                              height: 250, // Aumentar la altura
-                              viewportFraction: 0.9,
-                              onPageChanged: (index, _) =>
-                                  setState(() => _currentImage = index),
-                              autoPlay: true,
-                              autoPlayInterval: Duration(seconds: 3),
-                            ),
-                            items: (field.images ?? []).map((url) {
-                              final fullImageUrl = Uri.parse(baseUrl)
-                                  .replace(path: url)
-                                  .toString();
-
-                              return GestureDetector(
-                                onTap: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (BuildContext context) {
-                                      return Dialog(
-                                        child: InteractiveViewer(
-                                          minScale: 0.5,
-                                          maxScale: 4.0,
-                                          child: CachedNetworkImage(
-                                            imageUrl: fullImageUrl,
-                                            fit: BoxFit.cover,
-                                            placeholder: (context, url) =>
-                                                _buildShimmer(),
-                                            errorWidget:
-                                                (context, url, error) =>
-                                                    Container(
-                                              child: Icon(
-                                                Icons.image_not_supported,
-                                                color: Colors.grey[400],
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  );
-                                },
-                                child: CachedNetworkImage(
-                                  imageUrl: fullImageUrl,
-                                  fit: BoxFit.cover,
-                                  placeholder: (context, url) =>
-                                      _buildShimmer(),
-                                  errorWidget: (context, url, error) =>
-                                      Icon(Icons.error),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 20,
-                        left: 0,
-                        right: 0,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children:
-                              (field.images ?? []).asMap().entries.map((entry) {
-                            return Container(
-                              width: 10,
-                              height: 10,
-                              margin: EdgeInsets.symmetric(horizontal: 4),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: _currentImage == entry.key
-                                    ? Colors.blue
-                                    : Colors.grey.withOpacity(0.5),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 20),
-
-                  // Tarjeta de información básica de la cancha
-                  Card(
-                    elevation: 5,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            field.name,
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          SizedBox(height: 16),
-                          _buildInfoRow(
-                            icon: Icons.location_on,
-                            text:
-                                '${field.municipio ?? "Ubicación no disponible"}',
-                          ),
-                          SizedBox(height: 8),
-                          _buildInfoRow(
-                            icon: Icons.sports_soccer,
-                            text: 'Tipo: ${field.type}',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 20),
-
-                  // Tarjeta de amenidades (ocupa todo el ancho)
-                  Card(
-                    elevation: 5,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: Container(
-                      width: double.infinity, // Ocupa todo el ancho
-                      padding: EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Amenidades:',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8, // Espaciado vertical entre elementos
-                            children: (field.amenities ?? []).map((amenity) {
-                              return Chip(
-                                label: Text(amenity),
-                                backgroundColor: Colors.blue.withOpacity(0.2),
-                                labelStyle: TextStyle(color: Colors.blue),
-                              );
-                            }).toList(),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 20),
-
-                  // Tarjeta de reglas importantes
-                  Card(
-                    elevation: 5,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: Container(
-                      width: double.infinity, // Ocupa todo el ancho
-                      padding: EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Reglas importantes:',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          _buildRuleItem(
-                              '⏰ Llega 15 minutos antes de tu horario.'),
-                          _buildRuleItem(
-                              '👕 Usa vestimenta adecuada (tenis y ropa deportiva).'),
-                          _buildRuleItem(
-                              '🚫 Respeta el tiempo de juego y no lo excedas.'),
-                          _buildRuleItem(
-                              '🧹 Mantén la cancha limpia y recoge tu basura.'),
-                          _buildRuleItem(
-                              '🤝 Sé respetuoso con los demás jugadores.'),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 20),
-
-                  // Botón para ver la ubicación en Google Maps
-                  Center(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        _openMaps(field.latitude!, field.longitude!);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      icon: Icon(Icons.map, color: Colors.white),
-                      label: Text(
-                        'Ver ubicación en Maps',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-// Método auxiliar para construir filas de información
-  Widget _buildInfoRow({
-    required IconData icon,
-    required String text,
-    TextStyle? textStyle,
-  }) {
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: Colors.blue),
-        SizedBox(width: 10),
-        Text(
-          text,
-          style: textStyle ??
-              TextStyle(
-                color: Colors.black,
-                fontSize: 16,
-              ),
-        ),
-      ],
-    );
-  }
-
-// Método para construir un ítem de regla
-  Widget _buildRuleItem(String text) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.circle, size: 8, color: Colors.blue),
-          SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.black87,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-// Método para abrir Google Maps
-  void _openMaps(double latitude, double longitude) async {
-    final url =
-        'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude';
-    if (await canLaunch(url)) {
-      await launch(url);
+  try {
+    debugPrint('Uniendo al equipo. Team ID: ${team.id}, Position: $position, Match ID: ${widget.match.id}');
+    
+    // Si hay sistema de pago, usar processTeamJoinPayment
+    if (widget.match.price > 0) {
+      await MatchService().processTeamJoinPayment(
+        team.id,
+        position,
+        widget.match.price,
+        widget.match.id,
+      );
     } else {
-      throw 'No se pudo abrir Google Maps';
+      // Si no hay pago, usar joinTeam directamente
+      await MatchService().joinTeam(
+        team.id,
+        position,
+        widget.match.id,
+      );
+    }
+
+    setState(() {
+      _joinStatus = JoinTeamStatus.success;
+    });
+
+    // Cerrar el diálogo
+    Navigator.of(context).pop();
+
+    // Recargar los equipos
+    setState(() {
+      _teamsFuture = MatchService().getTeamsForMatch(widget.match.id);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Te has unido al equipo exitosamente'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  } catch (e) {
+    debugPrint('Error al unirse al equipo: $e');
+    setState(() => _joinStatus = JoinTeamStatus.error);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error: $e'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  } finally {
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
-
-// Método para construir el efecto de shimmer (placeholder)
-  Widget _buildShimmer() {
-    return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
-      child: Container(
-        color: Colors.white,
-      ),
-    );
-  }
-
+}
+ 
+  
   Widget _showStatusIndicator() {
     switch (_joinStatus) {
       case JoinTeamStatus.processing:

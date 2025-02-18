@@ -73,7 +73,7 @@ class _InvitarPorCodigoScreenState extends State<InvitarPorCodigoScreen> {
                         : null,
                   ),
                   title: Text(_usuarioEncontrado!.name, style: TextStyle(color: Colors.black),),
-                  subtitle: Text(_usuarioEncontrado!.email, style: TextStyle(color: Colors.black)),
+                  subtitle: Text(_usuarioEncontrado!.email!, style: TextStyle(color: Colors.black)),
                   trailing: IconButton(
                     icon: _isLoading
                         ? CircularProgressIndicator()

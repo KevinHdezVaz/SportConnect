@@ -8,6 +8,8 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:user_auth_crudd10/auth/auth_check.dart';
 import 'package:user_auth_crudd10/onscreen/onboardingWrapper.dart';
+import 'package:user_auth_crudd10/pages/Mercadopago/payment_service.dart';
+import 'package:user_auth_crudd10/pages/screens/bookin/booking_screen.dart';
 import 'package:user_auth_crudd10/services/functions/firebase_notification.dart';
 import 'package:user_auth_crudd10/services/notifcationService.dart';
 import 'package:user_auth_crudd10/services/providers/storage_ans_provider.dart';
@@ -22,10 +24,12 @@ final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<Scaffol
 
 // Stream controller para estado del pago
 final paymentStatusController = StreamController<PaymentStatus>.broadcast();
+final PaymentService _paymentService = PaymentService();
 
 enum PaymentStatus {
   success,
   failure,
+  approved,
   pending,
   unknown
 }
@@ -87,55 +91,58 @@ Future<void> _setupDeepLinks() async {
   );
 }
 
-void _handlePaymentDeepLink(Uri uri) {
+ void _handlePaymentDeepLink(Uri uri) async {
   debugPrint('Procesando deep link de pago: ${uri.toString()}');
-  
+  debugPrint('Ruta del deep link: ${uri.path}');
+  debugPrint('Parámetros del deep link: ${uri.queryParameters}');
+
   PaymentStatus status;
-  String message;
-  Color color;
 
-  // Extraer ID de pago y referencia externa si están presentes
-  final paymentId = uri.queryParameters['payment_id'];
-  final externalReference = uri.queryParameters['external_reference'];
-
-  // Determinar estado basado en la ruta
-  if (uri.path.contains('/checkout/success')) {
+  if (uri.path.contains('/checkout/success') || uri.path.contains('/checkout/approved')) {
     status = PaymentStatus.success;
-    message = '¡Pago exitoso! Tu reserva ha sido confirmada';
-    color = Colors.green;
-    _onPaymentSuccess(uri);
-  } else if (uri.path.contains('/checkout/failure')) {
+  } else if (uri.path.contains('/checkout/failure') || uri.path.contains('/checkout/rejected')) {
     status = PaymentStatus.failure;
-    message = 'El pago no pudo completarse';
-    color = Colors.red;
-  } else if (uri.path.contains('/checkout/pending')) {
+  } else if (uri.path.contains('/checkout/pending') || uri.path.contains('/checkout/in_process')) {
     status = PaymentStatus.pending;
-    message = 'El pago está pendiente de confirmación';
-    color = Colors.orange;
   } else {
-    status = PaymentStatus.unknown;
-    message = 'Estado de pago desconocido';
-    color = Colors.grey;
+    // Estado desconocido: verificar con el backend
+    final paymentId = uri.queryParameters['payment_id'];
+    try {
+      final paymentStatus = await _paymentService.verifyPaymentStatus(paymentId!);
+      if (paymentStatus == 'approved' || paymentStatus == 'success') {
+        status = PaymentStatus.success;
+      } else {
+        status = PaymentStatus.unknown;
+      }
+    } catch (e) {
+      debugPrint('Error al verificar el estado del pago: $e');
+      status = PaymentStatus.unknown;
+    }
   }
 
-  // Notificar a través del stream
   paymentStatusController.add(status);
-
-  // Mostrar mensaje al usuario
-  _showPaymentMessage(message, color);
-
-  debugPrint('Detalles del pago:');
-  debugPrint('ID de pago: $paymentId');
-  debugPrint('Referencia externa: $externalReference');
 }
-
-void _onPaymentSuccess(Uri uri) {
+void _onPaymentSuccess(Uri uri) async {
   final paymentId = uri.queryParameters['payment_id'];
   final externalReference = uri.queryParameters['external_reference'];
 
-  // Aquí puedes implementar llamadas a tu API o actualizar el estado local
-  _refreshBookings();
+  try {
+    final paymentStatus = await _paymentService.verifyPaymentStatus(paymentId!);
+    if (paymentStatus == 'approved' || paymentStatus == 'success') {
+      ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
+        SnackBar(content: Text('¡Pago aprobado!')),
+      );
+      Navigator.of(navigatorKey.currentContext!).pushReplacement(
+        MaterialPageRoute(builder: (context) => const BookingScreen()),
+      );
+    } else {
+      debugPrint('Estado de pago no esperado: $paymentStatus');
+    }
+  } catch (e) {
+    debugPrint('Error al verificar el estado del pago: $e');
+  }
 }
+
 
 void _showPaymentMessage(String message, Color color) {
   scaffoldMessengerKey.currentState?.showSnackBar(

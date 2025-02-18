@@ -1,10 +1,11 @@
-import 'package:user_auth_crudd10/model/EquipoPartidos.dart';
+import 'package:flutter/material.dart';
+import 'package:user_auth_crudd10/TeamPlayer.dart';
 
 class MatchTeam {
   final int id;
   final String name;
-  final String? color; // Hacerlo opcional
-  final String? emoji; // Hacerlo opcional
+  final String color;
+  final String emoji;
   final int playerCount;
   final int maxPlayers;
   final List<TeamPlayer> players;
@@ -12,45 +13,36 @@ class MatchTeam {
   MatchTeam({
     required this.id,
     required this.name,
-    this.color,
-    this.emoji,
+    required this.color,
+    required this.emoji,
     required this.playerCount,
     required this.maxPlayers,
     required this.players,
   });
 
-  factory MatchTeam.fromJson(Map<String, dynamic> json) {
+ factory MatchTeam.fromJson(Map<String, dynamic> json) {
+    debugPrint('Parseando equipo: ${json['name']}');
+    debugPrint('Jugadores raw: ${json['players']}');
+    
+    var playersList = (json['players'] as List?)?.map((playerJson) {
+      try {
+        return TeamPlayer.fromJson(playerJson);
+      } catch (e) {
+        debugPrint('Error parseando jugador: $e');
+        return null;
+      }
+    }).whereType<TeamPlayer>().toList() ?? [];
+
+    debugPrint('Jugadores parseados: ${playersList.length}');
+
     return MatchTeam(
-      id: json['id'],
-      name: json['name'],
-      color: json['color'],
-      emoji: json['emoji'],
+      id: json['id'] ?? 0,
+      name: json['name'] ?? '',
+      color: json['color'] ?? '',
+      emoji: json['emoji'] ?? '⚽',
       playerCount: json['player_count'] ?? 0,
-      maxPlayers: json['max_players'] ?? 7,
-      players: json['players'] != null
-          ? List<TeamPlayer>.from(
-              (json['players'] as List).map((x) => TeamPlayer.fromJson(x)))
-          : [],
-    );
-  }
-}
-
-class TeamPlayer {
-  final User? user; // Hacerlo opcional
-  final String position;
-  final int equipoPartidoId;
-
-  TeamPlayer({
-    this.user,
-    required this.position,
-    required this.equipoPartidoId,
-  });
-
-  factory TeamPlayer.fromJson(Map<String, dynamic> json) {
-    return TeamPlayer(
-      user: json['user'] != null ? User.fromJson(json['user']) : null,
-      position: json['position'] ?? '',
-      equipoPartidoId: json['equipo_partido_id'] ?? 0,
+      maxPlayers: json['max_players'] ?? 0,
+      players: playersList,
     );
   }
 }

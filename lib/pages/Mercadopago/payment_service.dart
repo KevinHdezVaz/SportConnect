@@ -9,7 +9,7 @@ import 'package:http/http.dart' as http;
 class PaymentService {
   final storage = StorageService();
 
-  Future<void> _launchUrl(BuildContext context, String url) async {
+Future<void> _launchUrl(BuildContext context, String url) async {
     final theme = Theme.of(context);
     try {
       await launchUrl(
@@ -34,59 +34,75 @@ class PaymentService {
       debugPrint(e.toString());
       throw Exception('No se pudo abrir el navegador: $e');
     }
+}
+
+ Future<String> verifyPaymentStatus(String paymentId) async {
+  try {
+    final token = await storage.getToken();
+    debugPrint('Token: $token');
+
+    final url = Uri.parse('$baseUrl/payments/verify-status/$paymentId');
+    debugPrint('URL de verificación: $url');
+
+    final response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    debugPrint('Response status: ${response.statusCode}');
+    debugPrint('Response body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final paymentStatus = data['status']; // Extraer el campo "status"
+      debugPrint('Estado del pago: $paymentStatus');
+      return paymentStatus;
+    } else {
+      final errorData = jsonDecode(response.body);
+      throw Exception('Error al verificar el estado del pago: ${errorData['error'] ?? response.body}');
+    }
+  } catch (e) {
+    debugPrint('Error en verifyPaymentStatus: $e');
+    throw Exception('Error de conexión o procesamiento: $e');
   }
+}
+ 
 
   Future<void> procesarPago(
     BuildContext context,
-    List<OrderItem> items, {
-    required Map<String, dynamic> additionalData,
-  }) async {
+    List<OrderItem> items,
+    {required Map<String, dynamic> additionalData}
+  ) async {
     try {
-      // Validar datos requeridos
-      if (additionalData['team_id'] == null) {
-        throw Exception('team_id es requerido');
-      }
-      if (additionalData['position'] == null) {
-        throw Exception('position es requerido');
-      }
-      if (additionalData['match_id'] == null) {
-        throw Exception('match_id es requerido');
-      }
-
       final token = await storage.getToken();
       debugPrint('Token: $token');
 
       // Formatear los items
-      final formattedItems = items
-          .map((item) => {
-                "title": item.title,
-                "quantity": item.quantity,
-                "currency_id": "MXN",
-                "unit_price": item.unitPrice
-              })
-          .toList();
+      final formattedItems = items.map((item) => {
+        "title": item.title,
+        "quantity": item.quantity,
+        "currency_id": "MXN",
+        "unit_price": item.unitPrice
+      }).toList();
 
       // Crear el cuerpo de la solicitud
       final Map<String, dynamic> requestBody = {
         'items': formattedItems,
         'payer': {
-          'name': additionalData['payer']['name'],
-          'email': additionalData['payer']['email'],
+          'name': additionalData['customer']['name'],
+          'email': additionalData['customer']['email'],
         },
-        'external_reference': additionalData['external_reference'],
-        'notification_url':
-            'https://proyect.aftconta.mx/api/webhook/mercadopago',
+        'external_reference': additionalData['external_reference'] ?? 'ORDER-${DateTime.now().millisecondsSinceEpoch}',
+        'notification_url': 'https://proyect.aftconta.mx/api/webhook/mercadopago',
         'additionalData': {
-          'team_id': additionalData['team_id'],
-          'position': additionalData['position'],
-          'match_id': additionalData['match_id'],
-          'type': 'team_join',
-          'metadata': {
-            'type': 'team_join',
-            'team_id': additionalData['team_id'],
-            'position': additionalData['position'],
-            'match_id': additionalData['match_id']
-          }
+          'field_id': additionalData['field_id'],
+          'date': additionalData['date'],
+          'start_time': additionalData['start_time'],
+          'players_needed': additionalData['players_needed'],
         }
       };
 
@@ -108,16 +124,10 @@ class PaymentService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final initPoint = data['init_point'];
-
-        if (initPoint == null) {
-          throw Exception('No se recibió el init_point en la respuesta');
-        }
-
         await _launchUrl(context, initPoint);
       } else {
         final errorData = jsonDecode(response.body);
-        throw Exception(
-            'Error al crear la preferencia: ${errorData['error'] ?? response.body}');
+        throw Exception('Error al crear la preferencia: ${errorData['error'] ?? response.body}');
       }
     } catch (e) {
       debugPrint('Error en procesarPago: $e');

@@ -1,7 +1,7 @@
 class User {
   final int id;
   final String name;
-  final String email;
+  final String? email;  // Cambiar a opcional
   final String? phone;
   final String? profileImage; // Ya es opcional
   final String? codigoPostal;
@@ -17,12 +17,12 @@ class User {
   final String? fechaNacimiento; // Puede ser null
   final String? posicion; // Puede ser null
   final String? numeroCamiseta; // Puede ser null
-  final String inviteCode;
+  final String? inviteCode;  // Cambiar a opcional
 
   User({
     required this.id,
     required this.name,
-    required this.email,
+    this.email,  // Opcional
     this.phone,
     this.profileImage,
     this.codigoPostal,
@@ -38,30 +38,29 @@ class User {
     this.fechaNacimiento,
     this.posicion,
     this.numeroCamiseta,
-    required this.inviteCode,
+    this.inviteCode,  // Opcional
   });
-
-  factory User.fromJson(Map<String, dynamic> json) {
-    return User(
+ factory User.fromJson(Map<String, dynamic> json) {
+     return User(
       id: json['id'] ?? 0,
       name: json['name'] ?? '',
-      email: json['email'],
+      email: json['email'],   
       phone: json['phone'],
       profileImage: json['profile_image'],
       codigoPostal: json['codigo_postal'],
-      verified: json['verified'],
+      verified: json['verified'] ?? false,
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],
-      nickname: json['nickname'] ?? '', // Si es null, usa cadena vacía
-      birthDate: json['birth_date'] ?? '',
-      position: json['position'] ?? '',
-      jerseyNumber: json['jersey_number'] ?? '',
-      isCapitan: json['is_captain'] == 1, // Si es 1, es verdadero
-      apodo: json['apodo'] ?? '',
-      fechaNacimiento: json['fecha_nacimiento'] ?? '',
-      posicion: json['posicion'] ?? '',
-      numeroCamiseta: json['numero_camiseta'] ?? '',
-      inviteCode: json['invite_code'],
+      nickname: json['nickname'],
+      birthDate: json['birth_date'],
+      position: json['position'],
+      jerseyNumber: json['jersey_number'],
+      isCapitan: json['is_captain'] == 1,
+      apodo: json['apodo'],
+      fechaNacimiento: json['fecha_nacimiento'],
+      posicion: json['posicion'],
+      numeroCamiseta: json['numero_camiseta'],
+      inviteCode: json['invite_code'],   
     );
   }
 }

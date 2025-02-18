@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:user_auth_crudd10/main.dart';
 import 'package:user_auth_crudd10/model/OrderItem.dart';
 import 'package:user_auth_crudd10/pages/Mercadopago/payment_service.dart';
+import 'package:user_auth_crudd10/pages/screens/bookin/booking_screen.dart';
  
 class PaymentScreen extends StatefulWidget {
   final List<OrderItem> items;
@@ -34,29 +35,36 @@ class _PaymentScreenState extends State<PaymentScreen> {
     _setupPaymentListener();
   }
 
-  void _setupPaymentListener() {
-    _paymentStatusSubscription = paymentStatusController.stream.listen((status) {
-      switch (status) {
-        case PaymentStatus.success:
-          _onPaymentSuccess();
-          break;
-        case PaymentStatus.failure:
-          _onPaymentFailure();
-          break;
-        case PaymentStatus.pending:
-          _onPaymentPending();
-          break;
-        default:
-          debugPrint('Estado de pago desconocido');
-      }
-    });
-  }
-
-  void _onPaymentSuccess() {
-    if (mounted) {
-      Navigator.of(context).pop(true); // Retornar éxito
+ void _setupPaymentListener() {
+  _paymentStatusSubscription = paymentStatusController.stream.listen((status) {
+    switch (status) {
+      case PaymentStatus.success:
+      case PaymentStatus.approved: // Manejar el estado aprobado como éxito
+        _onPaymentSuccess();
+        break;
+      case PaymentStatus.failure:
+        _onPaymentFailure();
+        break;
+      case PaymentStatus.pending:
+        _onPaymentPending();
+        break;
+      default:
+        debugPrint('Estado de pago desconocido: $status');
     }
+  });
+}
+
+void _onPaymentSuccess() {
+  if (mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('¡Pago aprobado!')),
+    );
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => const BookingScreen()),
+    );
   }
+} 
+
 
   void _onPaymentFailure() {
     if (mounted) {
