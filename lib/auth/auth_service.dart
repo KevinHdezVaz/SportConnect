@@ -228,6 +228,8 @@ class AuthService {
     }
   }
 
+  
+
   Future<void> saveUserId(int id) async {
     await storage.saveString('user_id', id.toString());
   }

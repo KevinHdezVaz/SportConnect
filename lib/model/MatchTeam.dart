@@ -7,12 +7,16 @@ class MatchTeam {
   final String color;
   final String emoji;
   final int playerCount;
+    final String gameType;  
+
   final int maxPlayers;
   final List<TeamPlayer> players;
 
   MatchTeam({
     required this.id,
     required this.name,
+            required this.gameType,  // Agregado al constructor
+
     required this.color,
     required this.emoji,
     required this.playerCount,
@@ -38,6 +42,8 @@ class MatchTeam {
     return MatchTeam(
       id: json['id'] ?? 0,
       name: json['name'] ?? '',
+                  gameType: json['game_type'] ?? 'No especificado',  // Agregado al fromJson
+
       color: json['color'] ?? '',
       emoji: json['emoji'] ?? '⚽',
       playerCount: json['player_count'] ?? 0,
@@ -45,4 +51,16 @@ class MatchTeam {
       players: playersList,
     );
   }
+
+   String get gameTypeDisplay {
+    switch (gameType) {
+      case 'fut5':
+        return 'Fútbol 5';
+      case 'fut7':
+        return 'Fútbol 7';
+      default:
+        return 'No especificado';
+    }
+  }
+  
 }

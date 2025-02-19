@@ -1,8 +1,14 @@
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:user_auth_crudd10/auth/auth_service.dart';
 import 'dart:convert';
 
+import 'package:user_auth_crudd10/services/storage_service.dart';
+
 class NotificationService {
+
+ 
+
   static Future<void> init() async {
     try {
       // Inicializar OneSignal
@@ -54,32 +60,54 @@ class NotificationService {
     // Navigator.pushNamed(context, '/notification-detail');
   }
 
-  static Future<void> saveDeviceToken() async {
-    try {
-      final playerId = OneSignal.User.pushSubscription.id;
-      print('Intentando obtener Player ID: $playerId');
+static Future<void> saveDeviceToken() async {
+  try {
+    final playerId = OneSignal.User.pushSubscription.id;
+    print('Intentando obtener Player ID: $playerId');
+    
+    final userId = await AuthService().getCurrentUserId();
+    print('User ID obtenido: $userId'); // Log para verificar el userId
 
-      if (playerId != null) {
-        print('Player ID obtenido exitosamente: $playerId');
-        final response = await http.post(
-          Uri.parse('https://proyect.aftconta.mx/api/store-player-id'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          body: jsonEncode({
-            'player_id': playerId,
-          }),
-        );
+    if (playerId != null && userId != null) {
+      final token = await StorageService().getToken();
+      print('Token obtenido: $token'); // Log para verificar el token
 
-        print(
-            'Respuesta del servidor: ${response.statusCode} - ${response.body}');
-      }
-    } catch (e) {
-      print('Error en saveDeviceToken: $e');
+      final response = await http.post(
+        Uri.parse('https://proyect.aftconta.mx/api/store-player-id'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'player_id': playerId,
+          'user_id': userId,
+        }),
+      );
+
+      print('Request enviado:');
+      print('Headers: ${jsonEncode({
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      })}');
+      print('Body: ${jsonEncode({
+        'player_id': playerId,
+        'user_id': userId,
+      })}');
+      
+      print('Respuesta del servidor: ${response.statusCode}');
+      print('Cuerpo de respuesta: ${response.body}');
+    } else {
+      print('Error: playerId o userId es null');
+      print('playerId: $playerId');
+      print('userId: $userId');
     }
+  } catch (e, stackTrace) {
+    print('Error en saveDeviceToken: $e');
+    print('Stack trace: $stackTrace');
   }
-
+}
   // Método para configurar las notificaciones al iniciar la app
   static Future<void> setupNotifications() async {
     await init();

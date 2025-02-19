@@ -77,12 +77,10 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
         'Total matches available: ${matches.length}'); // Depuración: Imprime el total de partidos
 
     return matches.where((match) {
-      // Comparar solo el año, mes y día
-      bool isSameDay = match.scheduleDate.year == date.year &&
+       bool isSameDay = match.scheduleDate.year == date.year &&
           match.scheduleDate.month == date.month &&
           match.scheduleDate.day == date.day;
-
-      // Depuración: Imprimir las fechas que se están comparando
+ 
       print(
           'Match date: ${match.scheduleDate}, Selected date: $date, Is same day: $isSameDay');
 
@@ -99,9 +97,8 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
 
     return Column(
       children: [
-        // Calendario horizontal
-        Container(
-          height: 100, // Altura fija para el calendario
+         Container(
+          height: 100, 
           padding: EdgeInsets.symmetric(vertical: 10),
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
@@ -114,7 +111,7 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
               return GestureDetector(
                 onTap: () {
                   setState(() {
-                    selectedDate = date; // Actualizar la fecha seleccionada
+                    selectedDate = date;  
                   });
                 },
                 child: Container(
@@ -194,18 +191,16 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
                         )),
                   )
                 : ListView.builder(
-                    shrinkWrap: true, // Evita conflictos con CustomScrollView
+                    shrinkWrap: true, 
                     physics:
-                        NeverScrollableScrollPhysics(), // Desactiva el desplazamiento interno
-
+                        NeverScrollableScrollPhysics(),  
                     padding: EdgeInsets.all(16),
                     itemCount: matchesForSelectedDate.length,
                     itemBuilder: (context, index) {
                       final match = matchesForSelectedDate[index];
                       return InkWell(
                         onTap: () {
-                          // Navegar a MatchDetailsScreen cuando se hace clic en el partido
-                          Navigator.push(
+                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) =>
@@ -249,7 +244,7 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
                                         size: 16, color: Colors.grey),
                                     SizedBox(width: 4),
                                     Text(
-                                      '${match.playerCount}/${match.maxPlayers} jugadores',
+                                      '${match.gameTypeDisplay}',
                                       style: TextStyle(color: Colors.black),
                                     ),
                                   ],

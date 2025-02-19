@@ -246,7 +246,7 @@ Widget _buildTeamSection(MatchTeam team, {bool canJoin = true}) {
             ),
             trailing: Text(
               '${team.playerCount}/${team.maxPlayers} jugadores',
-              style: TextStyle(color: Colors.grey),
+              style: TextStyle(color: Colors.black, fontSize: 15),
             ),
           ),
           Container(

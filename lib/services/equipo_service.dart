@@ -252,7 +252,7 @@ Future<List<Equipo>> obtenerEquiposDisponibles(int torneoId) async {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Te has unido al equipo exitosamente')),
+        SnackBar(content: Text('Te has unido al equipo exitosamente  EQUIPOSERVICE ESTA MAL AQUI')),
       );
 
       Navigator.pop(context);

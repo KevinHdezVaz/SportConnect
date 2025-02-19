@@ -166,7 +166,7 @@ class _MatchInfoTabState extends State<MatchInfoTab> {
                           SizedBox(height: 8),
                           _buildInfoRow(
                             icon: Icons.sports_soccer,
-                            text: 'Tipo: ${field.type}',
+                            text: 'Partido de ${widget.match.gameTypeDisplay}',
                           ),
                         ],
                       ),

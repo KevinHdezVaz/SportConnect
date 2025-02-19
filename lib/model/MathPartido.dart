@@ -6,7 +6,7 @@ class MathPartido {
   final DateTime scheduleDate; // Esta es la clave
   final String startTime;
   final String endTime;
-
+  final String gameType;  
   final double price;
   final int playerCount;
   final int maxPlayers;
@@ -17,6 +17,8 @@ class MathPartido {
   MathPartido({
     required this.id,
     required this.name,
+        required this.gameType,  // Agregado al constructor
+
     required this.scheduleDate,
     required this.startTime,
     required this.endTime,
@@ -35,6 +37,8 @@ class MathPartido {
     return MathPartido(
       id: json['id'],
       name: json['name'],
+            gameType: json['game_type'] ?? 'No especificado',  // Agregado al fromJson
+
       scheduleDate: DateTime.parse(
           json['schedule_date']), // Asegúrate de que esto sea correcto
       startTime: json['start_time'],
@@ -51,6 +55,7 @@ class MathPartido {
     return MathPartido(
       id: id,
       name: name,
+      gameType: gameType,
       playerCount: playerCount,
       maxPlayers: maxPlayers,
       scheduleDate: scheduleDate,
@@ -61,4 +66,15 @@ class MathPartido {
       fieldId: fieldId,
     );
   }
+   String get gameTypeDisplay {
+    switch (gameType) {
+      case 'fut5':
+        return 'Fútbol 5';
+      case 'fut7':
+        return 'Fútbol 7';
+      default:
+        return 'No especificado';
+    }
+  }
+
 }
