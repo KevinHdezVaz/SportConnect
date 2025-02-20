@@ -26,7 +26,6 @@ class _HomePageState extends State<HomePage> {
   int _invitacionesPendientes = 0;
   final _equipoService = EquipoService();
   late Future<List<Story>> futureStories;
-
   final MatchService _matchService = MatchService();
   late Future<List<MathPartido>> futureMatches;
 
@@ -40,7 +39,6 @@ class _HomePageState extends State<HomePage> {
     futureStories = StoriesService().getStories();
     _loadUserProfile();
     _loadInvitaciones();
-    // Inicializar next7Days
     for (int i = 0; i < 7; i++) {
       next7Days.add(DateTime.now().add(Duration(days: i)));
     }
@@ -49,7 +47,6 @@ class _HomePageState extends State<HomePage> {
 
   final _authService = AuthService();
   Map<String, dynamic>? userData;
-
   String? imageUrl;
 
   Future<void> _loadInvitaciones() async {
@@ -88,11 +85,22 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  // Nueva función para manejar la recarga al deslizar hacia abajo
+  Future<void> _handleRefresh() async {
+    setState(() {
+      futureTorneos = TorneoService().getTorneos(); // Recarga torneos
+      futureStories = StoriesService().getStories(); // Recarga historias
+      futureMatches = _matchService.getAvailableMatches(selectedDate); // Recarga partidos
+    });
+    await Future.wait([futureTorneos, futureStories, futureMatches]); // Espera a que todos los datos se recarguen
+    await _loadUserProfile(); // Recarga el perfil del usuario
+    await _loadInvitaciones(); // Recarga las invitaciones
+  }
+
   @override
   Widget build(BuildContext context) {
     if (userData != null && userData!['profile_image'] != null) {
-      imageUrl =
-          'https://proyect.aftconta.mx/storage/${userData!['profile_image']}';
+      imageUrl = 'https://proyect.aftconta.mx/storage/${userData!['profile_image']}';
     }
 
     return SafeArea(
@@ -100,10 +108,10 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: Colors.grey[100],
         body: userData == null
             ? const Center(child: CircularProgressIndicator())
-            : SafeArea(
+            : RefreshIndicator(
+                onRefresh: _handleRefresh, // Función que se ejecuta al deslizar hacia abajo
                 child: CustomScrollView(
                   slivers: [
-                    // Contenido principal
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: EdgeInsets.all(16),
@@ -112,8 +120,7 @@ class _HomePageState extends State<HomePage> {
                           children: [
                             // Buscador
                             Container(
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 12),
+                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(12),
@@ -126,7 +133,6 @@ class _HomePageState extends State<HomePage> {
                               ),
                               child: Row(
                                 children: [
-                                  // Foto de perfil
                                   Container(
                                     width: 40,
                                     height: 40,
@@ -143,27 +149,21 @@ class _HomePageState extends State<HomePage> {
                                           ? Image.network(
                                               imageUrl!,
                                               fit: BoxFit.cover,
-                                              errorBuilder: (context, error,
-                                                      stackTrace) =>
-                                                  Icon(Icons.person,
-                                                      color: Colors.blue),
+                                              errorBuilder: (context, error, stackTrace) =>
+                                                  Icon(Icons.person, color: Colors.blue),
                                             )
-                                          : Icon(Icons.person,
-                                              color: Colors.blue),
+                                          : Icon(Icons.person, color: Colors.blue),
                                     ),
                                   ),
                                   SizedBox(width: 12),
-                                  // Saludo y nombre
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         const Text(
                                           'Hola,',
                                           style: TextStyle(
-                                            color: const Color.fromARGB(
-                                                255, 87, 84, 84),
+                                            color: Color.fromARGB(255, 87, 84, 84),
                                             fontSize: 13,
                                           ),
                                         ),
@@ -178,8 +178,6 @@ class _HomePageState extends State<HomePage> {
                                       ],
                                     ),
                                   ),
-                                  // Botones
-                                  //aqui va las notificaciones de invitaciones
                                   Container(
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
@@ -188,14 +186,11 @@ class _HomePageState extends State<HomePage> {
                                     child: Stack(
                                       children: [
                                         IconButton(
-                                          icon: Icon(Icons.notifications_none,
-                                              color: Colors.blue),
+                                          icon: Icon(Icons.notifications_none, color: Colors.blue),
                                           onPressed: () {
                                             Navigator.push(
                                               context,
-                                              MaterialPageRoute(
-                                                  builder: (_) =>
-                                                      InvitacionesScreen()),
+                                              MaterialPageRoute(builder: (_) => InvitacionesScreen()),
                                             ).then((_) => _loadInvitaciones());
                                           },
                                         ),
@@ -210,8 +205,7 @@ class _HomePageState extends State<HomePage> {
                                                 shape: BoxShape.circle,
                                               ),
                                               child: Text(
-                                                _invitacionesPendientes
-                                                    .toString(),
+                                                _invitacionesPendientes.toString(),
                                                 style: TextStyle(
                                                   color: Colors.white,
                                                   fontSize: 10,
@@ -222,24 +216,20 @@ class _HomePageState extends State<HomePage> {
                                           ),
                                       ],
                                     ),
-                                  )
+                                  ),
                                 ],
                               ),
                             ),
 
-// Cámbialo por esto:
                             FutureBuilder<List<Story>>(
-                              future:
-                                  futureStories, // Usa la misma variable future que ya tienes declarada
+                              future: futureStories,
                               builder: (context, snapshot) {
-                                if (snapshot.connectionState ==
-                                        ConnectionState.waiting ||
+                                if (snapshot.connectionState == ConnectionState.waiting ||
                                     snapshot.hasError ||
                                     !snapshot.hasData ||
                                     snapshot.data!.isEmpty) {
                                   return const SizedBox.shrink();
                                 }
-
                                 return Column(
                                   children: [
                                     const SizedBox(height: 15),
@@ -264,8 +254,7 @@ class _HomePageState extends State<HomePage> {
                                   onPressed: () {
                                     Navigator.push(
                                       context,
-                                      MaterialPageRoute(
-                                          builder: (_) => TournamentsScreen()),
+                                      MaterialPageRoute(builder: (_) => TournamentsScreen()),
                                     );
                                   },
                                   child: Text('Ver todos'),
@@ -278,26 +267,20 @@ class _HomePageState extends State<HomePage> {
                               child: FutureBuilder<List<Torneo>>(
                                 future: futureTorneos,
                                 builder: (context, snapshot) {
-                                  if (snapshot.connectionState ==
-                                      ConnectionState.waiting) {
-                                    return Center(
-                                        child: CircularProgressIndicator());
+                                  if (snapshot.connectionState == ConnectionState.waiting) {
+                                    return Center(child: CircularProgressIndicator());
                                   } else if (snapshot.hasError) {
                                     return Center(
                                       child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
+                                        mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
                                           Text('Error de conexión',
-                                              style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold)),
+                                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                                           SizedBox(height: 8),
                                           ElevatedButton(
                                             onPressed: () {
                                               setState(() {
-                                                futureTorneos = TorneoService()
-                                                    .getTorneos();
+                                                futureTorneos = TorneoService().getTorneos();
                                               });
                                             },
                                             child: Text('Reintentar'),
@@ -305,11 +288,8 @@ class _HomePageState extends State<HomePage> {
                                         ],
                                       ),
                                     );
-                                  } else if (!snapshot.hasData ||
-                                      snapshot.data!.isEmpty) {
-                                    return Center(
-                                        child: Text(
-                                            'No hay torneos disponibles.'));
+                                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                                    return Center(child: Text('No hay torneos disponibles.'));
                                   }
 
                                   return CarouselSlider.builder(
@@ -317,26 +297,21 @@ class _HomePageState extends State<HomePage> {
                                     itemBuilder: (context, index, realIndex) {
                                       Torneo torneo = snapshot.data![index];
                                       return Container(
-                                        width:
-                                            320, // Ancho fijo para cada tarjeta
-                                        margin: EdgeInsets.only(
-                                            right: 8), // Espacio entre tarjetas
-                                        child:
-                                            _buildTorneoCard(context, torneo),
+                                        width: 320,
+                                        margin: EdgeInsets.only(right: 8),
+                                        child: _buildTorneoCard(context, torneo),
                                       );
                                     },
                                     options: CarouselOptions(
                                       height: 220,
                                       aspectRatio: 16 / 9,
-                                      viewportFraction:
-                                          0.8, // Muestra parcialmente las tarjetas adyacentes
+                                      viewportFraction: 0.8,
                                       initialPage: 0,
                                       enableInfiniteScroll: true,
                                       reverse: false,
                                       autoPlay: true,
                                       autoPlayInterval: Duration(seconds: 5),
-                                      autoPlayAnimationDuration:
-                                          Duration(milliseconds: 800),
+                                      autoPlayAnimationDuration: Duration(milliseconds: 800),
                                       autoPlayCurve: Curves.fastOutSlowIn,
                                       enlargeCenterPage: true,
                                       scrollDirection: Axis.horizontal,
@@ -368,99 +343,95 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-}
 
-Widget _buildTorneoCard(BuildContext context, Torneo torneo) {
-  return Card(
-    margin: EdgeInsets.all(8),
-    child: InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (_) => TournamentDetails(
-                    torneo: torneo,
-                  )),
-        );
-      },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-                child: Image.network(
-                  torneo.imagenesTorneo!.isNotEmpty
-                      ? torneo.imagenesTorneo![0]
-                      : 'https://via.placeholder.com/150',
-                  height: 100, // Altura más pequeña para la imagen
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.green,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    'Inscripciones Abiertas',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          Padding(
-            padding: EdgeInsets.all(12), // Padding más pequeño
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildTorneoCard(BuildContext context, Torneo torneo) {
+    return Card(
+      margin: EdgeInsets.all(8),
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => TournamentDetails(torneo: torneo)),
+          );
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
               children: [
-                Text(
-                  torneo.nombre,
-                  style: TextStyle(
-                    color: Colors.orange,
-                    fontSize: 16, // Tamaño de fuente más pequeño
-                    fontWeight: FontWeight.bold,
+                ClipRRect(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                  child: Image.network(
+                    torneo.imagenesTorneo!.isNotEmpty
+                        ? torneo.imagenesTorneo![0]
+                        : 'https://via.placeholder.com/150',
+                    height: 100,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
                   ),
                 ),
-                SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(Icons.people,
-                        size: 12, color: Colors.grey), // Ícono más pequeño
-                    SizedBox(width: 4),
-                    Text(
-                      '${torneo.minimoEquipos} equipos inscritos',
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.green,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'Inscripciones Abiertas',
                       style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 12, // Tamaño de fuente más pequeño
+                        color: Colors.white,
+                        fontSize: 12,
                       ),
                     ),
-                    Spacer(),
-                    Text(
-                      '\$${torneo.cuotaInscripcion}',
-                      style: TextStyle(
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12, // Tamaño de fuente más pequeño
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
-          ),
-        ],
+            Padding(
+              padding: EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    torneo.nombre,
+                    style: TextStyle(
+                      color: Colors.orange,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.people, size: 12, color: Colors.grey),
+                      SizedBox(width: 4),
+                      Text(
+                        '${torneo.minimoEquipos} equipos inscritos',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 12,
+                        ),
+                      ),
+                      Spacer(),
+                      Text(
+                        '\$${torneo.cuotaInscripcion}',
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }

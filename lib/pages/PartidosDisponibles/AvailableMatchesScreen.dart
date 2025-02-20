@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:user_auth_crudd10/model/MathPartido.dart';
 import 'package:user_auth_crudd10/pages/PartidosDisponibles/MatchDetailsScreen.dart';
@@ -24,6 +25,8 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
   void initState() {
     super.initState();
     _initializeDates();
+        initializeDateFormatting('es_ES', null);
+
     _loadMatches();
   }
 
@@ -70,24 +73,36 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
     }
   }
 
-  List<MathPartido> _getMatchesForDate(DateTime date) {
-    print(
-        'Filtering matches for date: $date'); // Depuración: Imprime la fecha seleccionada
-    print(
-        'Total matches available: ${matches.length}'); // Depuración: Imprime el total de partidos
+ List<MathPartido> _getMatchesForDate(DateTime date) {
+  final now = DateTime.now();
+  
+  return matches.where((match) {
+    // Primero verificamos si es el mismo día
+    bool isSameDay = match.scheduleDate.year == date.year &&
+        match.scheduleDate.month == date.month &&
+        match.scheduleDate.day == date.day;
 
-    return matches.where((match) {
-       bool isSameDay = match.scheduleDate.year == date.year &&
-          match.scheduleDate.month == date.month &&
-          match.scheduleDate.day == date.day;
- 
-      print(
-          'Match date: ${match.scheduleDate}, Selected date: $date, Is same day: $isSameDay');
+    if (!isSameDay) return false;
 
-      return isSameDay;
-    }).toList();
-  }
+    // Si es el día actual, verificamos la hora
+    if (DateUtils.isSameDay(date, now)) {
+      // Convertir la hora del partido a DateTime para comparar
+      final matchDateTime = DateTime(
+        match.scheduleDate.year,
+        match.scheduleDate.month,
+        match.scheduleDate.day,
+        int.parse(match.startTime.split(':')[0]),  // hora
+        int.parse(match.startTime.split(':')[1]),  // minutos
+      );
+      
+      // Solo retornar true si la hora del partido es posterior a la hora actual
+      return matchDateTime.isAfter(now);
+    }
 
+    // Si es un día futuro, mostrar todos los partidos
+    return true;
+  }).toList();
+}
   @override
   Widget build(BuildContext context) {
     final matchesForSelectedDate = _getMatchesForDate(selectedDate);
@@ -134,7 +149,7 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        DateFormat('EEE').format(date).toUpperCase(),
+    DateFormat('EEE', 'es_ES').format(date).toUpperCase(),
                         style: TextStyle(
                           color: isSelected ? Colors.white : Colors.grey,
                           fontWeight: FontWeight.bold,

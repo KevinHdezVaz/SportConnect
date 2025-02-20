@@ -4,6 +4,7 @@ import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:user_auth_crudd10/auth/auth_check.dart';
@@ -34,12 +35,32 @@ enum PaymentStatus {
   unknown
 }
 
+// Configuración de notificaciones locales
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+
+Future<void> createNotificationChannel() async {
+  const AndroidNotificationChannel channel = AndroidNotificationChannel(
+    'default_notification_channel', // ID del canal
+    'Default Channel', // Nombre del canal
+    description: 'This channel is used for important notifications.', // Descripción
+    importance: Importance.high,
+  );
+
+  await flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+      AndroidFlutterLocalNotificationsPlugin>()?.createNotificationChannel(channel);
+}
+
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Inicializaciones
   SharedPreferences prefs = await SharedPreferences.getInstance();
   int isviewed = prefs.getInt('onBoard') ?? 1;
+
+    // Crear el canal de notificación
+  await createNotificationChannel();
+  
 
   try {
     await NotificationService.setupNotifications();

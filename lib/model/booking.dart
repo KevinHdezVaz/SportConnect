@@ -21,7 +21,7 @@ class Booking {
     required this.id,
     required this.userId,
     required this.fieldId,
-    required this.fieldName, // Agregar al constructor
+    required this.fieldName, 
     required this.startTime,
     required this.endTime,
     required this.totalPrice,

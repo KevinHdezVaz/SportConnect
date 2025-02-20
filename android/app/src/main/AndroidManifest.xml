@@ -52,7 +52,18 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-            
+
+ 
+  <meta-data
+        android:name="com.onesignal.NotificationChannelId"
+        android:value="default_notification_channel" />
+    <meta-data
+        android:name="com.onesignal.NotificationChannelName"
+        android:value="Default Channel" />
+    <meta-data
+        android:name="com.onesignal.NotificationAccentColor.DEFAULT"
+        android:value="#FF9976D2"/>
+        
         <meta-data
             android:name="com.google.android.gms.auth.api.credentials.CREDENTIALS_API"
             android:value="true" />

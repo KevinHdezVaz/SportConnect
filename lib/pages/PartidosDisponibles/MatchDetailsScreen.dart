@@ -182,16 +182,14 @@ void _setupPaymentListener() {
         return FutureBuilder<bool>(
           future: _checkUserInTeam(snapshot.data!),
           builder: (context, userInTeamSnapshot) {
-            final bool canJoin = !(userInTeamSnapshot.data ?? false);
-
+ 
             return ListView.builder(
               itemCount: snapshot.data!.length,
               itemBuilder: (context, index) {
                 final team = snapshot.data![index];
                 return _buildTeamSection(
                   team,
-                  canJoin: canJoin,
-                );
+                 );
               },
             );
           },
@@ -232,39 +230,45 @@ Widget _buildTeamSection(MatchTeam team, {bool canJoin = true}) {
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
         children: [
-          ListTile(
-            leading: CircleAvatar(
-              backgroundColor: teamColor.withOpacity(0.2),
-              child: Text(team.emoji ?? '⚽'),
-            ),
-            title: Text(
-              team.name,
-              style: TextStyle(
-                color: teamColor,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            trailing: Text(
-              '${team.playerCount}/${team.maxPlayers} jugadores',
-              style: TextStyle(color: Colors.black, fontSize: 15),
-            ),
-          ),
-          Container(
-            height: 120,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              children: [
-                if (canJoin) _buildJoinButton(team, teamColor),
-                ...positions.map((positionData) {
-                  final position = positionData['name'];
-                  final player = playersByPosition[position];
-                  debugPrint('Position: $position, Player: ${player?.user?.name}');
-                  return _buildPlayerSlot(position, player, teamColor);
-                }).toList(),
-              ],
-            ),
-          ),
+      ListTile(
+  leading: CircleAvatar(
+    backgroundColor: teamColor.withOpacity(0.2),
+    child: Text(team.emoji ?? '⚽'),
+  ),
+  title: Text(
+    team.name,
+    style: TextStyle(
+      color: teamColor,
+      fontWeight: FontWeight.bold,
+    ),
+  ),
+  trailing: Row(
+    mainAxisSize: MainAxisSize.min,  // Importante para que el Row sea compacto
+    children: [
+      Text(
+        '${team.playerCount}/${team.maxPlayers} jugadores',
+        style: TextStyle(color: Colors.black, fontSize: 15),
+      ),
+       
+    ],
+  ),
+),
+        Container(
+  height: 120,
+  child: ListView(
+    scrollDirection: Axis.horizontal,
+    padding: EdgeInsets.symmetric(horizontal: 16),
+    children: [
+      _buildJoinButton(team, teamColor),  
+      ...positions.map((positionData) {
+        final position = positionData['name'];
+        final player = playersByPosition[position];
+        debugPrint('Position: $position, Player: ${player?.user?.name}');
+        return _buildPlayerSlot(position, player, teamColor);
+      }).toList(),
+    ],
+  ),
+),
         ],
       ),
     );
@@ -339,53 +343,170 @@ Future<bool> _checkUserInTeam(List<MatchTeam> teams) async {
   }
   return false;
 }
-
-Widget _buildJoinButton(MatchTeam team, Color teamColor) {
-  return FutureBuilder<bool>(
-    future: _checkUserInTeam([team]), // Comprueba solo este equipo
-    builder: (context, snapshot) {
-      if (snapshot.data == true) {
-        // Si el usuario ya está en un equipo, no mostrar el botón
+ 
+ Widget _buildJoinButton(MatchTeam team, Color teamColor) {
+  return FutureBuilder<List<MatchTeam>>(
+    future: _teamsFuture,
+    builder: (context, teamsSnapshot) {
+      if (!teamsSnapshot.hasData) {
         return SizedBox();
       }
 
-      // Si el equipo está lleno, no mostrar el botón
-      if (team.playerCount >= team.maxPlayers) {
-        return SizedBox();
-      }
+      return FutureBuilder<bool>(
+        future: _checkUserInTeam(teamsSnapshot.data!),
+        builder: (context, isInAnyTeamSnapshot) {
+          if (!isInAnyTeamSnapshot.hasData) {
+            return SizedBox();
+          }
 
-      return Container(
-        width: 80,
-        margin: EdgeInsets.all(8),
-        child: Column(
-          children: [
-            InkWell(
-              onTap: () => _showJoinTeamDialog(team),
-              child: Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: teamColor,
-                    width: 2,
-                    style: BorderStyle.solid,
+          // Si el usuario está en algún equipo
+          if (isInAnyTeamSnapshot.data == true) {
+            // Verificar si está en este equipo específico
+            return FutureBuilder<bool>(
+              future: _isUserInTeam(team),
+              builder: (context, isInThisTeamSnapshot) {
+                // Solo mostrar el botón "Salir" si está en este equipo
+                if (isInThisTeamSnapshot.data == true) {
+                  return Container(
+                    width: 80,
+                    margin: EdgeInsets.all(8),
+                    child: Column(
+                      children: [
+                        InkWell(
+                          onTap: () => _showLeaveTeamDialog(team),
+                          child: Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.red,
+                                width: 2,
+                                style: BorderStyle.solid,
+                              ),
+                            ),
+                            child: Icon(Icons.exit_to_app, color: Colors.red),
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Salir',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                // Si está en otro equipo, no mostrar ningún botón
+                return SizedBox();
+              },
+            );
+          }
+
+          // Si no está en ningún equipo y el equipo no está lleno, mostrar "Unirme"
+          if (team.playerCount < team.maxPlayers) {
+            return Container(
+              width: 80,
+              margin: EdgeInsets.all(8),
+              child: Column(
+                children: [
+                  InkWell(
+                    onTap: () => _showJoinTeamDialog(team),
+                    child: Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: teamColor,
+                          width: 2,
+                          style: BorderStyle.solid,
+                        ),
+                      ),
+                      child: Icon(Icons.add, color: teamColor),
+                    ),
                   ),
-                ),
-                child: Icon(Icons.add, color: teamColor),
+                  SizedBox(height: 4),
+                  Text(
+                    'Unirme',
+                    style: TextStyle(color: Colors.black),
+                  ),
+                ],
               ),
-            ),
-            SizedBox(height: 4),
-            Text(
-              'Unirme',
-              style: TextStyle(color: Colors.black),
-            ),
-          ],
-        ),
+            );
+          }
+
+          return SizedBox();
+        },
       );
     },
   );
 }
+
+
+void _showLeaveTeamDialog(MatchTeam team) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text('Abandonar equipo', style: TextStyle(color: Colors.black) ,),
+      content: Text('¿Estás seguro que deseas abandonar el equipo?', style: TextStyle(color: Colors.black),),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('Cancelar'),
+        ),
+        TextButton(
+          onPressed: () async {
+            Navigator.pop(context);
+            await _leaveTeam();
+          },
+          child: Text('Salir', style: TextStyle(color: Colors.red)),
+        ),
+      ],
+    ),
+  );
+}
+
+Future<bool> _isUserInTeam(MatchTeam team) async {
+  final currentUserId = await AuthService().getCurrentUserId();
+  if (currentUserId == null) return false;
+
+  // Depurar información
+  debugPrint('Current User ID: $currentUserId');
+  team.players.forEach((player) {
+    debugPrint('Player ID: ${player.user?.id}, Name: ${player.user?.name}');
+  });
+
+  return team.players.any((player) => 
+    player.user?.id.toString() == currentUserId.toString());
+}
+
+// Método para salir del equipo
+Future<void> _leaveTeam() async {
+  try {
+    await MatchService().leaveTeam(widget.match.id);
+    
+    // Recargar los equipos
+    setState(() {
+      _teamsFuture = MatchService().getTeamsForMatch(widget.match.id);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Has abandonado el equipo exitosamente'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error al abandonar el equipo: $e'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+}
+
 
   Widget _buildPlayerCard(TeamPlayer player) {
     String? imageUrl;

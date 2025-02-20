@@ -1,5 +1,5 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -8,6 +8,7 @@ import 'package:user_auth_crudd10/auth/booking_service.dart';
 import 'package:user_auth_crudd10/model/field.dart';
 import 'package:user_auth_crudd10/pages/screens/bookin/BookingDialog%20.dart';
 import 'package:user_auth_crudd10/utils/constantes.dart';
+import 'package:photo_view/photo_view.dart';
 
 class FieldDetailScreen extends StatefulWidget {
   final Field field;
@@ -84,13 +85,133 @@ class _FieldDetailScreenState extends State<FieldDetailScreen>
 
     return DefaultTabController(
       length: 2,
-      child: SafeArea(
-        child: Scaffold(
-          backgroundColor: Colors.grey[100],
-          body: Column(
+      child: Scaffold(
+        backgroundColor: Colors.grey[100],
+        body: NestedScrollView(
+          headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+            return [
+              SliverAppBar(
+                expandedHeight: 300.0,
+                floating: false,
+                pinned: true,
+                flexibleSpace: FlexibleSpaceBar(
+                  background: Stack(
+                    children: [
+                      CarouselSlider(
+                        options: CarouselOptions(
+                          height: 300.0,
+                          viewportFraction: 1.0,
+                          onPageChanged: (index, _) =>
+                              setState(() => _currentImage = index),
+                          autoPlay: true,
+                        ),
+                        items: (widget.field.images ?? []).map((url) {
+                          final fullImageUrl =
+                              Uri.parse(baseUrl).replace(path: url).toString();
+                          return GestureDetector(
+                            onTap: () {
+                              // Abrir la imagen en grande con PhotoView
+                             showDialog(
+                                context: context,
+                                barrierColor: Colors.black.withOpacity(0.5),
+                                builder: (BuildContext context) {
+                                  return Dialog(
+                                    backgroundColor: Colors.transparent,
+                                    elevation: 0,
+                                    insetPadding: EdgeInsets.all(16),
+                                    child: Stack(
+                                      children: [
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(16),
+                                            color: Colors.transparent,
+                                          ),
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(16),
+                                            child: PhotoView(
+                                              imageProvider: CachedNetworkImageProvider(fullImageUrl),
+                                              minScale: PhotoViewComputedScale.contained * 0.8,
+                                              maxScale: PhotoViewComputedScale.covered * 2.0,
+                                              backgroundDecoration: BoxDecoration(color: Colors.transparent),
+                                              loadingBuilder: (context, event) => Center(
+                                                child: Container(
+                                                  width: 30.0,
+                                                  height: 30.0,
+                                                  child: CircularProgressIndicator(),
+                                                ),
+                                              ),
+                                              errorBuilder: (context, error, stackTrace) => Center(
+                                                child: Icon(
+                                                  Icons.broken_image,
+                                                  color: Colors.grey[400],
+                                                  size: 50,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Positioned(
+                                          top: 8,
+                                          right: 8,
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withOpacity(0.7),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: IconButton(
+                                              icon: Icon(Icons.close, color: Colors.black),
+                                              onPressed: () {
+                                                Navigator.of(context).pop();
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                            child: CachedNetworkImage(
+                              imageUrl: fullImageUrl,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => _buildShimmer(),
+                              errorWidget: (context, url, error) =>
+                                  Icon(Icons.error),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                     
+                    ],
+                  ),
+                ),
+              ),
+              SliverPersistentHeader(
+                delegate: _SliverAppBarDelegate(
+                  TabBar(
+                    labelColor: Colors.black,
+                    unselectedLabelColor: Colors.grey,
+                    tabs: [
+                      Tab(text: 'Sobre la cancha'),
+                      Tab(text: 'Torneos activos'),
+                    ],
+                  ),
+                ),
+                pinned: true,
+              ),
+            ];
+          },
+          body: TabBarView(
             children: [
-               Container(
-                color: Color(0xFF00BFFF),
+              // Primera pestaña: Sobre la cancha
+              SingleChildScrollView(
+                child: Column(
+                  children: [
+
+
+                      Container(
+                color: const Color.fromARGB(255, 135, 183, 223),
                 padding: EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -186,256 +307,147 @@ class _FieldDetailScreenState extends State<FieldDetailScreen>
                 ),
               ),
 
-              // Carrusel de imágenes
-              Stack(
-                children: [
-                  // En el CarouselSlider de tu FieldDetailScreen
-                  CarouselSlider(
-                    options: CarouselOptions(
-                      height: 150,
-                      viewportFraction: 0.6,
-                      onPageChanged: (index, _) =>
-                          setState(() => _currentImage = index),
-                      autoPlay: true,
-                    ),
-                    items: (widget.field.images ?? []).map((url) {
-                      final fullImageUrl =
-                          Uri.parse(baseUrl).replace(path: url).toString();
-
-                      return GestureDetector(
-                        onTap: () {
-                          showDialog(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return Dialog(
-                                child: InteractiveViewer(
-                                  minScale: 0.5,
-                                  maxScale: 4.0,
-                                  child: CachedNetworkImage(
-                                    imageUrl:
-                                        fullImageUrl,  
-                                    fit: BoxFit.cover,
-                                    placeholder: (context, url) =>
-                                        _buildShimmer(),
-                                    errorWidget: (context, url, error) =>
-                                        Container(
-                                      color: Colors.grey[200],
-                                      child: Icon(
-                                        Icons.image_not_supported,
-                                        color: Colors.grey[400],
-                                      ),
+                    Container(
+                      margin: const EdgeInsets.all(16),
+                      child: Card(
+                        elevation: 10,
+                        child: Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Localización',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              SizedBox(height: 18),
+                              Text(
+                                currentField.municipio ??
+                                    'Ubicación no disponible',
+                                style: TextStyle(
+                                    fontSize: 16, color: Colors.black),
+                              ),
+                              SizedBox(height: 8),
+                              Card(
+                                elevation: 5,
+                                child: InkWell(
+                                  onTap: () async {
+                                    final lat = currentField.latitude;
+                                    final lng = currentField.longitude;
+                                    if (lat != null && lng != null) {
+                                      final url =
+                                          'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng';
+                                      try {
+                                        if (await canLaunchUrl(Uri.parse(url))) {
+                                          await launchUrl(Uri.parse(url),
+                                              mode: LaunchMode.externalApplication);
+                                        } else {
+                                          debugPrint('No se pudo abrir el mapa');
+                                        }
+                                      } catch (e) {
+                                        debugPrint('Error al abrir el mapa: $e');
+                                      }
+                                    }
+                                  },
+                                  child: const Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.near_me, color: Colors.blue),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          '¿Cómo llegar?',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                            color: Colors.blue,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),
-                              );
-                            },
-                          );
-                        },
-                        child: CachedNetworkImage(
-                          imageUrl: fullImageUrl, // Usar la URL completa
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => _buildShimmer(),
-                          errorWidget: (context, url, error) =>
-                              Icon(Icons.error),
+                              ),
+                            ],
+                          ),
                         ),
-                      );
-                    }).toList(),
-                  ),
-                  Positioned(
-                    bottom: 20,
-                    left: 0,
-                    right: 0,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: (currentField.images ?? [])
-                          .asMap()
-                          .entries
-                          .map((entry) {
-                        return Container(
-                          width: 8,
-                          height: 8,
-                          margin: EdgeInsets.symmetric(horizontal: 4),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: _currentImage == entry.key
-                                ? Colors.white
-                                : Colors.grey,
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  )
-                ],
-              ),
-
-              // TabBar
-              TabBar(
-                labelColor: Colors.blue,
-                unselectedLabelColor: Colors.grey,
-                tabs: [
-                  Tab(text: 'Sobre la cancha'),
-                  Tab(text: 'Torneos activos'),
-                ],
-              ),
-
-              // Contenido scrolleable
-              Expanded(
-                child: TabBarView(
-                  children: [
-                    // Primera pestaña: Sobre la cancha
-                    SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          Container(
-                            margin: const EdgeInsets.all(16),
-                            child: Card(
-                              elevation: 10,
-                              child: Padding(
-                                padding: EdgeInsets.all(16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Localización',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                    SizedBox(height: 18),
-                                    Text(
-                                      currentField.municipio ??
-                                          'Ubicación no disponible',
-                                      style: TextStyle(
-                                          fontSize: 16, color: Colors.black),
-                                    ),
-                                    SizedBox(height: 8),
- 
-Card(
-  elevation: 5,
-  child: InkWell( // Añadir InkWell para el efecto táctil
-    onTap: () async {
-     
-      final lat = currentField.latitude;
-      final lng = currentField.longitude;
-      
-      if (lat != null && lng != null) {
-        final url = 'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng';
-        
-        try {
-          if (await canLaunchUrl(Uri.parse(url))) {
-            await launchUrl(Uri.parse(url), 
-              mode: LaunchMode.externalApplication
-            );
-          } else {
-            debugPrint('No se pudo abrir el mapa');
-          }
-        } catch (e) {
-          debugPrint('Error al abrir el mapa: $e');
-        }
-      }
-    },
-    child: const Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.near_me, color: Colors.blue),
-          SizedBox(width: 8),
-          Text(
-            '¿Cómo llegar?',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: Colors.blue,
-            ),
-          ),
-        ],
-      ),
-    ),
-  ),
-),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          Container(
-                            margin: const EdgeInsets.all(16),
-                            child: Card(
-                              elevation: 10,
-                              child: Padding(
-                                padding: EdgeInsets.all(16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Horario',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                    SizedBox(height: 8),
-                                    const Text(
-                                      'La información de horarios la proporciona el propio establecimiento, si tienes alguna duda ponte en contacto con el establecimiento.',
-                                      style: TextStyle(
-                                          fontSize: 16, color: Colors.black),
-                                    ),
-                                    SizedBox(height: 18),
-                                    Table(
-                                      border:
-                                          TableBorder.all(color: Colors.grey),
-                                      children: currentField
-                                          .available_hours.entries
-                                          .map((entry) {
-                                        return TableRow(
-                                          children: [
-                                            Padding(
-                                              padding: EdgeInsets.all(8),
-                                              child: Text(
-                                                _getDayInSpanish(entry.key),
-                                                style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Colors.blue),
-                                              ),
-                                            ),
-                                            Padding(
-                                              padding: EdgeInsets.all(8),
-                                              child: Text(
-                                                _formatSchedule(entry.value),
-                                                style: TextStyle(
-                                                    height: 1.5,
-                                                    color: Colors.green,
-                                                    fontWeight:
-                                                        FontWeight.bold),
-                                              ),
-                                            ),
-                                          ],
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
                       ),
                     ),
-                    // Segunda pestaña: Torneos activos
-                    SingleChildScrollView(
-                      child: Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Text(
-                          'Lista de torneos activos...',
-                          style: TextStyle(fontSize: 16),
+                    Container(
+                      margin: const EdgeInsets.all(16),
+                      child: Card(
+                        elevation: 10,
+                        child: Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Horario',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              const Text(
+                                'La información de horarios la proporciona el propio establecimiento, si tienes alguna duda ponte en contacto con el establecimiento.',
+                                style: TextStyle(
+                                    fontSize: 16, color: Colors.black),
+                              ),
+                              SizedBox(height: 18),
+                              Table(
+                                border: TableBorder.all(color: Colors.grey),
+                                children: currentField
+                                    .available_hours.entries
+                                    .map((entry) {
+                                  return TableRow(
+                                    children: [
+                                      Padding(
+                                        padding: EdgeInsets.all(8),
+                                        child: Text(
+                                          _getDayInSpanish(entry.key),
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.blue),
+                                        ),
+                                      ),
+                                      Padding(
+                                        padding: EdgeInsets.all(8),
+                                        child: Text(
+                                          _formatSchedule(entry.value),
+                                          style: TextStyle(
+                                              height: 1.5,
+                                              color: Colors.green,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                }).toList(),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ],
+                ),
+              ),
+              // Segunda pestaña: Torneos activos
+              SingleChildScrollView(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text(
+                    'Lista de torneos activos...',
+                    style: TextStyle(fontSize: 16),
+                  ),
                 ),
               ),
             ],
@@ -445,7 +457,7 @@ Card(
     );
   }
 
-   String _getDayInSpanish(String englishDay) {
+  String _getDayInSpanish(String englishDay) {
     final Map<String, String> dayTranslations = {
       'monday': 'Lunes',
       'tuesday': 'Martes',
@@ -478,18 +490,29 @@ Card(
   }
 }
 
-IconData _getAmenityIcon(String amenity) {
-  switch (amenity.toLowerCase()) {
-    case 'vestidores':
-      return Icons.people;
-    case 'seguridad':
-      return Icons.shield;
-    case '24/7':
-      return Icons.access_time;
-    case 'estacionamiento':
-      return Icons.local_parking;
-    default:
-      return Icons.help_outline;
+class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
+  final TabBar _tabBar;
+
+  _SliverAppBarDelegate(this._tabBar);
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: Colors.grey[100],
+      child: _tabBar,
+    );
+  }
+
+  @override
+  double get maxExtent => _tabBar.preferredSize.height;
+
+  @override
+  double get minExtent => _tabBar.preferredSize.height;
+
+  @override
+  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
+    return false;
   }
 }
 

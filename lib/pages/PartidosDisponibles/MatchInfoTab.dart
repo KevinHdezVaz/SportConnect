@@ -60,7 +60,7 @@ class _MatchInfoTabState extends State<MatchInfoTab> {
                           child: CarouselSlider(
                             options: CarouselOptions(
                               height: 250, // Aumentar la altura
-                              viewportFraction: 0.9,
+                              viewportFraction: 1,
                               onPageChanged: (index, _) =>
                                   setState(() => _currentImage = index),
                               autoPlay: true,

@@ -107,6 +107,35 @@ Future<List<MatchTeam>> getTeamsForMatch(int matchId) async {
     }
   }
 
+
+Future<void> leaveTeam(int matchId) async {
+  try {
+    print('Intentando abandonar partido: $matchId');
+    final url = Uri.parse('$baseUrl/matches/$matchId/leave');
+    final token = await storage.getToken();
+    print('Token obtenido: $token');
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    print('Respuesta del servidor: ${response.statusCode}');
+    print('Cuerpo de la respuesta: ${response.body}');
+
+    if (response.statusCode != 200) {
+      throw Exception('Error al abandonar el equipo: ${response.body}');
+    }
+  } catch (e) {
+    print('Error en leaveTeam: $e');
+    throw e;
+  }
+}
+
+
   // Procesar pago y unirse al equipo
   Future<void> processTeamJoinPayment(
       int teamId, String position, double price, int matchId) async {
