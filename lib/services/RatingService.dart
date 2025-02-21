@@ -1,11 +1,12 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:user_auth_crudd10/services/storage_service.dart';
 import 'package:user_auth_crudd10/utils/constantes.dart';
 import 'package:http/http.dart' as http;
 
 class RatingService {
-   final StorageService storage = StorageService();
+  final StorageService storage = StorageService();
 
   Future<Map<String, dynamic>> getRatingScreen(int matchId) async {
     try {
@@ -18,6 +19,9 @@ class RatingService {
         },
       );
 
+      debugPrint('RatingScreen Response status: ${response.statusCode}');
+      debugPrint('RatingScreen Response body: ${response.body}');
+
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       } else {
@@ -28,7 +32,8 @@ class RatingService {
     }
   }
 
-  Future<void> submitRatings(int matchId, List<Map<String, dynamic>> ratings, int mvpId) async {
+  Future<void> submitRatings(
+      int matchId, List<Map<String, dynamic>> ratings, int mvpId) async {
     try {
       final token = await storage.getToken();
       final response = await http.post(

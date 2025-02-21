@@ -6,6 +6,7 @@ import 'package:user_auth_crudd10/model/EquipoPartidos.dart';
 import 'package:user_auth_crudd10/model/MatchTeam.dart';
 import 'package:user_auth_crudd10/model/MathPartido.dart';
 import 'package:user_auth_crudd10/model/OrderItem.dart';
+import 'package:user_auth_crudd10/model/field.dart';
 import 'package:user_auth_crudd10/services/storage_service.dart';
 import 'package:user_auth_crudd10/utils/constantes.dart';
 
@@ -14,113 +15,156 @@ class MatchService {
 
   // Obtener partidos disponibles
 
-Future<List<MathPartido>> getAvailableMatches(DateTime date) async {
-  try {
-    final response = await http.get(
-      Uri.parse('$baseUrl/daily-matches?date=${date.toIso8601String()}'),
-      headers: await getHeaders(),
-    );
+  Future<List<MathPartido>> getAvailableMatches(DateTime date) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/daily-matches?date=${date.toIso8601String()}'),
+        headers: await getHeaders(),
+      );
 
-    // Agregar logs para debug
-    print('Response status: ${response.statusCode}');
-    print('Response body: ${response.body}');
+      // Agregar logs para debug
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
 
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> responseData = json.decode(response.body);
-      
-      if (responseData['matches'] is List) {
-        final List<dynamic> matchesJson = responseData['matches'];
-        return matchesJson.map((json) {
-          try {
-            return MathPartido.fromJson(json);
-          } catch (e) {
-            print('Error parsing match: $e');
-            print('Problematic JSON: $json');
-            return null;
-          }
-        }).whereType<MathPartido>().toList();
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+
+        if (responseData['matches'] is List) {
+          final List<dynamic> matchesJson = responseData['matches'];
+          return matchesJson
+              .map((json) {
+                try {
+                  return MathPartido.fromJson(json);
+                } catch (e) {
+                  print('Error parsing match: $e');
+                  print('Problematic JSON: $json');
+                  return null;
+                }
+              })
+              .whereType<MathPartido>()
+              .toList();
+        } else {
+          print('Matches is not a List: ${responseData['matches']}');
+          return [];
+        }
       } else {
-        print('Matches is not a List: ${responseData['matches']}');
+        throw Exception('Error al cargar partidos: ${response.statusCode}');
+      }
+    } catch (e, stackTrace) {
+      debugPrint('Error en getAvailableMatches: $e');
+      debugPrint('Stack trace: $stackTrace');
+      throw Exception('Error al obtener partidos: $e');
+    }
+  }
+
+  Future<List<MathPartido>> getMatchesToRate() async {
+    try {
+      final token = await storage.getToken();
+      debugPrint('Token para getMatchesToRate: $token');
+      if (token == null) {
+        debugPrint('No hay token disponible');
         return [];
       }
-    } else {
-      throw Exception('Error al cargar partidos: ${response.statusCode}');
-    }
-  } catch (e, stackTrace) {
-    debugPrint('Error en getAvailableMatches: $e');
-    debugPrint('Stack trace: $stackTrace');
-    throw Exception('Error al obtener partidos: $e');
-  }
-}
 
-Future<List<MathPartido>> getMatchesToRate() async {
-  try {
-    final token = await storage.getToken();
-    final response = await http.get(
-      Uri.parse('$baseUrl/matches/to-rate'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/json',
-      },
-    );
+      final response = await http.get(
+        Uri.parse('$baseUrl/matches/to-rate'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      return (data['matches'] as List)
-          .map((json) => MathPartido.fromJson(json))
-          .toList();
-    }
-    return [];
-  } catch (e) {
-    print('Error getting matches to rate: $e');
-    return [];
-  }
-}
+      debugPrint('GetMatchesToRate Response status: ${response.statusCode}');
+      debugPrint('GetMatchesToRate Response body: ${response.body}');
 
-Future<List<MatchTeam>> getTeamsForMatch(int matchId) async {
-  if (matchId <= 0) throw Exception('ID de partido inválido');
-  
-  try {
-    final url = Uri.parse('$baseUrl/matches/$matchId/teams');
-    debugPrint('Obteniendo equipos para partido ID: $matchId');
-    debugPrint('URL de la solicitud: $url');
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List<dynamic> matchesList = data['matches'] ?? [];
+        debugPrint(
+            'GetMatchesToRate Procesando ${matchesList.length} partidos');
+        debugPrint('GetMatchesToRate Datos crudos: $matchesList');
 
-    final response = await http.get(
-      url,
-      headers: await getHeaders(),
-    );
+        final matches = matchesList
+            .map((matchJson) {
+              try {
+                final requiredFields = {
+                  'id': matchJson['id'],
+                  'name': matchJson['name'] ?? 'Sin nombre',
+                  'schedule_date': matchJson['schedule_date'],
+                  'start_time': matchJson['start_time'],
+                  'end_time': matchJson['end_time'],
+                };
+                debugPrint(
+                    'GetMatchesToRate Campos del partido: $requiredFields');
+                return MathPartido.fromJson(matchJson);
+              } catch (e) {
+                debugPrint('GetMatchesToRate Error parseando partido: $e');
+                debugPrint('GetMatchesToRate JSON problemático: $matchJson');
+                return null;
+              }
+            })
+            .where((match) => match != null)
+            .cast<MathPartido>()
+            .toList();
 
-    debugPrint('Response status: ${response.statusCode}');
-    debugPrint('Response body: ${response.body}');
-
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      final List<dynamic> teamsData = data['equipos'] ?? [];
-      try {
-        return teamsData.map((team) => MatchTeam.fromJson(team)).toList();
-      } catch (e) {
-        debugPrint('Error parseando equipos: $e');
-        rethrow;
+        debugPrint(
+            'GetMatchesToRate Partidos parseados exitosamente: ${matches.length}');
+        return matches;
+      } else {
+        debugPrint('GetMatchesToRate Estado no 200: ${response.statusCode}');
+        return [];
       }
-    } else {
-      throw Exception('Error al cargar equipos: ${response.statusCode}');
+    } catch (e, stackTrace) {
+      debugPrint('GetMatchesToRate Error en getMatchesToRate: $e');
+      debugPrint('GetMatchesToRate Stack trace: $stackTrace');
+      return [];
     }
-  } catch (e) {
-    debugPrint('Error en getTeamsForMatch: $e');
-    rethrow;
   }
-}
 
-Future<void> joinTeam(int teamId, String position, int matchId) async {
+  Future<List<MatchTeam>> getTeamsForMatch(int matchId) async {
+    if (matchId <= 0) throw Exception('ID de partido inválido');
+
+    try {
+      final url = Uri.parse('$baseUrl/matches/$matchId/teams');
+      debugPrint('Obteniendo equipos para partido ID: $matchId');
+      debugPrint('URL de la solicitud: $url');
+
+      final response = await http.get(
+        url,
+        headers: await getHeaders(),
+      );
+
+      debugPrint('Response status: ${response.statusCode}');
+      debugPrint('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List<dynamic> teamsData = data['equipos'] ?? [];
+        try {
+          return teamsData.map((team) => MatchTeam.fromJson(team)).toList();
+        } catch (e) {
+          debugPrint('Error parseando equipos: $e');
+          rethrow;
+        }
+      } else {
+        throw Exception('Error al cargar equipos: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error en getTeamsForMatch: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> joinTeam(int teamId, String position, int matchId) async {
     if (teamId <= 0) throw Exception('ID de equipo inválido');
     if (position.isEmpty) throw Exception('Posición requerida');
     if (matchId <= 0) throw Exception('ID de partido inválido');
-    
+
     try {
       // Primero verificamos si la posición está disponible
       final teams = await getTeamsForMatch(matchId);
       final team = teams.firstWhere((t) => t.id == teamId);
-      
+
       if (team.players.any((player) => player.position == position)) {
         throw Exception('La posición ya está ocupada');
       }
@@ -137,10 +181,10 @@ Future<void> joinTeam(int teamId, String position, int matchId) async {
 
       debugPrint('Request URL: ${Uri.parse('$baseUrl/matches/join-team')}');
       debugPrint('Request body: ${json.encode({
-        'match_id': matchId,
-        'equipo_partido_id': teamId,
-        'position': position,
-      })}');
+            'match_id': matchId,
+            'equipo_partido_id': teamId,
+            'position': position,
+          })}');
       debugPrint('Response status: ${response.statusCode}');
       debugPrint('Response body: ${response.body}');
 
@@ -150,7 +194,7 @@ Future<void> joinTeam(int teamId, String position, int matchId) async {
         final error = json.decode(response.body);
         throw Exception(error['message'] ?? 'Error de validación');
       } else {
-        final errorMessage = json.decode(response.body)['message'] ?? 
+        final errorMessage = json.decode(response.body)['message'] ??
             'Error al unirse al equipo';
         throw Exception(errorMessage);
       }
@@ -160,34 +204,32 @@ Future<void> joinTeam(int teamId, String position, int matchId) async {
     }
   }
 
+  Future<void> leaveTeam(int matchId) async {
+    try {
+      print('Intentando abandonar partido: $matchId');
+      final url = Uri.parse('$baseUrl/matches/$matchId/leave');
+      final token = await storage.getToken();
+      print('Token obtenido: $token');
 
-Future<void> leaveTeam(int matchId) async {
-  try {
-    print('Intentando abandonar partido: $matchId');
-    final url = Uri.parse('$baseUrl/matches/$matchId/leave');
-    final token = await storage.getToken();
-    print('Token obtenido: $token');
+      final response = await http.post(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
 
-    final response = await http.post(
-      url,
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-    );
+      print('Respuesta del servidor: ${response.statusCode}');
+      print('Cuerpo de la respuesta: ${response.body}');
 
-    print('Respuesta del servidor: ${response.statusCode}');
-    print('Cuerpo de la respuesta: ${response.body}');
-
-    if (response.statusCode != 200) {
-      throw Exception('Error al abandonar el equipo: ${response.body}');
+      if (response.statusCode != 200) {
+        throw Exception('Error al abandonar el equipo: ${response.body}');
+      }
+    } catch (e) {
+      print('Error en leaveTeam: $e');
+      throw e;
     }
-  } catch (e) {
-    print('Error en leaveTeam: $e');
-    throw e;
   }
-}
-
 
   // Procesar pago y unirse al equipo
   Future<void> processTeamJoinPayment(
@@ -235,7 +277,7 @@ Future<void> leaveTeam(int matchId) async {
   // Unirse a un partido
   Future<void> joinMatch(int matchId) async {
     if (matchId <= 0) throw Exception('ID de partido inválido');
-    
+
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/daily-matches/$matchId/join'),
@@ -243,7 +285,7 @@ Future<void> leaveTeam(int matchId) async {
       );
 
       if (response.statusCode != 200) {
-        final errorMessage = json.decode(response.body)['message'] ?? 
+        final errorMessage = json.decode(response.body)['message'] ??
             'Error al unirse al partido';
         throw Exception(errorMessage);
       }
