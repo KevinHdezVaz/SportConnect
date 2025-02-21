@@ -41,68 +41,96 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
     }
   }
 
-  Future<void> _loadMatches() async {
-    setState(() => isLoading = true);
-    try {
-      final token = await storage.getToken();
-      final response = await http.get(
-        Uri.parse('$baseUrl/daily-matches'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token'
-        },
-      );
-
-      print('Response status loadmatch: ${response.statusCode}');
-      print('Response body loadmatches: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        final List<dynamic> matchesData = data['matches'];
-        print('Received matches: $matchesData');
-        matches =
-            matchesData.map((json) => MathPartido.fromJson(json)).toList();
-      } else {
-        print('Error: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error loading matches: $e');
-    } finally {
-      setState(() => isLoading = false);
+ Future<void> _loadMatches() async {
+  setState(() => isLoading = true);
+  try {
+    final token = await storage.getToken();
+    print('Token: $token');
+    final response = await http.get(
+      Uri.parse('$baseUrl/daily-matches'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token'
+      },
+    );
+    print('Response status: ${response.statusCode}');
+    print('Full response body: ${response.body}'); // Imprimir JSON completo
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = json.decode(response.body);
+      final List<dynamic> matchesData = data['matches'];
+      print('Matches data length: ${matchesData.length}');
+      matches = matchesData.map((json) {
+        try {
+          return MathPartido.fromJson(json);
+        } catch (e) {
+          print('Error parsing match: $e');
+          print('Problematic JSON: $json');
+          return null;
+        }
+      }).whereType<MathPartido>().toList();
+      print('Parsed matches: ${matches.length}');
+    } else {
+      print('Error: ${response.statusCode}');
     }
+  } catch (e) {
+    print('Error loading matches: $e');
+  } finally {
+    setState(() => isLoading = false);
   }
+}
 
- List<MathPartido> _getMatchesForDate(DateTime date) {
+List<MathPartido> _getMatchesForDate(DateTime date) {
+  print('Filtrando partidos para fecha: ${date.toString()}');
+  print('Total de partidos antes del filtro: ${matches.length}');
+
   final now = DateTime.now();
-  
-  return matches.where((match) {
-    // Primero verificamos si es el mismo día
+  final filteredMatches = matches.where((match) {
+    // Verificar si es el mismo día
     bool isSameDay = match.scheduleDate.year == date.year &&
         match.scheduleDate.month == date.month &&
         match.scheduleDate.day == date.day;
 
+    print('Partido ${match.name} - Fecha: ${match.scheduleDate} - Es mismo día: $isSameDay');
+
     if (!isSameDay) return false;
 
-    // Si es el día actual, verificamos la hora
+    // Si es el día actual, verificar la hora
     if (DateUtils.isSameDay(date, now)) {
-      // Convertir la hora del partido a DateTime para comparar
+      final matchTime = match.startTime.split(':');
       final matchDateTime = DateTime(
         match.scheduleDate.year,
         match.scheduleDate.month,
         match.scheduleDate.day,
-        int.parse(match.startTime.split(':')[0]),  // hora
-        int.parse(match.startTime.split(':')[1]),  // minutos
+        int.parse(matchTime[0]),
+        int.parse(matchTime[1]),
       );
-      
-      // Solo retornar true si la hora del partido es posterior a la hora actual
+
       return matchDateTime.isAfter(now);
     }
 
     // Si es un día futuro, mostrar todos los partidos
     return true;
   }).toList();
+
+  // Ordenar los partidos: primero los disponibles, luego los completos
+  filteredMatches.sort((a, b) {
+    if (a.status == 'open' && b.status != 'open') return -1;
+    if (a.status != 'open' && b.status == 'open') return 1;
+    
+    // Si ambos tienen el mismo status, ordenar por hora
+    final aTime = a.startTime.split(':');
+    final bTime = b.startTime.split(':');
+    final aHour = int.parse(aTime[0]);
+    final bHour = int.parse(bTime[0]);
+    return aHour.compareTo(bHour);
+  });
+
+  print('Partidos filtrados para mostrar: ${filteredMatches.length}');
+  return filteredMatches;
 }
+
+
   @override
   Widget build(BuildContext context) {
     final matchesForSelectedDate = _getMatchesForDate(selectedDate);
@@ -206,105 +234,121 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
                         )),
                   )
                 : ListView.builder(
-                    shrinkWrap: true, 
-                    physics:
-                        NeverScrollableScrollPhysics(),  
-                    padding: EdgeInsets.all(16),
-                    itemCount: matchesForSelectedDate.length,
-                    itemBuilder: (context, index) {
-                      final match = matchesForSelectedDate[index];
-                      return InkWell(
-                        onTap: () {
-                           Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  MatchDetailsScreen(match: match),
-                            ),
-                          );
-                        },
-                        child: Card(
-                          margin: EdgeInsets.only(bottom: 16),
-                          elevation: 4,
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: Theme.of(context).primaryColor,
-                              child: Icon(Icons.sports_soccer,
-                                  color: Colors.white),
-                            ),
-                            title: Text(
-                              match.name,
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Icon(Icons.access_time,
-                                        size: 16, color: Colors.black),
-                                    SizedBox(width: 4),
-                                    Text(
-                                        style: TextStyle(color: Colors.green),
-                                        '${match.formattedStartTime} - ${match.formattedEndTime}'),
-                                  ],
-                                ),
-                                SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Icon(Icons.people,
-                                        size: 16, color: Colors.grey),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      '${match.gameTypeDisplay}',
-                                      style: TextStyle(color: Colors.black),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            trailing: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  '\$${match.price}',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).primaryColor,
-                                    fontSize: 18,
-                                  ),
-                                ),
-                                SizedBox(height: 4),
-                                Container(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: match.status == 'open'
-                                        ? Colors.green
-                                        : Colors.grey,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    match.status == 'open'
-                                        ? 'Disponible'
-                                        : 'Completo',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
+  shrinkWrap: true,
+  physics: NeverScrollableScrollPhysics(),
+  padding: EdgeInsets.all(16),
+  itemCount: matchesForSelectedDate.length,
+  itemBuilder: (context, index) {
+    final match = matchesForSelectedDate[index];
+    final isFull = match.status == 'full'; 
+
+    return InkWell(
+      onTap: () {
+        if (!isFull) {  
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MatchDetailsScreen(match: match),
+            ),
+          );
+        }
+      },
+      child: Card(
+        margin: EdgeInsets.only(bottom: 16),
+        elevation: 4,
+        color: isFull ? Colors.grey[300] : Colors.white,  
+        child: ListTile(
+          leading: CircleAvatar(
+            backgroundColor: isFull
+                ? Colors.grey
+                : Theme.of(context).primaryColor,  
+            child: Icon(Icons.sports_soccer, color: Colors.white),
+          ),
+          title: Text(
+            match.name,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: isFull ? Colors.grey[700] : Colors.black,  
+            ),
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(Icons.access_time, size: 16, color: isFull ? Colors.grey : Colors.black),
+                  SizedBox(width: 4),
+                  Text(
+                    '${match.formattedStartTime} - ${match.formattedEndTime}',
+                    style: TextStyle(
+                      color: isFull ? Colors.grey : Colors.green,  
+                    ),
                   ),
+                ],
+              ),
+              SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(Icons.people, size: 16, color: isFull ? Colors.grey : Colors.black),
+                  SizedBox(width: 4),
+                  Text(
+                    '${match.gameTypeDisplay}',
+                    style: TextStyle(
+                      color: isFull ? Colors.grey : Colors.black, 
+                    ),
+                  ),
+                ],
+              ),
+              if (isFull)  
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text(
+                    'Partido completo',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          trailing: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '\$${match.price}',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: isFull ? Colors.grey : Theme.of(context).primaryColor, // Cambiar el color del precio si está completo
+                  fontSize: 18,
+                ),
+              ),
+              SizedBox(height: 4),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isFull
+                      ? Colors.grey
+                      : (match.status == 'open' ? Colors.green : Colors.grey), // Cambiar el color del estado si está completo
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  isFull ? 'Completo' : (match.status == 'open' ? 'Disponible' : 'Completo'), // Cambiar el texto del estado si está completo
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  },
+),
       ],
     );
   }

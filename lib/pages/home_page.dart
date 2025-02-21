@@ -7,6 +7,7 @@ import 'package:user_auth_crudd10/model/Story.dart';
 import 'package:user_auth_crudd10/model/Torneo.dart';
 import 'package:user_auth_crudd10/pages/PartidosDisponibles/AvailableMatchesScreen.dart';
 import 'package:user_auth_crudd10/pages/screens/Equipos/invitaciones.screen.dart';
+import 'package:user_auth_crudd10/pages/screens/MatchRating/MatchRatingScreen.dart';
 import 'package:user_auth_crudd10/pages/screens/Tournaments/TournamentDetails.dart';
 import 'package:user_auth_crudd10/pages/screens/Tournaments/TournamentScreen.dart';
 import 'package:user_auth_crudd10/pages/screens/stories/StoriesSection.dart';
@@ -85,8 +86,7 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  // Nueva función para manejar la recarga al deslizar hacia abajo
-  Future<void> _handleRefresh() async {
+   Future<void> _handleRefresh() async {
     setState(() {
       futureTorneos = TorneoService().getTorneos(); // Recarga torneos
       futureStories = StoriesService().getStories(); // Recarga historias
@@ -321,6 +321,71 @@ class _HomePageState extends State<HomePage> {
                               ),
                             ),
                             SizedBox(height: 24),
+
+                            // En HomePage, después de la sección de Torneos Activos
+FutureBuilder<List<MathPartido>>(
+  future: _matchService.getMatchesToRate(), // Nuevo método en MatchService
+  builder: (context, snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return SizedBox.shrink();
+    }
+    
+    if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+      return Column(
+        children: [
+          SizedBox(height: 24),
+          Row(
+            children: [
+              Icon(Icons.star, color: Colors.amber),
+              SizedBox(width: 8),
+              Text(
+                'Partidos por Calificar',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12),
+          ListView.builder(
+            shrinkWrap: true,
+            physics: NeverScrollableScrollPhysics(),
+            itemCount: snapshot.data!.length,
+            itemBuilder: (context, index) {
+              final match = snapshot.data![index];
+              return Card(
+                margin: EdgeInsets.only(bottom: 8),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.amber,
+                    child: Icon(Icons.rate_review, color: Colors.white),
+                  ),
+                  title: Text(match.name),
+                  subtitle: Text('Califica a tus compañeros de equipo'),
+                  trailing: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => MatchRatingScreen(matchId: match.id),
+                        ),
+                      );
+                    },
+                    child: Text('Calificar'),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      );
+    }
+    return SizedBox.shrink();
+  },
+),                            SizedBox(height: 24),
+
 
                             const Text(
                               'Partidos Disponibles',

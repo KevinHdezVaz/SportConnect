@@ -31,8 +31,7 @@ class Field {
     required this.price_per_match,
   });
 
-
-  factory Field.fromJson(Map<String, dynamic> json) {
+factory Field.fromJson(Map<String, dynamic> json) {
   debugPrint('\n=== PARSEANDO CAMPO ===');
   debugPrint('JSON recibido: $json');
   
@@ -48,15 +47,15 @@ class Field {
   debugPrint('Latitude parsed: $parsedLat');
   debugPrint('Longitude parsed: $parsedLng');
 
-   List<String>? imagesList;
+  // Procesar imágenes
+  List<String>? imagesList;
   var imagesData = json['images'];
-  
   try {
     if (imagesData != null) {
       if (imagesData is String) {
-         imagesList = List<String>.from(jsonDecode(imagesData));
+        imagesList = List<String>.from(jsonDecode(imagesData));
       } else if (imagesData is List) {
-         imagesList = imagesData.map((e) => e.toString()).toList();
+        imagesList = imagesData.map((e) => e.toString()).toList();
       }
       debugPrint('Lista de imágenes procesada: $imagesList');
     }
@@ -65,38 +64,51 @@ class Field {
     imagesList = null;
   }
 
-   Map<String, List<String>> processedHours = {};
-  if (json['available_hours'] != null) {
-    if (json['available_hours'] is String) {
-      processedHours = Map<String, List<String>>.from(
-        jsonDecode(json['available_hours']).map(
-          (key, value) => MapEntry(
-            key.toString(),
-            (value as List).map((e) => e.toString()).toList(),
-          ),
-        ),
-      );
-    } else {
-      processedHours = Map<String, List<String>>.from(
-        json['available_hours'].map(
-          (key, value) => MapEntry(
-            key.toString(),
-            (value as List).map((e) => e.toString()).toList(),
-          ),
-        ),
-      );
+  // Procesar available_hours
+  Map<String, List<String>> processedHours = {};
+  var availableHours = json['available_hours'];
+  try {
+    if (availableHours != null) {
+      if (availableHours is String) {
+        if (availableHours != '[]') {
+          var decodedHours = jsonDecode(availableHours);
+          if (decodedHours is Map) {
+            decodedHours.forEach((key, value) {
+              if (value is List) {
+                processedHours[key.toString()] = List<String>.from(value);
+              }
+            });
+          }
+        }
+      } else if (availableHours is Map) {
+        availableHours.forEach((key, value) {
+          if (value is List) {
+            processedHours[key.toString()] = List<String>.from(value);
+          }
+        });
+      }
     }
+  } catch (e) {
+    print('Error procesando available_hours: $e');
+    processedHours = {};
   }
 
+  // Procesar amenities
   List<String>? amenitiesList;
-  if (json['amenities'] != null) {
-    if (json['amenities'] is String) {
-      amenitiesList = List<String>.from(jsonDecode(json['amenities']));
-    } else {
-      amenitiesList = (json['amenities'] as List).map((e) => e.toString()).toList();
+  try {
+    var amenities = json['amenities'];
+    if (amenities != null) {
+      if (amenities is String) {
+        amenitiesList = List<String>.from(jsonDecode(amenities));
+      } else if (amenities is List) {
+        amenitiesList = List<String>.from(amenities);
+      }
     }
+  } catch (e) {
+    print('Error procesando amenities: $e');
+    amenitiesList = null;
   }
-  
+
   return Field(
     id: json['id'],
     name: json['name'],
@@ -105,17 +117,10 @@ class Field {
     latitude: parsedLat,
     longitude: parsedLng,
     is_active: json['is_active'],
-    type: json['type'],
+    type: json['type'] ?? 'fut7', // Valor por defecto si no se especifica
     available_hours: processedHours,
     amenities: amenitiesList,
     images: imagesList,
-      price_per_match: double.parse(json['price_per_match'].toString()), // Convertir a double
+    price_per_match: double.tryParse(json['price_per_match']?.toString() ?? '0') ?? 0.0,
   );
-}
-
-  @override
-  String toString() {
-    return 'Field(id: $id, name: $name, description: $description,latitude: $latitude, longitude: $longitude,  municipio: $municipio, price_per_match: $price_per_match, availableHours: $available_hours, amenities: $amenities, images: $images)';
-  }
-}
- 
+}}

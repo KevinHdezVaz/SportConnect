@@ -13,24 +13,69 @@ class MatchService {
   final storage = StorageService();
 
   // Obtener partidos disponibles
-  Future<List<MathPartido>> getAvailableMatches(DateTime date) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/daily-matches?date=${date.toIso8601String()}'),
-        headers: await getHeaders(),
-      );
 
-      if (response.statusCode == 200) {
-        final List<dynamic> matchesJson = json.decode(response.body)['matches'];
-        return matchesJson.map((json) => MathPartido.fromJson(json)).toList();
+Future<List<MathPartido>> getAvailableMatches(DateTime date) async {
+  try {
+    final response = await http.get(
+      Uri.parse('$baseUrl/daily-matches?date=${date.toIso8601String()}'),
+      headers: await getHeaders(),
+    );
+
+    // Agregar logs para debug
+    print('Response status: ${response.statusCode}');
+    print('Response body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> responseData = json.decode(response.body);
+      
+      if (responseData['matches'] is List) {
+        final List<dynamic> matchesJson = responseData['matches'];
+        return matchesJson.map((json) {
+          try {
+            return MathPartido.fromJson(json);
+          } catch (e) {
+            print('Error parsing match: $e');
+            print('Problematic JSON: $json');
+            return null;
+          }
+        }).whereType<MathPartido>().toList();
       } else {
-        throw Exception('Error al cargar partidos: ${response.statusCode}');
+        print('Matches is not a List: ${responseData['matches']}');
+        return [];
       }
-    } catch (e) {
-      debugPrint('Error en getAvailableMatches: $e');
-      throw Exception('Error al obtener partidos: $e');
+    } else {
+      throw Exception('Error al cargar partidos: ${response.statusCode}');
     }
+  } catch (e, stackTrace) {
+    debugPrint('Error en getAvailableMatches: $e');
+    debugPrint('Stack trace: $stackTrace');
+    throw Exception('Error al obtener partidos: $e');
   }
+}
+
+Future<List<MathPartido>> getMatchesToRate() async {
+  try {
+    final token = await storage.getToken();
+    final response = await http.get(
+      Uri.parse('$baseUrl/matches/to-rate'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return (data['matches'] as List)
+          .map((json) => MathPartido.fromJson(json))
+          .toList();
+    }
+    return [];
+  } catch (e) {
+    print('Error getting matches to rate: $e');
+    return [];
+  }
+}
 
 Future<List<MatchTeam>> getTeamsForMatch(int matchId) async {
   if (matchId <= 0) throw Exception('ID de partido inválido');
@@ -65,13 +110,21 @@ Future<List<MatchTeam>> getTeamsForMatch(int matchId) async {
     rethrow;
   }
 }
-  // Unirse a un equipo
-  Future<void> joinTeam(int teamId, String position, int matchId) async {
+
+Future<void> joinTeam(int teamId, String position, int matchId) async {
     if (teamId <= 0) throw Exception('ID de equipo inválido');
     if (position.isEmpty) throw Exception('Posición requerida');
     if (matchId <= 0) throw Exception('ID de partido inválido');
     
     try {
+      // Primero verificamos si la posición está disponible
+      final teams = await getTeamsForMatch(matchId);
+      final team = teams.firstWhere((t) => t.id == teamId);
+      
+      if (team.players.any((player) => player.position == position)) {
+        throw Exception('La posición ya está ocupada');
+      }
+
       final response = await http.post(
         Uri.parse('$baseUrl/matches/join-team'),
         headers: await getHeaders(),
