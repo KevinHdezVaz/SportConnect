@@ -9,6 +9,7 @@ import 'package:user_auth_crudd10/model/Torneo.dart';
 import 'package:user_auth_crudd10/pages/PartidosDisponibles/AvailableMatchesScreen.dart';
 import 'package:user_auth_crudd10/pages/screens/Equipos/invitaciones.screen.dart';
 import 'package:user_auth_crudd10/pages/screens/MatchRating/MatchRatingScreen.dart';
+import 'package:user_auth_crudd10/pages/screens/PlayerProfilePage.dart';
 import 'package:user_auth_crudd10/pages/screens/Tournaments/TournamentDetails.dart';
 import 'package:user_auth_crudd10/pages/screens/Tournaments/TournamentScreen.dart';
 import 'package:user_auth_crudd10/pages/screens/stories/StoriesSection.dart';
@@ -30,13 +31,13 @@ class _HomePageState extends State<HomePage> {
   late Future<List<Story>> futureStories;
   final MatchService _matchService = MatchService();
   late Future<List<MathPartido>> futureMatches;
-
   late Future<List<MathPartido>> matchesToRateFuture;
+late Future<List<dynamic>> topMvpPlayersFuture;  
 
   DateTime selectedDate = DateTime.now();
   List<DateTime> next7Days = [];
 
-  @override
+@override
   void initState() {
     super.initState();
     _cargarDatos();
@@ -44,6 +45,7 @@ class _HomePageState extends State<HomePage> {
     _loadUserProfile();
     _loadInvitaciones();
     matchesToRateFuture = _matchService.getMatchesToRate();
+    topMvpPlayersFuture = _matchService.getTopMvpPlayers();  
     for (int i = 0; i < 7; i++) {
       next7Days.add(DateTime.now().add(Duration(days: i)));
     }
@@ -92,26 +94,28 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _handleRefresh() async {
     setState(() {
-      futureTorneos = TorneoService().getTorneos(); // Recarga torneos
+      futureTorneos = TorneoService().getTorneos();
       matchesToRateFuture = _matchService.getMatchesToRate();
-      futureStories = StoriesService().getStories(); // Recarga historias
-      futureMatches =
-          _matchService.getAvailableMatches(selectedDate); // Recarga partidos
+      futureStories = StoriesService().getStories();
+      futureMatches = _matchService.getAvailableMatches(selectedDate);
+      topMvpPlayersFuture = _matchService.getTopMvpPlayers(); // Recargar top MVP
     });
-    await Future.wait([
-      futureTorneos,
-      futureStories,
-      futureMatches
-    ]); // Espera a que todos los datos se recarguen
-    await _loadUserProfile(); // Recarga el perfil del usuario
-    await _loadInvitaciones(); // Recarga las invitaciones
+await Future.wait([futureTorneos, futureStories, futureMatches, matchesToRateFuture, topMvpPlayersFuture]);
+    await _loadUserProfile();
+    await _loadInvitaciones();
   }
+
+  void _reloadMatchesToRate() {
+    setState(() {
+      matchesToRateFuture = _matchService.getMatchesToRate();
+    });
+  }
+ 
 
   @override
   Widget build(BuildContext context) {
     if (userData != null && userData!['profile_image'] != null) {
-      imageUrl =
-          'https://proyect.aftconta.mx/storage/${userData!['profile_image']}';
+      imageUrl = 'https://proyect.aftconta.mx/storage/${userData!['profile_image']}';
     }
 
     return SafeArea(
@@ -120,8 +124,7 @@ class _HomePageState extends State<HomePage> {
         body: userData == null
             ? const Center(child: CircularProgressIndicator())
             : RefreshIndicator(
-                onRefresh:
-                    _handleRefresh, // Función que se ejecuta al deslizar hacia abajo
+                onRefresh: _handleRefresh,
                 child: CustomScrollView(
                   slivers: [
                     SliverToBoxAdapter(
@@ -130,18 +133,13 @@ class _HomePageState extends State<HomePage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Buscador
                             Container(
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 12),
+                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(12),
                                 boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 10,
-                                  ),
+                                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
                                 ],
                               ),
                               child: Row(
@@ -151,10 +149,7 @@ class _HomePageState extends State<HomePage> {
                                     height: 40,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: Colors.blue.withOpacity(0.5),
-                                        width: 2,
-                                      ),
+                                      border: Border.all(color: Colors.blue.withOpacity(0.5), width: 2),
                                     ),
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(20),
@@ -162,57 +157,33 @@ class _HomePageState extends State<HomePage> {
                                           ? Image.network(
                                               imageUrl!,
                                               fit: BoxFit.cover,
-                                              errorBuilder: (context, error,
-                                                      stackTrace) =>
-                                                  Icon(Icons.person,
-                                                      color: Colors.blue),
+                                              errorBuilder: (context, error, stackTrace) => Icon(Icons.person, color: Colors.blue),
                                             )
-                                          : Icon(Icons.person,
-                                              color: Colors.blue),
+                                          : Icon(Icons.person, color: Colors.blue),
                                     ),
                                   ),
                                   SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        const Text(
-                                          'Hola,',
-                                          style: TextStyle(
-                                            color:
-                                                Color.fromARGB(255, 87, 84, 84),
-                                            fontSize: 13,
-                                          ),
-                                        ),
+                                        const Text('Hola,', style: TextStyle(color: Color.fromARGB(255, 87, 84, 84), fontSize: 13)),
                                         Text(
                                           userData!['name'] ?? '',
-                                          style: GoogleFonts.inter(
-                                            color: Colors.black,
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.w600,
-                                          ),
+                                          style: GoogleFonts.inter(color: Colors.black, fontSize: 20, fontWeight: FontWeight.w600),
                                         ),
                                       ],
                                     ),
                                   ),
                                   Container(
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: Colors.blue.withOpacity(0.1),
-                                    ),
+                                    decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.blue.withOpacity(0.1)),
                                     child: Stack(
                                       children: [
                                         IconButton(
-                                          icon: Icon(Icons.notifications_none,
-                                              color: Colors.blue),
+                                          icon: Icon(Icons.notifications_none, color: Colors.blue),
                                           onPressed: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                  builder: (_) =>
-                                                      InvitacionesScreen()),
-                                            ).then((_) => _loadInvitaciones());
+                                            Navigator.push(context, MaterialPageRoute(builder: (_) => InvitacionesScreen()))
+                                                .then((_) => _loadInvitaciones());
                                           },
                                         ),
                                         if (_invitacionesPendientes > 0)
@@ -221,18 +192,10 @@ class _HomePageState extends State<HomePage> {
                                             top: 8,
                                             child: Container(
                                               padding: EdgeInsets.all(4),
-                                              decoration: BoxDecoration(
-                                                color: Colors.red,
-                                                shape: BoxShape.circle,
-                                              ),
+                                              decoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle),
                                               child: Text(
-                                                _invitacionesPendientes
-                                                    .toString(),
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
+                                                _invitacionesPendientes.toString(),
+                                                style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                                               ),
                                             ),
                                           ),
@@ -242,45 +205,94 @@ class _HomePageState extends State<HomePage> {
                                 ],
                               ),
                             ),
-
                             FutureBuilder<List<Story>>(
                               future: futureStories,
                               builder: (context, snapshot) {
-                                if (snapshot.connectionState ==
-                                        ConnectionState.waiting ||
-                                    snapshot.hasError ||
-                                    !snapshot.hasData ||
-                                    snapshot.data!.isEmpty) {
+                                if (snapshot.connectionState == ConnectionState.waiting || snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
                                   return const SizedBox.shrink();
                                 }
+                                return Column(children: [const SizedBox(height: 15), const StoriesSection()]);
+                              },
+                            ),FutureBuilder<List<dynamic>>(
+                              future: topMvpPlayersFuture,
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState == ConnectionState.waiting) {
+                                  return const SizedBox(height: 100, child: Center(child: CircularProgressIndicator()));
+                                }
+                                if (snapshot.hasError) {
+                                  return const SizedBox(height: 100, child: Center(child: Text('Error al cargar MVPs')));
+                                }
+                                final topPlayers = snapshot.data ?? [];
+                                if (topPlayers.isEmpty) {
+                                  return const SizedBox.shrink();
+                                }
+
                                 return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const SizedBox(height: 15),
-                                    const StoriesSection(),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 28),
+                                      child: Text(
+                                        'Top Jugadores MVP ⚽',
+                                        style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      height: 100,
+                                      child: ListView.builder(
+                                        scrollDirection: Axis.horizontal,
+                                        itemCount: topPlayers.length,
+                                        padding: EdgeInsets.symmetric(horizontal: 16),
+                                        itemBuilder: (context, index) {
+                                          final player = topPlayers[index];
+                                          final imageUrl = player['profile_image'] != null
+                                              ? 'https://proyect.aftconta.mx/storage/${player['profile_image']}'
+                                              : null;
+                                          return GestureDetector(
+                                            onTap: () =>   Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => PlayerProfilePage(userId: player['user_id']),
+                ),
+              ),
+                                            child: Container(
+                                              width: 80,
+                                              margin: EdgeInsets.only(right: 16),
+                                              child: Column(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  CircleAvatar(
+                                                    radius: 30,
+                                                    backgroundImage: imageUrl != null ? NetworkImage(imageUrl) : null,
+                                                    child: imageUrl == null ? Icon(Icons.person, color: Colors.grey) : null,
+                                                  ),
+                                                  SizedBox(height: 8),
+                                                  Text(
+                                                    player['name'],
+                                                    style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black),
+                                                    textAlign: TextAlign.center,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                    SizedBox(height: 24),
                                   ],
                                 );
                               },
                             ),
 
+/*
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text(
-                                  'Torneos Activos',
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                                const Text('Torneos Activos', style: TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold)),
                                 TextButton(
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (_) => TournamentsScreen()),
-                                    );
-                                  },
+                                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TournamentsScreen())),
                                   child: Text('Ver todos'),
                                 ),
                               ],
@@ -291,50 +303,31 @@ class _HomePageState extends State<HomePage> {
                               child: FutureBuilder<List<Torneo>>(
                                 future: futureTorneos,
                                 builder: (context, snapshot) {
-                                  if (snapshot.connectionState ==
-                                      ConnectionState.waiting) {
-                                    return Center(
-                                        child: CircularProgressIndicator());
+                                  if (snapshot.connectionState == ConnectionState.waiting) {
+                                    return Center(child: CircularProgressIndicator());
                                   } else if (snapshot.hasError) {
                                     return Center(
                                       child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
+                                        mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
-                                          Text('Error de conexión',
-                                              style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold)),
+                                          Text('Error de conexión', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                                           SizedBox(height: 8),
                                           ElevatedButton(
-                                            onPressed: () {
-                                              setState(() {
-                                                futureTorneos = TorneoService()
-                                                    .getTorneos();
-                                              });
-                                            },
+                                            onPressed: () => setState(() => futureTorneos = TorneoService().getTorneos()),
                                             child: Text('Reintentar'),
                                           ),
                                         ],
                                       ),
                                     );
-                                  } else if (!snapshot.hasData ||
-                                      snapshot.data!.isEmpty) {
-                                    return Center(
-                                        child: Text(
-                                            'No hay torneos disponibles.'));
+                                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                                    return Center(child: Text('No hay torneos disponibles.'));
                                   }
 
                                   return CarouselSlider.builder(
                                     itemCount: snapshot.data!.length,
                                     itemBuilder: (context, index, realIndex) {
                                       Torneo torneo = snapshot.data![index];
-                                      return Container(
-                                        width: 320,
-                                        margin: EdgeInsets.only(right: 8),
-                                        child:
-                                            _buildTorneoCard(context, torneo),
-                                      );
+                                      return Container(width: 320, margin: EdgeInsets.only(right: 8), child: _buildTorneoCard(context, torneo));
                                     },
                                     options: CarouselOptions(
                                       height: 220,
@@ -345,8 +338,7 @@ class _HomePageState extends State<HomePage> {
                                       reverse: false,
                                       autoPlay: true,
                                       autoPlayInterval: Duration(seconds: 5),
-                                      autoPlayAnimationDuration:
-                                          Duration(milliseconds: 800),
+                                      autoPlayAnimationDuration: Duration(milliseconds: 800),
                                       autoPlayCurve: Curves.fastOutSlowIn,
                                       enlargeCenterPage: true,
                                       scrollDirection: Axis.horizontal,
@@ -355,65 +347,43 @@ class _HomePageState extends State<HomePage> {
                                 },
                               ),
                             ),
-                            SizedBox(height: 24),
+                            */
 
+                            Divider(color: Colors.grey[400], thickness: 1), // Línea divisoria
+
+                            SizedBox(height: 24),
                             FutureBuilder<List<MathPartido>>(
                               future: matchesToRateFuture,
                               builder: (context, snapshot) {
-                                debugPrint(
-                                    'FutureBuilder state: ${snapshot.connectionState}');
-
-                                // Estado de carga
-                                if (snapshot.connectionState ==
-                                    ConnectionState.waiting) {
-                                  return Center(
-                                    child: CircularProgressIndicator(
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                          Colors.blue),
-                                    ),
-                                  );
+                                debugPrint('FutureBuilder state: ${snapshot.connectionState}');
+                                if (snapshot.connectionState == ConnectionState.waiting) {
+                                  return Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.blue)));
                                 }
-
-                                // Estado de error
                                 if (snapshot.hasError) {
-                                  debugPrint(
-                                      'Error en FutureBuilder: ${snapshot.error}');
+                                  debugPrint('Error en FutureBuilder: ${snapshot.error}');
                                   return Center(
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Icon(Icons.error_outline,
-                                            color: Colors.red, size: 40),
+                                        Icon(Icons.error_outline, color: Colors.red, size: 40),
                                         SizedBox(height: 8),
-                                        Text(
-                                          'Error al cargar partidos: ${snapshot.error}',
-                                          style: TextStyle(
-                                              color: Colors.red, fontSize: 16),
-                                          textAlign: TextAlign.center,
-                                        ),
+                                        Text('Error al cargar partidos: ${snapshot.error}', style: TextStyle(color: Colors.red, fontSize: 16), textAlign: TextAlign.center),
                                       ],
                                     ),
                                   );
                                 }
 
                                 final matches = snapshot.data ?? [];
-                                debugPrint(
-                                    'Partidos encontrados: ${matches.length}');
+                                debugPrint('Partidos encontrados: ${matches.length}');
 
-                                // Título de la sección y carrusel
                                 return Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Padding(
-                                      padding: EdgeInsets.symmetric(
-                                          horizontal: 16, vertical: 8),
+                                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                       child: Text(
                                         'Califica tus partidos terminados',
-                                        style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black87,
-                                        ),
+                                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
                                       ),
                                     ),
                                     if (matches.isEmpty)
@@ -423,28 +393,17 @@ class _HomePageState extends State<HomePage> {
                                         child: Column(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            Icon(
-                                              Icons.sports_soccer_outlined,
-                                              size: 50,
-                                              color: Colors.grey[400],
-                                            ),
+                                            Icon(Icons.sports_soccer_outlined, size: 50, color: Colors.grey[400]),
                                             SizedBox(height: 16),
                                             Text(
                                               '¡No tienes partidos pendientes por calificar!',
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                color: Colors.grey[600],
-                                                fontWeight: FontWeight.w500,
-                                              ),
+                                              style: TextStyle(fontSize: 16, color: Colors.grey[600], fontWeight: FontWeight.w500),
                                               textAlign: TextAlign.center,
                                             ),
                                             SizedBox(height: 8),
                                             Text(
                                               'Cuando termines un partido, podrás calificarlo aquí.',
-                                              style: TextStyle(
-                                                fontSize: 14,
-                                                color: Colors.grey[500],
-                                              ),
+                                              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
                                               textAlign: TextAlign.center,
                                             ),
                                           ],
@@ -452,63 +411,36 @@ class _HomePageState extends State<HomePage> {
                                       )
                                     else
                                       SizedBox(
-                                        height:
-                                            180, // Altura fija para el carrusel
+                                        height: 180,
                                         child: ListView.builder(
-                                          scrollDirection: Axis
-                                              .horizontal, // Scroll horizontal
+                                          scrollDirection: Axis.horizontal,
                                           itemCount: matches.length,
-                                          padding: EdgeInsets.symmetric(
-                                              horizontal: 16),
+                                          padding: EdgeInsets.symmetric(horizontal: 16),
                                           itemBuilder: (context, index) {
                                             final match = matches[index];
                                             return Container(
-                                              width:
-                                                  280, // Ancho fijo para cada tarjeta
-                                              margin: EdgeInsets.only(
-                                                  right:
-                                                      16), // Espacio entre tarjetas
+                                              width: 280,
+                                              margin: EdgeInsets.only(right: 16),
                                               child: Card(
                                                 elevation: 2,
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
-                                                ),
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                                 child: Padding(
                                                   padding: EdgeInsets.all(12),
                                                   child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
                                                     children: [
                                                       Row(
                                                         children: [
                                                           CircleAvatar(
-                                                            backgroundColor:
-                                                                Colors.blue
-                                                                    .withOpacity(
-                                                                        0.1),
-                                                            child: Icon(
-                                                                Icons
-                                                                    .sports_soccer,
-                                                                color: Colors
-                                                                    .blue),
+                                                            backgroundColor: Colors.blue.withOpacity(0.1),
+                                                            child: Icon(Icons.sports_soccer, color: Colors.blue),
                                                           ),
                                                           SizedBox(width: 8),
                                                           Expanded(
                                                             child: Text(
                                                               match.name,
-                                                              style: TextStyle(
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold,
-                                                                fontSize: 16,
-                                                                color: Colors
-                                                                    .black87,
-                                                              ),
-                                                              overflow:
-                                                                  TextOverflow
-                                                                      .ellipsis,
+                                                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87),
+                                                              overflow: TextOverflow.ellipsis,
                                                             ),
                                                           ),
                                                         ],
@@ -516,58 +448,35 @@ class _HomePageState extends State<HomePage> {
                                                       SizedBox(height: 8),
                                                       Text(
                                                         'Horario: ${match.formattedStartTime} - ${match.formattedEndTime}',
-                                                        style: TextStyle(
-                                                            color: Colors
-                                                                .grey[600],
-                                                            fontSize: 14),
+                                                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
                                                       ),
                                                       if (match.field != null)
                                                         Text(
                                                           'Cancha: ${match.field!.name}',
-                                                          style: TextStyle(
-                                                              color: Colors
-                                                                  .grey[600],
-                                                              fontSize: 14),
+                                                          style: TextStyle(color: Colors.grey[600], fontSize: 14),
                                                         ),
                                                       Spacer(),
                                                       Align(
-                                                        alignment: Alignment
-                                                            .bottomRight,
+                                                        alignment: Alignment.bottomRight,
                                                         child: ElevatedButton(
-                                                          onPressed: () {
-                                                            Navigator.of(
-                                                                    context)
-                                                                .push(
+                                                          onPressed: () async {
+                                                            final result = await Navigator.of(context).push(
                                                               MaterialPageRoute(
-                                                                builder: (context) =>
-                                                                    MatchRatingScreen(
-                                                                        matchId:
-                                                                            match.id),
+                                                                builder: (context) => MatchRatingScreen(matchId: match.id),
                                                               ),
                                                             );
+                                                            if (result == true) {
+                                                              _reloadMatchesToRate(); // Recargar partidos por calificar
+                                                            }
                                                           },
-                                                          style: ElevatedButton
-                                                              .styleFrom(
-                                                            backgroundColor:
-                                                                Colors.blue,
-                                                            shape:
-                                                                RoundedRectangleBorder(
-                                                              borderRadius:
-                                                                  BorderRadius
-                                                                      .circular(
-                                                                          8),
-                                                            ),
-                                                            padding: EdgeInsets
-                                                                .symmetric(
-                                                                    horizontal:
-                                                                        16),
+                                                          style: ElevatedButton.styleFrom(
+                                                            backgroundColor: Colors.blue,
+                                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                            padding: EdgeInsets.symmetric(horizontal: 16),
                                                           ),
                                                           child: Text(
                                                             'Calificar',
-                                                            style: TextStyle(
-                                                                color: Colors
-                                                                    .white,
-                                                                fontSize: 14),
+                                                            style: TextStyle(color: Colors.white, fontSize: 14),
                                                           ),
                                                         ),
                                                       ),
@@ -583,19 +492,11 @@ class _HomePageState extends State<HomePage> {
                                 );
                               },
                             ),
-
+                            Divider(color: Colors.grey[400], thickness: 1), // Línea divisoria
                             SizedBox(height: 24),
-
-                            const Text(
-                              'Partidos Disponibles',
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            
+                            const Text('Partidos Disponibles', style: TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold)),
                             SizedBox(height: 24),
-
                             AvailableMatchesScreen(),
                           ],
                         ),
@@ -612,13 +513,7 @@ class _HomePageState extends State<HomePage> {
     return Card(
       margin: EdgeInsets.all(8),
       child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (_) => TournamentDetails(torneo: torneo)),
-          );
-        },
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TournamentDetails(torneo: torneo))),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -627,9 +522,7 @@ class _HomePageState extends State<HomePage> {
                 ClipRRect(
                   borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
                   child: Image.network(
-                    torneo.imagenesTorneo!.isNotEmpty
-                        ? torneo.imagenesTorneo![0]
-                        : 'https://via.placeholder.com/150',
+                    torneo.imagenesTorneo!.isNotEmpty ? torneo.imagenesTorneo![0] : 'https://via.placeholder.com/150',
                     height: 100,
                     width: double.infinity,
                     fit: BoxFit.cover,
@@ -640,17 +533,8 @@ class _HomePageState extends State<HomePage> {
                   right: 8,
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      'Inscripciones Abiertas',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                      ),
-                    ),
+                    decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(12)),
+                    child: Text('Inscripciones Abiertas', style: TextStyle(color: Colors.white, fontSize: 12)),
                   ),
                 ),
               ],
@@ -660,35 +544,15 @@ class _HomePageState extends State<HomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    torneo.nombre,
-                    style: TextStyle(
-                      color: Colors.orange,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  Text(torneo.nombre, style: TextStyle(color: Colors.orange, fontSize: 16, fontWeight: FontWeight.bold)),
                   SizedBox(height: 4),
                   Row(
                     children: [
                       Icon(Icons.people, size: 12, color: Colors.grey),
                       SizedBox(width: 4),
-                      Text(
-                        '${torneo.minimoEquipos} equipos inscritos',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 12,
-                        ),
-                      ),
+                      Text('${torneo.minimoEquipos} equipos inscritos', style: TextStyle(color: Colors.black, fontSize: 12)),
                       Spacer(),
-                      Text(
-                        '\$${torneo.cuotaInscripcion}',
-                        style: TextStyle(
-                          color: Colors.green,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
+                      Text('\$${torneo.cuotaInscripcion}', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)),
                     ],
                   ),
                 ],

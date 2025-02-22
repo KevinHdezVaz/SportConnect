@@ -32,28 +32,32 @@ class RatingService {
     }
   }
 
-  Future<void> submitRatings(
-      int matchId, List<Map<String, dynamic>> ratings, int mvpId) async {
+Future<void> submitRatings(int matchId, List<Map<String, dynamic>> ratings, int mvpId) async {
     try {
       final token = await storage.getToken();
       final response = await http.post(
         Uri.parse('$baseUrl/matches/$matchId/rating'),
         headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({
-          'ratings': ratings,
+        body: json.encode({
+          'ratings': ratings.map((rating) => {
+            'user_id': rating['user_id'],
+            'attitude_rating': rating['attitude_rating'], // Solo enviamos estas
+            'participation_rating': rating['participation_rating'], // Solo enviamos estas
+            'comment': rating['comment'],
+          }).toList(),
           'mvp_vote': mvpId,
         }),
       );
 
       if (response.statusCode != 200) {
-        throw Exception('Error al enviar calificaciones');
+        throw Exception('Error al enviar calificaciones: ${response.statusCode}');
       }
     } catch (e) {
-      throw Exception('Error de conexión: $e');
+      print('Error en submitRatings: $e');
+      throw e;
     }
   }
 }

@@ -1,19 +1,63 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:user_auth_crudd10/auth/auth_service.dart';
-import 'package:user_auth_crudd10/model/EquipoPartidos.dart';
+import 'package:user_auth_crudd10/auth/auth_service.dart'; 
 import 'package:user_auth_crudd10/model/MatchTeam.dart';
 import 'package:user_auth_crudd10/model/MathPartido.dart';
-import 'package:user_auth_crudd10/model/OrderItem.dart';
-import 'package:user_auth_crudd10/model/field.dart';
+import 'package:user_auth_crudd10/model/OrderItem.dart'; 
 import 'package:user_auth_crudd10/services/storage_service.dart';
 import 'package:user_auth_crudd10/utils/constantes.dart';
 
 class MatchService {
   final storage = StorageService();
+ 
 
-  // Obtener partidos disponibles
+ Future<Map<String, dynamic>> getPlayerStats(int userId) async {
+    try {
+      final token = await storage.getToken();
+      final response = await http.get(
+        Uri.parse('$baseUrl/players/$userId/stats'), 
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Error al obtener estadísticas: ${response.statusCode}');
+      }
+
+      return json.decode(response.body);
+    } catch (e) {
+      print('Error en getPlayerStats: $e');
+      throw e;
+    }
+  }
+ 
+
+Future<List<dynamic>> getTopMvpPlayers() async {
+    try {
+      final token = await storage.getToken();
+      final response = await http.get(
+        Uri.parse('$baseUrl/top-mvp-players'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Error al obtener top MVP players: ${response.statusCode}');
+      }
+
+      final data = json.decode(response.body);
+      return data['data']; // Devuelve la lista de jugadores
+    } catch (e) {
+      print('Error en getTopMvpPlayers: $e');
+      throw e;
+    }
+  }
+
 
   Future<List<MathPartido>> getAvailableMatches(DateTime date) async {
     try {

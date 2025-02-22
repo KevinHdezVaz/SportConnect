@@ -39,7 +39,7 @@ import '../model/Torneo.dart';
       }
       throw Exception('Error del servidor');
     } catch (e) {
-      throw Exception('Sin conexión');
+        throw Exception('Sin conexión');
     }
   }
 
