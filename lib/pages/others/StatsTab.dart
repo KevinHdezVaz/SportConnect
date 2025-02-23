@@ -12,9 +12,8 @@ class StatsTab extends StatefulWidget {
 
 class _StatsTabState extends State<StatsTab> {
   final MatchService _matchService = MatchService();
-    final AuthService authService = AuthService();
-
-  Map<String, dynamic>? statsData;
+  final AuthService authService = AuthService();
+  Map<String, dynamic>? playerData;
   bool _isLoading = true;
 
   @override
@@ -23,22 +22,23 @@ class _StatsTabState extends State<StatsTab> {
     _loadStats();
   }
 
- Future<void> _loadStats() async {
-  try {
-    final userId = await authService.getCurrentUserId();
-    if (userId == null) throw Exception('No se pudo obtener el ID del usuario');
+  Future<void> _loadStats() async {
+    try {
+      final userId = await authService.getCurrentUserId();
+      if (userId == null)
+        throw Exception('No se pudo obtener el ID del usuario');
 
-    final response = await _matchService.getPlayerStats(userId);
-    print('Stats Response: $response'); // Añadir este print
-    setState(() {
-      statsData = response;
-      _isLoading = false;
-    });
-  } catch (e) {
-    print('Error cargando estadísticas: $e');
-    setState(() => _isLoading = false);
+      final response = await _matchService.getPlayerStats(userId);
+      print('Stats Response: $response');
+      setState(() {
+        playerData = response;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error cargando estadísticas: $e');
+      setState(() => _isLoading = false);
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -46,82 +46,223 @@ class _StatsTabState extends State<StatsTab> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (statsData == null) {
-      return const Center(child: Text('No se pudieron cargar las estadísticas'));
+    if (playerData == null) {
+      return const Center(
+          child: Text('No se pudieron cargar las estadísticas'));
     }
 
-    // Manejo de valores nulos y conversión de tipos
-    final totalMatches = statsData!['stats']?['total_matches'] ?? 0;
-    final mvpCount = statsData!['stats']?['mvp_count'] ?? 0;
-    final averageRatingRaw = statsData!['stats']?['average_rating'] ?? '0.0';
-    final averageRating = double.tryParse(averageRatingRaw.toString()) ?? 0.0;
-
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
-            Text(
-              'Información',
-              style: GoogleFonts.inter(fontSize: 24, color: Colors.black),
+    return Stack(
+      children: [
+        // Fondo con la foto de perfil del usuario
+        Container(
+          width: double.infinity,
+          height: 200,
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: playerData!['stats']['profile_image'] != null
+                  ? NetworkImage(
+                      'https://proyect.aftconta.mx/storage/${playerData!['stats']['profile_image']}')
+                  : const AssetImage('assets/no-profile-image.jpg')
+                      as ImageProvider,
+              fit: BoxFit.cover,
+              colorFilter: ColorFilter.mode(
+                  Colors.black.withOpacity(0.2), BlendMode.dstATop),
             ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatCard(totalMatches.toString(), 'Partidos'),
-                _buildStatCard('N/A', 'Seguidores'), // No disponible en backend actual
-                _buildStatCard(mvpCount.toString(), 'MVP'),
-              ],
-            ),
-            const SizedBox(height: 32),
-            Text(
-              'Evaluación',
-              
-              style: GoogleFonts.inter(fontSize: 24, color: Colors.black, ),
-            ),
-            const SizedBox(height: 16),
-            _buildEvaluationRow('Promedio', averageRating, 5),
-            _buildEvaluationRow('Nº. MVP', mvpCount, totalMatches, isCount: true),
-          ],
+          ),
         ),
-      ),
+        SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Botones flotantes para estadísticas
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildStatButton(
+                          'Partidos',
+                          (playerData!['stats']['total_matches'] as int? ?? 0)
+                              .toString()),
+                      _buildStatButton(
+                          'MVP',
+                          (playerData!['stats']['mvp_count'] as int? ?? 0)
+                              .toString()),
+                    ],
+                  ),
+                  SizedBox(height: 20),
+                  // Sección "Evaluación"
+                  _buildSection('Evaluación', [
+                    _buildEvaluationRow(
+                        'Nivel', _calculateAverageLevel() ?? 0, 5),
+                    _buildEvaluationRow(
+                        'Actitud', _calculateAverageAttitude() ?? 0, 5),
+                    _buildEvaluationRow(
+                        'Part.', _calculateAverageParticipation() ?? 0, 5),
+                    _buildEvaluationRow(
+                        'N. MVP',
+                        playerData!['stats']['mvp_count'] as int? ?? 0,
+                        playerData!['stats']['total_matches'] as int? ?? 0,
+                        isCount: true),
+                  ]),
+                  SizedBox(height: 16),
+                  // Sección "Ficha técnica"
+                  _buildSection('Ficha técnica', [
+                    _buildTechField('Posición:',
+                        playerData!['stats']['posicion'] ?? 'Sin especificar'),
+                    _buildTechField('Edad:',
+                        playerData!['stats']['age'] ?? 'Sin especificar'),
+                  ]),
+                  SizedBox(height: 16),
+                  // Sección "Últimos partidos jugados"
+                  _buildSection('Últimos partidos jugados', [
+                    ..._getRecentMatchesList(),
+                  ]),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildStatCard(String value, String label) {
+  // Calcular el promedio de attitude_rating desde recent_matches
+  int? _calculateAverageAttitude() {
+    final recentMatches = playerData!['recent_matches'] as List<dynamic>? ?? [];
+    if (recentMatches.isEmpty) return 0;
+
+    double totalAttitude = 0;
+    int count = 0;
+
+    for (var match in recentMatches) {
+      final attitude = (match['attitude_rating'] as num?)?.toDouble() ?? 0;
+      if (attitude > 0) {
+        // Solo consideramos valores mayores a 0
+        totalAttitude += attitude;
+        count++;
+      }
+    }
+
+    if (count == 0) return 0;
+    return (totalAttitude / count)
+        .round(); // Redondeamos al entero más cercano (1-5)
+  }
+
+  // Calcular el promedio de participation_rating desde recent_matches
+  int? _calculateAverageParticipation() {
+    final recentMatches = playerData!['recent_matches'] as List<dynamic>? ?? [];
+    if (recentMatches.isEmpty) return 0;
+
+    double totalParticipation = 0;
+    int count = 0;
+
+    for (var match in recentMatches) {
+      final participation =
+          (match['participation_rating'] as num?)?.toDouble() ?? 0;
+      if (participation > 0) {
+        // Solo consideramos valores mayores a 0
+        totalParticipation += participation;
+        count++;
+      }
+    }
+
+    if (count == 0) return 0;
+    return (totalParticipation / count)
+        .round(); // Redondeamos al entero más cercano (1-5)
+  }
+
+  // Calcular el promedio de nivel basado en attitude_rating y participation_rating de recent_matches
+  int? _calculateAverageLevel() {
+    final recentMatches = playerData!['recent_matches'] as List<dynamic>? ?? [];
+    if (recentMatches.isEmpty) return 0;
+
+    double totalAttitude = 0;
+    double totalParticipation = 0;
+    int count = 0;
+
+    for (var match in recentMatches) {
+      final attitude = (match['attitude_rating'] as num?)?.toDouble() ?? 0;
+      final participation =
+          (match['participation_rating'] as num?)?.toDouble() ?? 0;
+      if (attitude > 0 || participation > 0) {
+        // Solo consideramos partidos con calificaciones válidas
+        totalAttitude += attitude;
+        totalParticipation += participation;
+        count++;
+      }
+    }
+
+    if (count == 0) return 0;
+    final average = (totalAttitude + totalParticipation) /
+        (2 * count); // Promedio de (actitud + participación) / 2
+    return average.round(); // Redondeamos al entero más cercano (1-5)
+  }
+
+  Widget _buildStatButton(String label, String count) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withOpacity(0.9),
             spreadRadius: 1,
             blurRadius: 2,
             offset: const Offset(0, 1),
           ),
         ],
       ),
+      padding: const EdgeInsets.all(12),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            value,
-            style: GoogleFonts.inter(fontSize: 32, fontWeight: FontWeight.bold),
+            count,
+            style: GoogleFonts.inter(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87),
           ),
+          SizedBox(height: 8),
           Text(
             label,
-            style: GoogleFonts.inter(fontSize: 14, color: Colors.grey),
+            style: GoogleFonts.inter(
+                fontSize: 14, color: Colors.blue, fontWeight: FontWeight.bold),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildEvaluationRow(String label, num value, num maxValue, {bool isCount = false}) {
+  Widget _buildSection(String title, List<Widget> children) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: GoogleFonts.inter(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87),
+            ),
+            SizedBox(height: 8),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEvaluationRow(String label, int value, int maxValue,
+      {bool isCount = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -130,8 +271,9 @@ class _StatsTabState extends State<StatsTab> {
             width: 100,
             child: Row(
               children: [
-                Text(label, style: GoogleFonts.inter(fontSize: 16)),
-                const SizedBox(width: 4),
+                Text(label,
+                    style:
+                        GoogleFonts.inter(fontSize: 14, color: Colors.black87)),
                 Icon(Icons.info_outline, size: 16, color: Colors.grey),
               ],
             ),
@@ -147,13 +289,94 @@ class _StatsTabState extends State<StatsTab> {
               ),
             ),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: 16),
           Text(
-            isCount ? value.toString() : '${value.toStringAsFixed(1)}/$maxValue',
-            style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
+            isCount ? value.toString() : '$value/$maxValue',
+            style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildTechField(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87),
+          ),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              style: GoogleFonts.inter(fontSize: 14, color: Colors.grey),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _getRecentMatchesList() {
+    final recentMatches = playerData!['recent_matches'] as List<dynamic>? ?? [];
+    if (recentMatches.isEmpty) {
+      return [
+        Text(
+          'No hay partidos recientes jugados.',
+          style: GoogleFonts.inter(fontSize: 14, color: Colors.grey),
+        )
+      ];
+    }
+    return recentMatches.map((match) {
+      final matchName = match['match_name'] as String? ?? 'Partido desconocido';
+      final rating = (match['rating'] as num?)?.toInt() ?? 0;
+      final comment = match['comment'] as String? ?? 'Sin comentario';
+      final date = (match['created_at'] as String?)?.substring(0, 10) ??
+          'Fecha desconocida'; // Formato YYYY-MM-DD
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              matchName,
+              style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue),
+            ),
+            SizedBox(height: 4),
+            Row(
+              children: List.generate(
+                  5,
+                  (index) => Icon(
+                      index < rating ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                      size: 16)),
+            ),
+            SizedBox(height: 4),
+            Text(
+              comment,
+              style: GoogleFonts.inter(fontSize: 12, color: Colors.grey),
+            ),
+            Text(
+              'Fecha: $date',
+              style: GoogleFonts.inter(fontSize: 12, color: Colors.grey),
+            ),
+            Divider(),
+          ],
+        ),
+      );
+    }).toList();
   }
 }

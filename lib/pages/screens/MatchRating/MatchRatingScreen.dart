@@ -15,7 +15,7 @@ class MatchRatingScreen extends StatefulWidget {
 class _MatchRatingScreenState extends State<MatchRatingScreen>
     with SingleTickerProviderStateMixin {
   final RatingService _ratingService = RatingService();
-  final AuthService _authService = AuthService();  
+  final AuthService _authService = AuthService();
   bool _isLoading = true;
   Map<String, dynamic>? _screenData;
   Map<int, int> _attitudeRatings = {}; // Calificación de actitud
@@ -64,12 +64,13 @@ class _MatchRatingScreenState extends State<MatchRatingScreen>
     try {
       // Obtener el ID del usuario desde almacenamiento local primero
       _currentUserId = await _authService.getUserIdFromStorage();
-      
+
       // Si no está en almacenamiento, obtenerlo desde la API
       if (_currentUserId == null) {
         _currentUserId = await _authService.getCurrentUserId();
         if (_currentUserId != null) {
-          await _authService.saveUserId(_currentUserId!); // Guardar para uso futuro
+          await _authService
+              .saveUserId(_currentUserId!); // Guardar para uso futuro
         }
       }
 
@@ -78,17 +79,66 @@ class _MatchRatingScreenState extends State<MatchRatingScreen>
       }
 
       final data = await _ratingService.getRatingScreen(widget.matchId);
+      print('Response from getRatingScreen: $data'); // Depuración
       if (!mounted) return;
 
       setState(() {
-        _screenData = data;
+        _screenData = data is Map<String, dynamic> ? data : {};
         _isLoading = false;
 
-        // Filtrar al usuario actual de team_players
-        if (_screenData != null && _screenData!['team_players'] != null) {
-          _screenData!['team_players'] = (_screenData!['team_players'] as List)
-              .where((player) => player['user']['id'] != _currentUserId)
-              .toList();
+        // Manejar team_players como List o Map con depuración detallada
+        if (_screenData != null) {
+          var teamPlayersRaw = _screenData!['team_players'];
+          List<Map<String, dynamic>> filteredPlayers = [];
+
+          if (teamPlayersRaw is List) {
+            print('team_players is List: $teamPlayersRaw');
+            filteredPlayers = teamPlayersRaw
+                .where((player) {
+                  if (player == null) {
+                    print('Player is null');
+                    return false;
+                  }
+                  if (player['user'] == null) {
+                    print('Player user is null for: $player');
+                    return false;
+                  }
+                  final userId = player['user']['id'];
+                  print(
+                      'Checking player user_id: $userId vs currentUserId: $_currentUserId');
+                  return userId != null && userId != _currentUserId;
+                })
+                .cast<Map<String, dynamic>>()
+                .toList();
+          } else if (teamPlayersRaw is Map) {
+            print('team_players is Map: $teamPlayersRaw');
+            filteredPlayers = teamPlayersRaw.values
+                .where((player) {
+                  if (player == null) {
+                    print('Player is null');
+                    return false;
+                  }
+                  if (player['user'] == null) {
+                    print('Player user is null for: $player');
+                    return false;
+                  }
+                  final userId = player['user']['id'];
+                  print(
+                      'Checking player user_id: $userId vs currentUserId: $_currentUserId');
+                  return userId != null && userId != _currentUserId;
+                })
+                .cast<Map<String, dynamic>>()
+                .toList();
+          } else {
+            print('team_players is neither List nor Map: $teamPlayersRaw');
+            filteredPlayers = [];
+          }
+
+          _screenData!['team_players'] = filteredPlayers;
+          print('Filtered team_players: $filteredPlayers');
+        } else {
+          _screenData = {'team_players': []};
+          print('No team_players found in _screenData or _screenData is null');
         }
       });
     } catch (e) {
@@ -97,6 +147,7 @@ class _MatchRatingScreenState extends State<MatchRatingScreen>
         _isLoading = false;
         _errorMessage = 'No se pudo cargar los datos: $e';
       });
+      print('Error in _loadRatingScreen: $e');
     }
   }
 
@@ -130,7 +181,8 @@ class _MatchRatingScreenState extends State<MatchRatingScreen>
       return _buildErrorWidget();
     }
 
-    if (_screenData == null || _screenData!['team_players'] == null || (_screenData!['team_players'] as List).isEmpty) {
+    final teamPlayers = _screenData?['team_players'] as List? ?? [];
+    if (teamPlayers.isEmpty) {
       return const Center(child: Text('No hay compañeros para calificar'));
     }
 
@@ -144,7 +196,7 @@ class _MatchRatingScreenState extends State<MatchRatingScreen>
           children: [
             _buildSectionTitle('Califica a tus compañeros'),
             const SizedBox(height: 16),
-            ...(_screenData!['team_players'] as List)
+            ...teamPlayers
                 .map((player) => _buildPlayerRatingCard(player))
                 .toList(),
             const SizedBox(height: 24),
@@ -166,18 +218,25 @@ class _MatchRatingScreenState extends State<MatchRatingScreen>
         title,
         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
-              color: Colors.indigo,
+              color: Colors.green,
             ),
       ),
     );
   }
 
   Widget _buildPlayerRatingCard(Map<String, dynamic> player) {
-    final userId = player['user']['id'] as int;
+    if (player['user'] == null) {
+      print('Player data is null or invalid: $player');
+      return const SizedBox.shrink(); // Evitar errores si un player es inválido
+    }
+
+    final userId = player['user']['id'] as int? ?? 0;
     final userName = player['user']['name'] as String? ?? 'Jugador';
     final profileImage = player['user']['profile_image'] as String?;
-    final attitudeRating = _attitudeRatings[userId] ?? 0; // Calificación de actitud
-    final participationRating = _participationRatings[userId] ?? 0; // Calificación de participación
+    final attitudeRating =
+        _attitudeRatings[userId] ?? 0; // Calificación de actitud
+    final participationRating =
+        _participationRatings[userId] ?? 0; // Calificación de participación
 
     return AnimatedBuilder(
       animation: _animationController,
@@ -208,7 +267,8 @@ class _MatchRatingScreenState extends State<MatchRatingScreen>
                     const SizedBox(height: 16),
                     _buildRatingSection('Actitud', userId, _attitudeRatings),
                     const SizedBox(height: 8),
-                    _buildRatingSection('Participación', userId, _participationRatings),
+                    _buildRatingSection(
+                        'Participación', userId, _participationRatings),
                     const SizedBox(height: 16),
                     _buildCommentField(userId),
                   ],
@@ -227,7 +287,8 @@ class _MatchRatingScreenState extends State<MatchRatingScreen>
         CircleAvatar(
           radius: 24,
           backgroundImage: profileImage != null
-              ? NetworkImage('https://proyect.aftconta.mx/storage/$profileImage')
+              ? NetworkImage(
+                  'https://proyect.aftconta.mx/storage/$profileImage')
               : null,
           backgroundColor: Colors.grey[300],
           child: profileImage == null
@@ -248,14 +309,16 @@ class _MatchRatingScreenState extends State<MatchRatingScreen>
     );
   }
 
-  Widget _buildRatingSection(String label, int userId, Map<int, int> ratingsMap) {
+  Widget _buildRatingSection(
+      String label, int userId, Map<int, int> ratingsMap) {
     final rating = ratingsMap[userId] ?? 0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
+          style: GoogleFonts.inter(
+              fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
         ),
         const SizedBox(height: 8),
         Row(
@@ -283,7 +346,8 @@ class _MatchRatingScreenState extends State<MatchRatingScreen>
     return TextField(
       maxLines: 2,
       decoration: InputDecoration(
-        hintText: 'Escribe un comentario (opcional)', hintStyle: TextStyle(color: Colors.black),
+        hintText: 'Escribe un comentario (opcional)',
+        hintStyle: TextStyle(color: Colors.black),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey[300]!),
@@ -297,9 +361,16 @@ class _MatchRatingScreenState extends State<MatchRatingScreen>
   }
 
   Widget _buildMvpSelection() {
+    final teamPlayers = _screenData?['team_players'] as List? ?? [];
     return Column(
-      children: (_screenData!['team_players'] as List).map((player) {
-        final userId = player['user']['id'] as int;
+      children: teamPlayers.map((player) {
+        if (player['user'] == null) {
+          print('Player data is null or invalid in MVP selection: $player');
+          return const SizedBox
+              .shrink(); // Evitar errores si un player es inválido
+        }
+
+        final userId = player['user']['id'] as int? ?? 0;
         final userName = player['user']['name'] as String? ?? 'Jugador';
         final profileImage = player['user']['profile_image'] as String?;
 
@@ -326,7 +397,8 @@ class _MatchRatingScreenState extends State<MatchRatingScreen>
                     onTap: () => setState(() => _selectedMvp = userId),
                     leading: CircleAvatar(
                       backgroundImage: profileImage != null
-                          ? NetworkImage('https://proyect.aftconta.mx/storage/$profileImage')
+                          ? NetworkImage(
+                              'https://proyect.aftconta.mx/storage/$profileImage')
                           : null,
                       backgroundColor: Colors.grey[300],
                       child: profileImage == null
@@ -366,7 +438,7 @@ class _MatchRatingScreenState extends State<MatchRatingScreen>
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          backgroundColor: Colors.indigo,
+          backgroundColor: Colors.blue,
           shadowColor: Colors.indigo.withOpacity(0.4),
         ),
         child: const Text(
@@ -411,20 +483,25 @@ class _MatchRatingScreenState extends State<MatchRatingScreen>
   }
 
   bool _areAllPlayersRated() {
-    if (_screenData == null || _screenData!['team_players'] == null) return false;
-    final players = _screenData!['team_players'] as List;
-    return players.every((player) {
-      final userId = player['user']['id'] as int;
+    final teamPlayers = _screenData?['team_players'] as List? ?? [];
+    if (teamPlayers.isEmpty) return false;
+    return teamPlayers.every((player) {
+      if (player['user'] == null) return false;
+      final userId = player['user']['id'] as int? ?? 0;
       final attitudeRating = _attitudeRatings[userId] ?? 0;
       final participationRating = _participationRatings[userId] ?? 0;
-      return attitudeRating >= 1 && attitudeRating <= 5 &&
-             participationRating >= 1 && participationRating <= 5;
+      return attitudeRating >= 1 &&
+          attitudeRating <= 5 &&
+          participationRating >= 1 &&
+          participationRating <= 5;
     });
   }
 
   Future<void> _submitRatings() async {
     if (!_areAllPlayersRated()) {
-      _showSnackBar('Por favor califica a todos tus compañeros en todas las categorías', Colors.red);
+      _showSnackBar(
+          'Por favor califica a todos tus compañeros en todas las categorías',
+          Colors.red);
       return;
     }
 
@@ -435,17 +512,25 @@ class _MatchRatingScreenState extends State<MatchRatingScreen>
 
     setState(() => _isLoading = true);
     try {
-      final ratings = (_screenData!['team_players'] as List).map((player) {
-        final userId = player['user']['id'] as int;
-        return {
-          'user_id': userId,
-          'attitude_rating': _attitudeRatings[userId]!, // Solo enviamos estas
-          'participation_rating': _participationRatings[userId]!, // Solo enviamos estas
-          'comment': _comments[userId] ?? '',
-        };
-      }).toList();
+      final ratings = (_screenData?['team_players'] as List? ?? [])
+          .map((player) {
+            if (player['user'] == null) return null;
+            final userId = player['user']['id'] as int? ?? 0;
+            return {
+              'user_id': userId,
+              'attitude_rating':
+                  _attitudeRatings[userId]!, // Solo enviamos estas
+              'participation_rating':
+                  _participationRatings[userId]!, // Solo enviamos estas
+              'comment': _comments[userId] ?? '',
+            };
+          })
+          .where((rating) => rating != null)
+          .cast<Map<String, dynamic>>()
+          .toList();
 
-      await _ratingService.submitRatings(widget.matchId, ratings, _selectedMvp!);
+      await _ratingService.submitRatings(
+          widget.matchId, ratings, _selectedMvp!);
       if (!mounted) return;
 
       // Devolver true para indicar que se calificó exitosamente
@@ -470,7 +555,8 @@ class _MatchRatingScreenState extends State<MatchRatingScreen>
             ? SnackBarAction(
                 label: 'OK',
                 textColor: Colors.white,
-                onPressed: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
+                onPressed: () =>
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar(),
               )
             : null,
       ),

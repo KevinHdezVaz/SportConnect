@@ -43,7 +43,7 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
   final StorageService storage = StorageService();
   // Inicializar con una lista vacía
   List<Map<String, dynamic>> positions = [];
-  final ValueNotifier<List<Map<String, dynamic>>> _positionsNotifier = 
+  final ValueNotifier<List<Map<String, dynamic>>> _positionsNotifier =
       ValueNotifier<List<Map<String, dynamic>>>([]);
 
   @override
@@ -56,8 +56,7 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
     _initializePositions();
   }
 
-
- Future<void> _initializePositions() async {
+  Future<void> _initializePositions() async {
     try {
       final field = await _fieldFuture;
       final newPositions = PositionsConfig.getPositionsForFieldType(field.type);
@@ -138,11 +137,11 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
 
   @override
   void dispose() {
-  _positionsNotifier.dispose();
-    _paymentSubscription.cancel();    super.dispose();
+    _positionsNotifier.dispose();
+    _paymentSubscription.cancel();
+    super.dispose();
   }
 
- 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -217,160 +216,164 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
     // Verificar si la posición ya está ocupada
     return Future.value(
         !team.players.any((player) => player.position == position));
-  } 
+  }
 
   Widget _buildTeamSection(MatchTeam team, {bool canJoin = true}) {
-  final Map<String, Color> colorMap = {
-    'Rojo': Colors.red,
-    'Azul': Colors.blue,
-    'Verde': Colors.green,
-    'Amarillo': Colors.yellow,
-    'Blanco': const Color(0xFFFFFFFF),
-    'Negro': const Color(0xFF000000),
-    'Naranja': Colors.orange,
-  };
+    final Map<String, Color> colorMap = {
+      'Rojo': Colors.red,
+      'Azul': Colors.blue,
+      'Verde': Colors.green,
+      'Amarillo': Colors.yellow,
+      'Blanco': const Color(0xFFFFFFFF),
+      'Negro': const Color(0xFF000000),
+      'Naranja': Colors.orange,
+    };
 
-  final Color teamColor = colorMap[team.color] ?? Colors.grey;
-  final positions = PositionsConfig.getPositionsForFieldType(widget.match.gameType);
+    final Color teamColor = colorMap[team.color] ?? Colors.grey;
+    final positions =
+        PositionsConfig.getPositionsForFieldType(widget.match.gameType);
 
-  // Crear mapa de jugadores por posición
-  final Map<String, TeamPlayer> playersByPosition = {};
-  for (var player in team.players) {
-    if (player.position != null) {
-      playersByPosition[player.position] = player;
+    // Crear mapa de jugadores por posición
+    final Map<String, TeamPlayer> playersByPosition = {};
+    for (var player in team.players) {
+      if (player.position != null) {
+        playersByPosition[player.position] = player;
+      }
     }
-  }
 
-  return Card(
-    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-    child: Column(
-      children: [
-        ListTile(
-          leading: CircleAvatar(
-            backgroundColor: teamColor.withOpacity(0.2),
-            child: Text(team.emoji ?? '⚽'),
-          ),
-          title: Text(
-            team.name,
-            style: TextStyle(
-              color: teamColor,
-              fontWeight: FontWeight.bold,
+    return Card(
+      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        children: [
+          ListTile(
+            leading: CircleAvatar(
+              backgroundColor: teamColor.withOpacity(0.2),
+              child: Text(team.emoji ?? '⚽'),
             ),
-          ),
-          trailing: Container(
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: teamColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Text(
-              '${team.playerCount}/${team.maxPlayers}',
+            title: Text(
+              team.name,
               style: TextStyle(
-                color: Colors.black.withOpacity(0.8),
+                color: teamColor,
                 fontWeight: FontWeight.bold,
-                fontSize: 15,
+              ),
+            ),
+            trailing: Container(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: teamColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Text(
+                '${team.playerCount}/${team.maxPlayers}',
+                style: TextStyle(
+                  color: Colors.black.withOpacity(0.8),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
               ),
             ),
           ),
-        ),
-        Container(
-          height: 150,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(horizontal: 16),
+          Container(
+            height: 150,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              children: [
+                _buildJoinButton(team, teamColor),
+                ...positions.map((positionData) {
+                  final position = positionData['name'];
+                  final player = playersByPosition[position];
+                  return Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 4),
+                    child: _buildPlayerSlot(
+                      position,
+                      player,
+                      teamColor,
+                      icon: positionData['icon'],
+                    ),
+                  );
+                }).toList(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlayerSlot(String position, TeamPlayer? player, Color teamColor,
+      {String? icon}) {
+    final bool isAvailable = player == null;
+    String? imageUrl;
+    if (player?.user?.profileImage != null) {
+      imageUrl =
+          'https://proyect.aftconta.mx/storage/${player!.user!.profileImage}';
+    }
+
+    return Container(
+      width: 85,
+      margin: EdgeInsets.all(8),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Stack(
+            alignment: Alignment.center,
             children: [
-              _buildJoinButton(team, teamColor),
-              ...positions.map((positionData) {
-                final position = positionData['name'];
-                final player = playersByPosition[position];
-                return Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 4),
-                  child: _buildPlayerSlot(
-                    position,
-                    player,
-                    teamColor,
-                    icon: positionData['icon'],
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isAvailable ? Colors.grey.shade300 : teamColor,
+                    width: 2,
                   ),
-                );
-              }).toList(),
+                  color: isAvailable ? Colors.grey.shade100 : Colors.white,
+                ),
+                child: CircleAvatar(
+                  radius: 30,
+                  backgroundColor:
+                      isAvailable ? Colors.grey.shade200 : Colors.grey[200],
+                  backgroundImage:
+                      imageUrl != null ? NetworkImage(imageUrl) : null,
+                  child: isAvailable
+                      ? Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (icon != null)
+                              Image.asset(
+                                icon,
+                                width: 24,
+                                height: 24,
+                                color: Colors.grey.shade400,
+                              ),
+                          ],
+                        )
+                      : null,
+                ),
+              ),
             ],
           ),
-        ),
-      ],
-    ),
-  );
-}
-
-
-Widget _buildPlayerSlot(String position, TeamPlayer? player, Color teamColor, {String? icon}) {
-  final bool isAvailable = player == null;
-  String? imageUrl;
-  if (player?.user?.profileImage != null) {
-    imageUrl = 'https://proyect.aftconta.mx/storage/${player!.user!.profileImage}';
-  }
-
-  return Container(
-    width: 85,
-    margin: EdgeInsets.all(8),
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isAvailable ? Colors.grey.shade300 : teamColor,
-                  width: 2,
-                ),
-                color: isAvailable ? Colors.grey.shade100 : Colors.white,
-              ),
-              child: CircleAvatar(
-                radius: 30,
-                backgroundColor: isAvailable ? Colors.grey.shade200 : Colors.grey[200],
-                backgroundImage: imageUrl != null ? NetworkImage(imageUrl) : null,
-                child: isAvailable
-                    ? Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (icon != null)
-                            Image.asset(
-                              icon,
-                              width: 24,
-                              height: 24,
-                              color: Colors.grey.shade400,
-                            ),
-                        ],
-                      )
-                    : null,
-              ),
+          SizedBox(height: 8),
+          Text(
+            player?.user?.name ?? 'Disponible',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: isAvailable ? Colors.grey.shade400 : Colors.black,
             ),
-          ],
-        ),
-        SizedBox(height: 8),
-        Text(
-          player?.user?.name ?? 'Disponible',
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-            color: isAvailable ? Colors.grey.shade400 : Colors.black,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        Text(
-          position,
-          style: TextStyle(
-            fontSize: 11,
-            color: isAvailable ? Colors.black : Colors.black,
+          Text(
+            position,
+            style: TextStyle(
+              fontSize: 11,
+              color: isAvailable ? Colors.black : Colors.black,
+            ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 
   Future<bool> _checkUserInTeam(List<MatchTeam> teams) async {
     final currentUserId = await AuthService().getCurrentUserId();
@@ -633,180 +636,314 @@ Widget _buildPlayerSlot(String position, TeamPlayer? player, Color teamColor, {S
       setState(() => _isLoading = false);
     }
   }
- 
- void _showJoinTeamDialog(MatchTeam team) {
-  debugPrint('Game Type from match: ${widget.match.gameType}');
-  final availablePositions = PositionsConfig.getPositionsForFieldType(widget.match.gameType);
 
-  showDialog(
-    context: context,
-    barrierDismissible: false, // Evitar que el usuario cierre el diálogo durante el proceso
-    builder: (context) => StatefulBuilder(
-      builder: (context, setDialogState) {
-        return WillPopScope(
-          onWillPop: () async => !_isLoading, // Prevenir cerrar con el botón atrás durante la carga
-          child: Stack(
-            children: [
-              AlertDialog(
-                title: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Seleccionar posición',
-                      style: TextStyle(color: Colors.black),
-                    ),
-                    _showStatusIndicator()
-                  ],
-                ),
-                content: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: availablePositions.map((position) {
-                      bool isOccupied = team.players.any(
-                          (player) => player.position == position['name']);
+  void _showJoinTeamDialog(MatchTeam team) {
+    debugPrint('Game Type from match: ${widget.match.gameType}');
+    final availablePositions =
+        PositionsConfig.getPositionsForFieldType(widget.match.gameType);
 
-                      return Container(
-                        margin: EdgeInsets.symmetric(vertical: 4),
-                        decoration: BoxDecoration(
-                          color: isOccupied ? Colors.grey.shade100 : Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: Colors.grey.shade300,
-                            width: 1,
-                          ),
-                        ),
-                        child: ListTile(
-                          enabled: !isOccupied && !_isLoading,
-                          leading: Container(
-                            padding: EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: isOccupied ? Colors.grey.shade200 : Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Image.asset(
-                              position['icon'],
-                              width: 24,
-                              height: 24,
-                              color: isOccupied || _isLoading ? Colors.grey.shade400 : Colors.grey.shade700,
-                            ),
-                          ),
-                          title: Text(
-                            position['name'],
-                            style: TextStyle(
-                              color: isOccupied || _isLoading ? Colors.grey.shade400 : Colors.black,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          subtitle: isOccupied
-                              ? Text(
-                                  'Posición ocupada',
-                                  style: TextStyle(
-                                    color: Colors.red.shade300,
-                                    fontSize: 12,
-                                  ),
-                                )
-                              : Text(
-                                  'Disponible',
-                                  style: TextStyle(
-                                    color: Colors.green.shade700,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                          onTap: (isOccupied || _isLoading)
-                              ? null
-                              : () async {
-                                  setDialogState(() => _isLoading = true);
-                                  await _handleJoinTeam(team, position['name']);
-                                  if (!mounted) return;
-                                  setDialogState(() => _isLoading = false);
-                                },
-                        ),
-                      );
-                    }).toList(),
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => WillPopScope(
+        onWillPop: () async => !_isLoading,
+        child: Stack(
+          children: [
+            AlertDialog(
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Seleccionar posición',
+                    style: TextStyle(color: Colors.black),
                   ),
-                ),
+                  _showStatusIndicator(),
+                ],
               ),
-              if (_isLoading)
-                Positioned.fill(
-                  child: Container(
-                    color: Colors.black.withOpacity(0.3),
-                    child: Center(
-                      child: Card(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: availablePositions.map((position) {
+                    bool isOccupied = team.players
+                        .any((player) => player.position == position['name']);
+
+                    return Container(
+                      margin: EdgeInsets.symmetric(vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isOccupied ? Colors.grey.shade100 : Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Colors.grey.shade300,
+                          width: 1,
                         ),
-                        child: Padding(
-                          padding: EdgeInsets.all(20),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              CircularProgressIndicator(),
-                              SizedBox(height: 16),
-                              Text(
-                                'Uniéndose al equipo...',
+                      ),
+                      child: ListTile(
+                        enabled: !isOccupied && !_isLoading,
+                        leading: Container(
+                          padding: EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isOccupied
+                                ? Colors.grey.shade200
+                                : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Image.asset(
+                            position['icon'],
+                            width: 24,
+                            height: 24,
+                            color: isOccupied || _isLoading
+                                ? Colors.grey.shade400
+                                : Colors.grey.shade700,
+                          ),
+                        ),
+                        title: Text(
+                          position['name'],
+                          style: TextStyle(
+                            color: isOccupied || _isLoading
+                                ? Colors.grey.shade400
+                                : Colors.black,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: isOccupied
+                            ? Text(
+                                'Posición ocupada',
                                 style: TextStyle(
-                                  fontWeight: FontWeight.bold,
+                                  color: Colors.red.shade300,
+                                  fontSize: 12,
+                                ),
+                              )
+                            : Text(
+                                'Disponible',
+                                style: TextStyle(
+                                  color: Colors.green.shade700,
+                                  fontSize: 12,
                                 ),
                               ),
-                            ],
-                          ),
+                        onTap: (isOccupied || _isLoading)
+                            ? null
+                            : () async {
+                                if (mounted) {
+                                  setState(() => _isLoading = true);
+                                  await _handleJoinTeam(team, position['name']);
+                                  if (mounted) {
+                                    setState(() => _isLoading = false);
+                                  }
+                                }
+                              },
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+            if (_isLoading)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.black.withOpacity(0.3),
+                  child: Center(
+                    child: Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.all(20),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircularProgressIndicator(),
+                            SizedBox(height: 16),
+                            Text(
+                              'Uniéndose al equipo...',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ),
                 ),
-            ],
-          ),
-        );
-      },
-    ),
-  );
-}
-
-Future<void> _handleJoinTeam(MatchTeam team, String position) async {
-  try {
-    if (widget.match.price > 0) {
-      await MatchService().processTeamJoinPayment(
-        team.id,
-        position,
-        widget.match.price,
-        widget.match.id,
-      );
-    } else {
-      await MatchService().joinTeam(
-        team.id,
-        position,
-        widget.match.id,
-      );
-    }
-
-    setState(() {
-      _joinStatus = JoinTeamStatus.success;
-    });
-
-    Navigator.of(context).pop();
-
-    setState(() {
-      _teamsFuture = MatchService().getTeamsForMatch(widget.match.id);
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Te has unido al equipo exitosamente'),
-        backgroundColor: Colors.green,
-      ),
-    );
-  } catch (e) {
-    debugPrint('Error al unirse al equipo: $e');
-    setState(() => _joinStatus = JoinTeamStatus.error);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Error: $e'),
-        backgroundColor: Colors.red,
+              ),
+          ],
+        ),
       ),
     );
   }
-}
+
+  Future<void> _handleJoinTeam(MatchTeam team, String position) async {
+    if (!mounted) return;
+    Navigator.of(context).pop();
+
+    bool? accepted = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        bool normas1 = false;
+        bool normas2 = false;
+        bool normas3 = false;
+
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setDialogState) {
+            return AlertDialog(
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Procesar pago',
+                    style: TextStyle(color: Colors.black),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.close),
+                    onPressed: () {
+                      Navigator.of(context).pop(false);
+                    },
+                  ),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ListTile(
+                      leading: Image.asset(
+                        'assets/icons/estandar.png',
+                        width: 100,
+                        height: 100,
+                      ),
+                      title: Text(
+                        'Normas del evento',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                    CheckboxListTile(
+                      value: normas1,
+                      onChanged: (bool? value) {
+                        if (mounted) {
+                          setDialogState(() {
+                            normas1 = value ?? false;
+                          });
+                        }
+                      },
+                      title: Text(
+                        'Estar 15 minutos antes del partido',
+                        style: TextStyle(color: Colors.black),
+                      ),
+                      controlAffinity: ListTileControlAffinity.leading,
+                    ),
+                    CheckboxListTile(
+                      value: normas2,
+                      onChanged: (bool? value) {
+                        if (mounted) {
+                          setDialogState(() {
+                            normas2 = value ?? false;
+                          });
+                        }
+                      },
+                      title: Text(
+                        'En caso de cancelación, el reembolso se realizará al monedero, no a la tarjeta',
+                        style: TextStyle(color: Colors.black),
+                      ),
+                      controlAffinity: ListTileControlAffinity.leading,
+                    ),
+                    CheckboxListTile(
+                      value: normas3,
+                      onChanged: (bool? value) {
+                        if (mounted) {
+                          setDialogState(() {
+                            normas3 = value ?? false;
+                          });
+                        }
+                      },
+                      title: Text(
+                        'Acepto las normas del evento',
+                        style: TextStyle(color: Colors.black),
+                      ),
+                      controlAffinity: ListTileControlAffinity.leading,
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    onPressed: (normas1 && normas2 && normas3)
+                        ? () => Navigator.of(context).pop(true)
+                        : null,
+                    child: Text(
+                      'Finalizar proceso de pago',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (accepted == true && mounted) {
+      try {
+        if (mounted) {
+          setState(() => _isLoading = true);
+        }
+
+        if (widget.match.price > 0) {
+          await MatchService().processTeamJoinPayment(
+            team.id,
+            position,
+            widget.match.price,
+            widget.match.id,
+          );
+        } else {
+          await MatchService().joinTeam(
+            team.id,
+            position,
+            widget.match.id,
+          );
+        }
+
+        if (!mounted) return;
+        setState(() {
+          _joinStatus = JoinTeamStatus.success;
+          _teamsFuture = MatchService().getTeamsForMatch(widget.match.id);
+        });
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Te has unido al equipo exitosamente'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } catch (e) {
+        debugPrint('Error al unirse al equipo: $e');
+        if (!mounted) return;
+        setState(() => _joinStatus = JoinTeamStatus.error);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
+    }
+  }
 
   Widget _showStatusIndicator() {
     switch (_joinStatus) {

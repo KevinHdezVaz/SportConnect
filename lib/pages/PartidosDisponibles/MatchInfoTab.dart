@@ -1,10 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:user_auth_crudd10/model/MathPartido.dart';
 import 'package:user_auth_crudd10/model/field.dart';
+import 'package:user_auth_crudd10/pages/PartidosDisponibles/TermsAndConditionsScreen.dart';
 import 'package:user_auth_crudd10/utils/constantes.dart';
 
 class MatchInfoTab extends StatefulWidget {
@@ -20,8 +22,10 @@ class MatchInfoTab extends StatefulWidget {
   @override
   _MatchInfoTabState createState() => _MatchInfoTabState();
 }
+
 class _MatchInfoTabState extends State<MatchInfoTab> {
-  int _currentImage = 0;  
+  int _currentImage = 0;
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -30,7 +34,7 @@ class _MatchInfoTabState extends State<MatchInfoTab> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           FutureBuilder<Field>(
-            future: widget.fieldFuture, // Accede a fieldFuture usando widget.fieldFuture
+            future: widget.fieldFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return Center(child: CircularProgressIndicator());
@@ -59,7 +63,7 @@ class _MatchInfoTabState extends State<MatchInfoTab> {
                           borderRadius: BorderRadius.circular(15),
                           child: CarouselSlider(
                             options: CarouselOptions(
-                              height: 250, // Aumentar la altura
+                              height: 250,
                               viewportFraction: 1,
                               onPageChanged: (index, _) =>
                                   setState(() => _currentImage = index),
@@ -174,14 +178,14 @@ class _MatchInfoTabState extends State<MatchInfoTab> {
                   ),
                   SizedBox(height: 20),
 
-                  // Tarjeta de amenidades (ocupa todo el ancho)
+                  // Tarjeta de amenidades
                   Card(
                     elevation: 5,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
                     ),
                     child: Container(
-                      width: double.infinity, // Ocupa todo el ancho
+                      width: double.infinity,
                       padding: EdgeInsets.all(16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -197,7 +201,7 @@ class _MatchInfoTabState extends State<MatchInfoTab> {
                           SizedBox(height: 8),
                           Wrap(
                             spacing: 8,
-                            runSpacing: 8, // Espaciado vertical entre elementos
+                            runSpacing: 8,
                             children: (field.amenities ?? []).map((amenity) {
                               return Chip(
                                 label: Text(amenity),
@@ -211,6 +215,42 @@ class _MatchInfoTabState extends State<MatchInfoTab> {
                     ),
                   ),
                   SizedBox(height: 20),
+                  Card(
+                    elevation: 5,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.all(16),
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => TermsAndConditionsScreen(),
+                            ),
+                          );
+                        },
+                        child: Row(
+                          children: [
+                            Icon(Icons.description,
+                                color: Colors.green, size: 20),
+                            SizedBox(width: 8),
+                            Text(
+                              'Términos y condiciones',
+                              style: GoogleFonts.inter(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 20),
 
                   // Tarjeta de reglas importantes
                   Card(
@@ -219,7 +259,7 @@ class _MatchInfoTabState extends State<MatchInfoTab> {
                       borderRadius: BorderRadius.circular(15),
                     ),
                     child: Container(
-                      width: double.infinity, // Ocupa todo el ancho
+                      width: double.infinity,
                       padding: EdgeInsets.all(16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -345,6 +385,4 @@ class _MatchInfoTabState extends State<MatchInfoTab> {
       ),
     );
   }
-  
-   }
-  
+}
