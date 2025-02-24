@@ -86,7 +86,7 @@ class OnboardingScreenOne extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Text(
-                         "Unite a la comunidad\nfutbolística mas grande del Uruguay", // Salto de línea
+                        "Unite a la comunidad\nfutbolística mas grande del Uruguay", // Salto de línea
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
@@ -100,9 +100,9 @@ class OnboardingScreenOne extends StatelessWidget {
                           height:
                               size.height * 0.03), // Aumenté espacio vertical
                       Container(
-  padding: EdgeInsets.symmetric(
-                    horizontal: 20, // Reduje padding lateral
-                  ),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20, // Reduje padding lateral
+                        ),
                         child: RichText(
                           textAlign: TextAlign.start,
                           text: TextSpan(
@@ -114,19 +114,21 @@ class OnboardingScreenOne extends StatelessWidget {
                                       fontFamily: 'Viga-Regular',
                                       color: Colors.black),
                                   text:
-                                       "Empeza a jugar partidos "),
+                                      "FUTPLAY APP organiza los partidos por ti "),
                               TextSpan(
                                   style: TextStyle(
                                     fontWeight: FontWeight.w900,
                                     color: Colors.black,
                                     fontSize: getResponsiveText(24),
                                   ),
-                                  text: "cuando quieras y disfruta "),
+                                  text:
+                                      "consiguiendo compañeros de equipo y/o rivales"),
                               TextSpan(
                                   style: TextStyle(
                                       fontSize: getResponsiveText(24),
                                       color: Colors.black),
-                                  text: "La EXPERIENCIA. "),
+                                  text:
+                                      " con los que se puede forjar vínculos"),
                             ],
                           ),
                         ),

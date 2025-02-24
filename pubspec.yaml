@@ -74,6 +74,9 @@ dependencies:
   app_links: ^3.4.1
   flutter_local_notifications: ^18.0.1
   photo_view: ^0.15.0
+  share_plus: ^7.2.1
+  firebase_dynamic_links: ^5.4.0  # Agrega esto
+
 
 dev_dependencies:
   flutter_test:

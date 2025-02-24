@@ -1,22 +1,22 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:user_auth_crudd10/auth/auth_service.dart'; 
+import 'package:user_auth_crudd10/auth/auth_service.dart';
+import 'package:user_auth_crudd10/model/Equipo.dart';
 import 'package:user_auth_crudd10/model/MatchTeam.dart';
 import 'package:user_auth_crudd10/model/MathPartido.dart';
-import 'package:user_auth_crudd10/model/OrderItem.dart'; 
+import 'package:user_auth_crudd10/model/OrderItem.dart';
 import 'package:user_auth_crudd10/services/storage_service.dart';
 import 'package:user_auth_crudd10/utils/constantes.dart';
 
 class MatchService {
   final storage = StorageService();
- 
 
- Future<Map<String, dynamic>> getPlayerStats(int userId) async {
+  Future<Map<String, dynamic>> getPlayerStats(int userId) async {
     try {
       final token = await storage.getToken();
       final response = await http.get(
-        Uri.parse('$baseUrl/players/$userId/stats'), 
+        Uri.parse('$baseUrl/players/$userId/stats'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -24,7 +24,8 @@ class MatchService {
       );
 
       if (response.statusCode != 200) {
-        throw Exception('Error al obtener estadísticas: ${response.statusCode}');
+        throw Exception(
+            'Error al obtener estadísticas: ${response.statusCode}');
       }
 
       return json.decode(response.body);
@@ -33,9 +34,8 @@ class MatchService {
       throw e;
     }
   }
- 
 
-Future<List<dynamic>> getTopMvpPlayers() async {
+  Future<List<dynamic>> getTopMvpPlayers() async {
     try {
       final token = await storage.getToken();
       final response = await http.get(
@@ -47,7 +47,8 @@ Future<List<dynamic>> getTopMvpPlayers() async {
       );
 
       if (response.statusCode != 200) {
-        throw Exception('Error al obtener top MVP players: ${response.statusCode}');
+        throw Exception(
+            'Error al obtener top MVP players: ${response.statusCode}');
       }
 
       final data = json.decode(response.body);
@@ -58,6 +59,66 @@ Future<List<dynamic>> getTopMvpPlayers() async {
     }
   }
 
+  Future<Map<String, dynamic>> registerPredefinedTeamForMatch(int matchId,
+      int predefinedTeamId, int targetTeamId // Agregar este parámetro
+      ) async {
+    final url = Uri.parse('$baseUrl/match-teams/register-predefined-team');
+    final token = await storage.getToken();
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'match_id': matchId,
+        'predefined_team_id': predefinedTeamId,
+        'target_team_id': targetTeamId // Agregar este campo
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    throw Exception('Failed to register predefined team');
+  }
+
+  Future<List<Equipo>> getPredefinedTeams() async {
+    final url = Uri.parse(
+        '$baseUrl/equipos'); // Asumimos un endpoint para listar equipos
+    final token = await StorageService().getToken();
+    final response =
+        await http.get(url, headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) {
+      return (jsonDecode(response.body) as List)
+          .map((e) => Equipo.fromJson(e))
+          .toList();
+    }
+    throw Exception('Error al cargar equipos predefinidos');
+  }
+
+  Future<void> updatePlayerPosition(
+      int teamId, int playerId, String position) async {
+    final url =
+        Uri.parse('$baseUrl/match-teams/$teamId/players/$playerId/position');
+    final token = await storage.getToken();
+
+    final response = await http.put(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'position': position,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to update player position');
+    }
+  }
 
   Future<List<MathPartido>> getAvailableMatches(DateTime date) async {
     try {
@@ -98,6 +159,34 @@ Future<List<dynamic>> getTopMvpPlayers() async {
       debugPrint('Error en getAvailableMatches: $e');
       debugPrint('Stack trace: $stackTrace');
       throw Exception('Error al obtener partidos: $e');
+    }
+  }
+
+  Future<MathPartido> getMatchById(String matchId) async {
+    if (matchId.isEmpty) throw Exception('ID de partido inválido');
+
+    try {
+      final url = Uri.parse('$baseUrl/matches/$matchId');
+      debugPrint('Obteniendo partido con ID: $matchId');
+      debugPrint('URL de la solicitud: $url');
+
+      final response = await http.get(
+        url,
+        headers: await getHeaders(),
+      );
+
+      debugPrint('Response status: ${response.statusCode}');
+      debugPrint('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+        return MathPartido.fromJson(jsonData);
+      } else {
+        throw Exception('Error al cargar el partido: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error en getMatchById: $e');
+      throw Exception('Error al obtener el partido: $e');
     }
   }
 
@@ -245,6 +334,40 @@ Future<List<dynamic>> getTopMvpPlayers() async {
     } catch (e) {
       debugPrint('Error al unirse al equipo: $e');
       throw Exception('Error al unirse al equipo: $e');
+    }
+  }
+
+  Future<bool> isUserTeamCaptain(int teamId) async {
+    try {
+      final url = Uri.parse('$baseUrl/match-teams/$teamId/is-captain');
+      final token = await storage.getToken();
+      final response = await http.get(
+        url,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['is_captain'] ?? false;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Error checking captain status: $e');
+      return false;
+    }
+  }
+
+  Future<void> leaveTeamAsGroup(int teamId) async {
+    final url = Uri.parse('$baseUrl/match-teams/$teamId/leave-group');
+    final token = await storage.getToken();
+
+    final response = await http.post(
+      url,
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to leave team as group');
     }
   }
 

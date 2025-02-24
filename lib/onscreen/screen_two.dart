@@ -64,7 +64,7 @@ class OnboardingScreenTwo extends StatelessWidget {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 170),
+                    padding: const EdgeInsets.only(bottom: 120),
                     child: Container(
                       width: 270,
                       height: 270,
@@ -84,11 +84,11 @@ class OnboardingScreenTwo extends StatelessWidget {
                       const Padding(
                         padding: const EdgeInsets.only(top: 50),
                         child: Text(
-                          "Encontra tu cancha cercana",
+                          "Jugá cuando VOS quieras.",
                           textAlign: TextAlign.start,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: Colors.blue,
                             fontSize: 27,
                           ),
                         ),
@@ -111,7 +111,6 @@ class OnboardingScreenTwo extends StatelessWidget {
                                       fontFamily: 'Viga-Regular',
                                       color: Colors.black),
                                   text:
-                                      // Organizá tu semana  y elegí el horario que más te convenga. Jugando solo o con amigos.
                                       "Organizá tu semana y elegí el horario"),
                               TextSpan(
                                   style: TextStyle(
@@ -120,11 +119,6 @@ class OnboardingScreenTwo extends StatelessWidget {
                                     fontSize: getResponsiveText(24),
                                   ),
                                   text: " que más te convenga."),
-                              TextSpan(
-                                  style: TextStyle(
-                                      fontSize: getResponsiveText(24),
-                                      color: Colors.black),
-                                  text: " Jugando solo o con amigos."),
                             ],
                           ),
                         ),

@@ -82,7 +82,8 @@ class _BookingScreenState extends State<BookingScreen> {
       child: Scaffold(
         backgroundColor: Colors.grey[50],
         appBar: AppBar(
-          title: const Text('Mis Reservas', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          title: const Text('Mis Reservas',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
           centerTitle: true,
           elevation: 0,
           backgroundColor: Colors.transparent,
@@ -118,7 +119,8 @@ class _BookingScreenState extends State<BookingScreen> {
                 child: isLoading
                     ? const Center(
                         child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.blue),
                         ),
                       )
                     : PageView(
@@ -171,77 +173,79 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
-
-Widget _buildReservationList(List<Booking> reservations, bool isActive) {
-  if (reservations.isEmpty) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.calendar_today,
-            size: 50,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            isActive ? 'No tienes reservas activas' : 'No hay historial de reservas',
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.bold,
+  Widget _buildReservationList(List<Booking> reservations, bool isActive) {
+    if (reservations.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.calendar_today,
+              size: 50,
+              color: Colors.grey[400],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-  
-  return ListView.builder(
-    itemCount: reservations.length,
-    itemBuilder: (context, index) {
-      final reservation = reservations[index];
-      return InkWell( // Agregar este widget
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => BookingDetailsScreen(
-                booking: reservation,
-                isActive: isActive,
+            const SizedBox(height: 16),
+            Text(
+              isActive
+                  ? 'No tienes reservas activas'
+                  : 'No hay historial de reservas',
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.bold,
               ),
             ),
-          );
-        },
-        child: Card(
-          margin: const EdgeInsets.symmetric(vertical: 8),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          elevation: 2,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildReservationHeader(reservation, isActive),
-                const SizedBox(height: 12),
-                _buildReservationDetails(reservation),
-              ],
-            ),
-          ),
+          ],
         ),
       );
-    },
-  );
-}
+    }
+
+    return ListView.builder(
+      itemCount: reservations.length,
+      itemBuilder: (context, index) {
+        final reservation = reservations[index];
+        return InkWell(
+          // Agregar este widget
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => BookingDetailsScreen(
+                  booking: reservation,
+                  isActive: isActive,
+                ),
+              ),
+            );
+          },
+          child: Card(
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildReservationHeader(reservation, isActive),
+                  const SizedBox(height: 12),
+                  _buildReservationDetails(reservation),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   Widget _buildReservationHeader(Booking reservation, bool isActive) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          'Cancha ${reservation.fieldName}',
+          '${reservation.fieldName}',
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -262,13 +266,17 @@ Widget _buildReservationList(List<Booking> reservations, bool isActive) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildInfoRow(Icons.calendar_today, Colors.blue[800]!, _formatDateTime(reservation.startTime)),
+        _buildInfoRow(Icons.calendar_today, Colors.blue[800]!,
+            _formatDateTime(reservation.startTime)),
         const SizedBox(height: 8),
-        _buildInfoRow(Icons.access_time, Colors.green[800]!, '${_formatTime(reservation.startTime)} - ${_formatTime(reservation.endTime)}'),
+        _buildInfoRow(Icons.access_time, Colors.green[800]!,
+            '${_formatTime(reservation.startTime)} - ${_formatTime(reservation.endTime)}'),
         const SizedBox(height: 8),
-        _buildInfoRow(Icons.attach_money, Colors.purple[800]!, 'Precio: ${reservation.totalPrice.toStringAsFixed(2)}'),
+        _buildInfoRow(Icons.attach_money, Colors.purple[800]!,
+            'Precio: ${reservation.totalPrice.toStringAsFixed(2)}'),
         const SizedBox(height: 8),
-        _buildInfoRow(Icons.info, Colors.orange[800]!, 'Estado: ${reservation.status}'),
+        _buildInfoRow(
+            Icons.info, Colors.orange[800]!, 'Estado: ${reservation.status}'),
       ],
     );
   }

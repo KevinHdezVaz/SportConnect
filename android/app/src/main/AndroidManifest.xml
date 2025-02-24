@@ -47,7 +47,30 @@
         android:pathPrefix="/pending" />
 </intent-filter>
 
+<intent-filter>
+              <action android:name="android.intent.action.VIEW" />
+              <category android:name="android.intent.category.DEFAULT" />
+              <category android:name="android.intent.category.BROWSABLE" />
+              <data 
+                  android:scheme="miapp" 
+                  android:host="partido" />
+          </intent-filter>
+
+
+<!-- Nuevo intent filter para App Links HTTPS -->
+          <intent-filter android:autoVerify="true">
+              <action android:name="android.intent.action.VIEW" />
+              <category android:name="android.intent.category.DEFAULT" />
+              <category android:name="android.intent.category.BROWSABLE" />
+              <data 
+                  android:scheme="https" 
+                  android:host="proyect.aftconta.mx" 
+                  android:pathPrefix="/partido" />
+          </intent-filter>
+
+          
         </activity>
+        
 
         <meta-data
             android:name="flutterEmbedding"

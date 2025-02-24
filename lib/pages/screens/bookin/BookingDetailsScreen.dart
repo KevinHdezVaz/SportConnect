@@ -69,7 +69,7 @@ class BookingDetailsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              'Cancha ${booking.fieldName}',
+              '${booking.fieldName}',
               style: const TextStyle(
                 fontSize: 24,
                 color: Colors.black,
@@ -95,6 +95,7 @@ class BookingDetailsScreen extends StatelessWidget {
               'Información de la Reserva',
               style: TextStyle(
                 fontSize: 18,
+                color: Colors.black,
                 fontWeight: FontWeight.bold,
               ),
             ),

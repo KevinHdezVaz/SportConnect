@@ -257,7 +257,8 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                                 const Text(
                                   'Recordarme',
-                                  style: TextStyle(fontSize: 16),
+                                  style: TextStyle(
+                                      fontSize: 16, color: Colors.black),
                                 ),
                                 const SizedBox(width: 40),
                                 GestureDetector(
@@ -273,9 +274,13 @@ class _LoginPageState extends State<LoginPage> {
                                   child: const Text(
                                     "Olvide contraseña",
                                     style: TextStyle(
-                                      color: Colors.blue,
+                                      color: Colors.black,
                                       fontWeight: FontWeight.w400,
                                       fontSize: 14,
+                                      decoration: TextDecoration.underline,
+                                      decorationColor: Colors.black,
+                                      decorationThickness:
+                                          1.5, // Grosor del subrayado
                                     ),
                                   ),
                                 ),

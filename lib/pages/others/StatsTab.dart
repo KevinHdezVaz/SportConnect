@@ -59,7 +59,9 @@ class _StatsTabState extends State<StatsTab> {
           height: 200,
           decoration: BoxDecoration(
             image: DecorationImage(
-              image: playerData!['stats']['profile_image'] != null
+              image: (playerData != null &&
+                      playerData!['stats'] != null &&
+                      playerData!['stats']['profile_image'] != null)
                   ? NetworkImage(
                       'https://proyect.aftconta.mx/storage/${playerData!['stats']['profile_image']}')
                   : const AssetImage('assets/no-profile-image.jpg')
@@ -83,17 +85,18 @@ class _StatsTabState extends State<StatsTab> {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       _buildStatButton(
-                          'Partidos',
-                          (playerData!['stats']['total_matches'] as int? ?? 0)
-                              .toString()),
+                        'Partidos',
+                        ((playerData?['stats']?['total_matches'] as int?) ?? 0)
+                            .toString(),
+                      ),
                       _buildStatButton(
-                          'MVP',
-                          (playerData!['stats']['mvp_count'] as int? ?? 0)
-                              .toString()),
+                        'MVP',
+                        ((playerData?['stats']?['mvp_count'] as int?) ?? 0)
+                            .toString(),
+                      ),
                     ],
                   ),
                   SizedBox(height: 20),
-                  // Sección "Evaluación"
                   _buildSection('Evaluación', [
                     _buildEvaluationRow(
                         'Nivel', _calculateAverageLevel() ?? 0, 5),
@@ -103,17 +106,18 @@ class _StatsTabState extends State<StatsTab> {
                         'Part.', _calculateAverageParticipation() ?? 0, 5),
                     _buildEvaluationRow(
                         'N. MVP',
-                        playerData!['stats']['mvp_count'] as int? ?? 0,
-                        playerData!['stats']['total_matches'] as int? ?? 0,
+                        ((playerData?['stats']?['mvp_count'] as int?) ?? 0),
+                        ((playerData?['stats']?['total_matches'] as int?) ?? 1),
                         isCount: true),
                   ]),
                   SizedBox(height: 16),
                   // Sección "Ficha técnica"
                   _buildSection('Ficha técnica', [
-                    _buildTechField('Posición:',
-                        playerData!['stats']['posicion'] ?? 'Sin especificar'),
-                    _buildTechField('Edad:',
-                        playerData!['stats']['age'] ?? 'Sin especificar'),
+                    _buildTechField(
+                      'Posición:',
+                      ((playerData?['stats']?['posicion'] as String?) ??
+                          'Sin especificar'),
+                    ),
                   ]),
                   SizedBox(height: 16),
                   // Sección "Últimos partidos jugados"

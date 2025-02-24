@@ -111,8 +111,7 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
                                                   as int? ??
                                               0)
                                           .toString()),
-                                  _buildStatButton('Seguidores',
-                                      '12'), // Ejemplo, ajusta según backend
+                                  // Ejemplo, ajusta según backend
                                   _buildStatButton(
                                       'MVP',
                                       (playerData!['stats']['mvp_count']
