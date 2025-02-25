@@ -21,33 +21,27 @@ class BonosScreen extends StatefulWidget {
   _BonosScreenState createState() => _BonosScreenState();
 }
 
-class _BonosScreenState extends State<BonosScreen> with SingleTickerProviderStateMixin {
+class _BonosScreenState extends State<BonosScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  bool _isLoading = false;
+  bool _isLoading = true; // Cambiado a true para mostrar carga desde el inicio
   List<Bono> _bonos = [];
   List<UserBono> _misBonos = [];
-final PaymentService _paymentService = PaymentService();
+  final PaymentService _paymentService = PaymentService();
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _loadData(); // Cargar datos al iniciar
   }
-@override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_isLoading) {
-      _loadData();
-    }
-  }
-Future<void> _loadData() async {
-    setState(() => _isLoading = true);
+
+  Future<void> _loadData() async {
     try {
       _bonos = await widget.bonoService.getBonos();
       _misBonos = await widget.bonoService.getMisBonos();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al cargar los datos: $e'), backgroundColor: Colors.red),
-      );
+      _showSnackBar('Error al cargar los datos: $e', Colors.red);
     } finally {
       setState(() => _isLoading = false);
     }
@@ -58,33 +52,54 @@ Future<void> _loadData() async {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
-        elevation: 0,
+        elevation: 2,
         title: Text(
           'Bonos',
-          style: TextStyle(
+          style: GoogleFonts.inter(
             color: Colors.black87,
-            fontWeight: FontWeight.w500,
-            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
           ),
         ),
-         
         bottom: TabBar(
           controller: _tabController,
-          labelColor: Colors.green,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: Colors.green,
+          labelColor: Colors.green.shade700,
+          unselectedLabelColor: Colors.grey.shade600,
+          indicatorColor: Colors.green.shade700,
+          indicatorWeight: 3,
+          padding: EdgeInsets.symmetric(horizontal: 16),
           tabs: [
-                                  Tab(child: Text('Bonos Disponibles', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600))),
-                                  Tab(child: Text('Mis Bonos', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600))),
- 
+            Tab(
+              child: Text(
+                'Disponibles',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Tab(
+              child: Text(
+                'Mis Bonos',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           ],
         ),
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: Colors.green))
+          ? Center(
+              child: CircularProgressIndicator(
+                color: Colors.blue.shade700,
+                strokeWidth: 3,
+              ),
+            )
           : RefreshIndicator(
               onRefresh: _loadData,
-              color: Colors.green,
+              color: Colors.blue.shade700,
               child: TabBarView(
                 controller: _tabController,
                 children: [
@@ -93,14 +108,30 @@ Future<void> _loadData() async {
                 ],
               ),
             ),
-      
     );
   }
 
   Widget _buildBonosDisponiblesTab() {
     if (_bonos.isEmpty) {
       return Center(
-        child: Text('No hay bonos disponibles actualmente'),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.info_outline, size: 60, color: Colors.grey.shade400),
+              SizedBox(height: 16),
+              Text(
+                'No hay bonos disponibles',
+                style: GoogleFonts.inter(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
@@ -108,30 +139,48 @@ Future<void> _loadData() async {
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Compra un bono y ahorra dinero',
-              style: TextStyle(
-                fontSize: 24,
-                color: Colors.black,
+              '¡Ahorra con nuestros bonos!',
+              style: GoogleFonts.inter(
+                fontSize: 28,
                 fontWeight: FontWeight.bold,
+                color: Colors.black87,
               ),
-              textAlign: TextAlign.center,
             ),
-            SizedBox(height: 10),
+            SizedBox(height: 8),
             Text(
-              '6 de cada 10 jugadores los prefieren ¡No te pierdas esta increíble oferta! 💰 💪 ⚽',
-              style: TextStyle(fontSize: 16, color: Colors.black),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 20),
-            ..._bonos.map((bono) => Padding(
-              padding: const EdgeInsets.only(bottom: 20.0),
-              child: BonoCard(
-                bono: bono,
-                onComprar: () => _comprarBono(bono),
+              '6 de cada 10 jugadores los prefieren ⚽',
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                color: Colors.grey.shade700,
               ),
-            )).toList(),
+            ),
+            SizedBox(height: 24),
+            AnimatedList(
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              initialItemCount: _bonos.length,
+              itemBuilder: (context, index, animation) {
+                return SlideTransition(
+                  position: Tween<Offset>(
+                    begin: Offset(0, 0.3),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: FadeTransition(
+                    opacity: animation,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0),
+                      child: BonoCard(
+                        bono: _bonos[index],
+                        onComprar: () => _comprarBono(_bonos[index]),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -141,32 +190,50 @@ Future<void> _loadData() async {
   Widget _buildMisBonosTab() {
     if (_misBonos.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.sports_soccer, size: 80, color: Colors.grey),
-            SizedBox(height: 20),
-            Text(
-              'No tienes bonos activos',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 10),
-            Text(
-              'Compra un bono para comenzar a jugar',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: () {
-                _tabController.animateTo(0);
-              },
-              child: Text('Ver Bonos Disponibles'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                padding: EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.sports_soccer,
+                size: 80,
+                color: Colors.grey.shade400,
               ),
-            ),
-          ],
+              SizedBox(height: 16),
+              Text(
+                'No tienes bonos activos',
+                style: GoogleFonts.inter(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Compra un bono para comenzar',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () => _tabController.animateTo(0),
+                icon: Icon(Icons.local_offer),
+                label: Text('Ver Bonos'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue.shade700,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 4,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -177,7 +244,7 @@ Future<void> _loadData() async {
       itemBuilder: (context, index) {
         final userBono = _misBonos[index];
         return Padding(
-          padding: const EdgeInsets.only(bottom: 16.0),
+          padding: const EdgeInsets.only(bottom: 12.0),
           child: UserBonoCard(
             userBono: userBono,
             onVerQR: () => _mostrarQR(userBono),
@@ -188,126 +255,183 @@ Future<void> _loadData() async {
     );
   }
 
-void _comprarBono(Bono bono) async {
-    bool? confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Comprar Bono'),
-        content: Text('¿Estás seguro de comprar el bono ${bono.tipo} por ${bono.precio.toStringAsFixed(2)} MXN?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancelar'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            onPressed: () => Navigator.pop(context, true),
-            child: Text('Comprar'),
-          ),
-        ],
-      ),
-    );
+  void _comprarBono(Bono bono) async {
+    if (_isLoading) return;
 
-    if (confirm == true) {
-      _procesarPago(bono);
-    }
-  }
-
- Future<void> _procesarPago(Bono bono) async {
-  if (_isLoading) return; // Evitar múltiples ejecuciones simultáneas
-
-  setState(() => _isLoading = true);
-
-  try {
-    final items = [
-      OrderItem(title: "Bono - ${bono.titulo}", quantity: 1, unitPrice: bono.precio),
-    ];
-
-    final paymentResult = await _paymentService.procesarPago(
-      context,
-      items,
-      additionalData: {
-        'reference_id': bono.id,
-        'customer': {'name': 'Usuario', 'email': 'usuario@ejemplo.com'},
-      },
-      type: 'bono',
-    );
-
-    debugPrint('Payment result: $paymentResult');
-    debugPrint('Type de orderId: ${paymentResult['orderId'].runtimeType}');
-
-    // Verificar si el bono ya existe para este usuario y bono_id
-    final existingUserBono = await widget.bonoService.getMisBonos().then((list) {
-      return list.firstWhere(
-        (userBono) => userBono.bonoId == bono.id,
-       );
-    }) as UserBono?; // Aseguramos que puede ser null
-
-    if (existingUserBono != null) {
-      throw Exception('Este bono ya fue comprado previamente');
-    }
-
-    if (paymentResult['status'] == PaymentStatus.success || paymentResult['status'] == PaymentStatus.approved) {
-      final userBono = await widget.bonoService.comprarBono(
-        bonoId: bono.id,
-        paymentId: paymentResult['paymentId'],
-        orderId: paymentResult['orderId'],
-      );
-      setState(() => _misBonos.add(userBono));
-      SchedulerBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('¡Bono comprado exitosamente!'), backgroundColor: Colors.green),
+    try {
+      if (_misBonos.any((userBono) => userBono.bonoId == bono.id)) {
+        _showSnackBar(
+          'Ya tienes este bono activo. Espera a que termine.',
+          Colors.orange,
         );
-        _tabController.animateTo(1);
-      });
-    } else {
-      throw Exception('Estado del pago: ${paymentResult['status']}');
-    }
-  } catch (e) {
-    debugPrint('Excepción capturada: $e');
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al procesar el pago: $e'), backgroundColor: Colors.red),
+        return;
+      }
+
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            'Confirmar Compra',
+            style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+          ),
+          content: RichText(
+            text: TextSpan(
+              style: GoogleFonts.inter(color: Colors.black87, fontSize: 16),
+              children: [
+                TextSpan(text: '¿Comprar el bono '),
+                TextSpan(
+                  text: bono.tipo,
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                TextSpan(text: ' por '),
+                TextSpan(
+                  text: '\$${bono.precio.toStringAsFixed(2)} MXN',
+                  style: TextStyle(color: Colors.green.shade700),
+                ),
+                TextSpan(text: '?'),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text('Cancelar', style: GoogleFonts.inter()),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue.shade700,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text('Comprar',
+                  style: GoogleFonts.inter(color: Colors.white)),
+            ),
+          ],
+        ),
       );
-    });
-  } finally {
-    setState(() => _isLoading = false);
+
+      if (confirm == true) {
+        await _procesarPago(bono);
+      }
+    } catch (e) {
+      _showSnackBar('Error al verificar bonos: $e', Colors.red);
+    }
   }
-}
+
+  Future<void> _procesarPago(Bono bono) async {
+    setState(() => _isLoading = true);
+    try {
+      final items = [
+        OrderItem(
+          title: "Bono - ${bono.titulo}",
+          quantity: 1,
+          unitPrice: bono.precio,
+        ),
+      ];
+
+      final paymentResult = await _paymentService.procesarPago(
+        context,
+        items,
+        additionalData: {
+          'reference_id': bono.id,
+          'customer': {'name': 'Usuario', 'email': 'usuario@ejemplo.com'},
+        },
+        type: 'bono',
+      );
+
+      if (paymentResult['status'] == PaymentStatus.success ||
+          paymentResult['status'] == PaymentStatus.approved) {
+        final userBono = await widget.bonoService.comprarBono(
+          bonoId: bono.id,
+          paymentId: paymentResult['paymentId'],
+          orderId: paymentResult['orderId'],
+        );
+        setState(() => _misBonos.add(userBono));
+        _showSnackBar('¡Bono comprado exitosamente!', Colors.green);
+        _tabController.animateTo(1);
+      } else {
+        throw Exception('Pago no aprobado: ${paymentResult['status']}');
+      }
+    } catch (e) {
+      if (e.toString().contains('Este pago ya ha sido procesado')) {
+        await _loadData();
+        _showSnackBar('¡Bono ya registrado correctamente!', Colors.green);
+        _tabController.animateTo(1);
+      } else {
+        _showSnackBar('Error al procesar el pago: $e', Colors.red);
+      }
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
 
   void _mostrarQR(UserBono userBono) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Código QR'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Tu Código QR',
+          style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               width: 200,
               height: 200,
-              decoration: BoxDecoration(border: Border.all(color: Colors.black)),
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
               child: Center(
                 child: Text(
                   userBono.codigoReferencia,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.inter(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
               ),
             ),
             SizedBox(height: 16),
-            Text('Código: ${userBono.codigoReferencia}'),
+            Text(
+              'Código: ${userBono.codigoReferencia}',
+              style: GoogleFonts.inter(fontSize: 16),
+            ),
             SizedBox(height: 8),
             Text(
-              'Presenta este código al responsable de la cancha',
+              'Muestra este código en la cancha',
+              style:
+                  GoogleFonts.inter(fontSize: 14, color: Colors.grey.shade600),
               textAlign: TextAlign.center,
             ),
           ],
         ),
         actions: [
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
             onPressed: () => Navigator.pop(context),
-            child: Text('Cerrar'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green.shade700,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            child:
+                Text('Cerrar', style: GoogleFonts.inter(color: Colors.white)),
           ),
         ],
       ),
@@ -315,11 +439,21 @@ void _comprarBono(Bono bono) async {
   }
 
   void _navToReservar(UserBono userBono) {
+    _showSnackBar('Navegando a reservas...', Colors.blue);
+    // Implementa aquí la navegación real si es necesario
+  }
+
+  void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Navegando a la pantalla de reservas...')),
+      SnackBar(
+        content: Text(message, style: GoogleFonts.inter(color: Colors.white)),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        margin: EdgeInsets.all(16),
+      ),
     );
   }
- 
 
   @override
   void dispose() {

@@ -57,7 +57,7 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
     _selectedPredefinedTeam = null; // Inicializar aquí
     _tabController = TabController(length: 2, vsync: this);
     _loadTeams();
-   // _setupPaymentListener();
+    // _setupPaymentListener();
     _fieldFuture = getFieldById(widget.match.fieldId!);
     _initializePositions();
     _predefinedTeamsFuture = _loadPredefinedTeams();
@@ -674,14 +674,24 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
                         if (!showRules) ...[
                           Row(
                             children: [
-                              Text('Unirse como: '),
+                              Text(
+                                'Unirse como: ',
+                                style: TextStyle(color: Colors.black),
+                              ),
                               DropdownButton<bool>(
                                 value: joinAsTeam,
                                 items: [
                                   DropdownMenuItem(
-                                      value: false, child: Text('Individual')),
+                                      value: false,
+                                      child: Text(
+                                        'Individual',
+                                        style: TextStyle(color: Colors.black),
+                                      )),
                                   DropdownMenuItem(
-                                      value: true, child: Text('Equipo')),
+                                      value: true,
+                                      child: Text('Equipo',
+                                          style:
+                                              TextStyle(color: Colors.black))),
                                 ],
                                 onChanged: (value) {
                                   setDialogState(() {

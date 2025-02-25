@@ -11,10 +11,11 @@ import 'package:user_auth_crudd10/auth/auth_check.dart';
 import 'package:user_auth_crudd10/onscreen/onboardingWrapper.dart';
 import 'package:user_auth_crudd10/pages/Mercadopago/payment_service.dart';
 import 'package:user_auth_crudd10/pages/PartidosDisponibles/MatchDetailsScreen.dart';
+import 'package:user_auth_crudd10/pages/bottom_nav.dart';
 import 'package:user_auth_crudd10/pages/screens/BonoScreen.dart';
 import 'package:user_auth_crudd10/pages/screens/bookin/booking_screen.dart';
 import 'package:user_auth_crudd10/services/BonoService.dart';
- import 'package:user_auth_crudd10/services/functions/firebase_notification.dart';
+import 'package:user_auth_crudd10/services/functions/firebase_notification.dart';
 import 'package:user_auth_crudd10/services/notifcationService.dart';
 import 'package:user_auth_crudd10/services/providers/storage_ans_provider.dart';
 import 'package:user_auth_crudd10/services/providers/storage_provider.dart';
@@ -30,10 +31,11 @@ import 'package:http/http.dart' as http;
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
-  final BonoService _bonoService = BonoService(baseUrl: baseUrl);
+final BonoService _bonoService = BonoService(baseUrl: baseUrl);
 
 // Stream controller para estado del pago
-final paymentStatusController = StreamController<Map<String, dynamic>>.broadcast();
+final paymentStatusController =
+    StreamController<Map<String, dynamic>>.broadcast();
 final PaymentService _paymentService = PaymentService();
 
 enum PaymentStatus { success, failure, approved, pending, unknown }
@@ -76,20 +78,10 @@ Future<void> main() async {
   await FirbaseApi().initNotifications();
 
   await _setupDeepLinks();
-
-runApp(
+  runApp(
     ChangeNotifierProvider(
       create: (context) => ThemeProvider(),
-      child: Builder(
-        builder: (context) {
-          // Configurar navigatorKey después de que MaterialApp se inicialice
-if (navigatorKey.currentState != null) {
-  navigatorKey.currentState!.push(
-    MaterialPageRoute(builder: (context) => BonosScreen(bonoService: _bonoService)),
-  );
-}          return MyApp(isviewed: isviewed);
-        },
-      ),
+      child: MyApp(isviewed: isviewed),
     ),
   );
 }
@@ -141,14 +133,19 @@ void _handleDeepLink(Uri uri) async {
     if (uri.path.contains('/success') || uri.path.contains('/approved')) {
       event['status'] = PaymentStatus.success;
       _onPaymentSuccess(uri); // Procesar éxito según el tipo
-    } else if (uri.path.contains('/failure') || uri.path.contains('/rejected')) {
+    } else if (uri.path.contains('/failure') ||
+        uri.path.contains('/rejected')) {
       event['status'] = PaymentStatus.failure;
-    } else if (uri.path.contains('/pending') || uri.path.contains('/in_process')) {
+    } else if (uri.path.contains('/pending') ||
+        uri.path.contains('/in_process')) {
       event['status'] = PaymentStatus.pending;
     } else {
       try {
-        final paymentStatus = await _paymentService.verifyPaymentStatus(paymentId!);
-        event['status'] = paymentStatus == 'approved' ? PaymentStatus.success : PaymentStatus.unknown;
+        final paymentStatus =
+            await _paymentService.verifyPaymentStatus(paymentId!);
+        event['status'] = paymentStatus == 'approved'
+            ? PaymentStatus.success
+            : PaymentStatus.unknown;
         if (event['status'] == PaymentStatus.success) {
           _onPaymentSuccess(uri);
         }
@@ -182,6 +179,7 @@ void _handleDeepLink(Uri uri) async {
     }
   }
 }
+
 void _onPaymentSuccess(Uri uri) async {
   final paymentId = uri.queryParameters['payment_id'];
   final externalReference = uri.queryParameters['external_reference'];
@@ -200,7 +198,8 @@ void _onPaymentSuccess(Uri uri) async {
       if (orderResponse.statusCode == 200) {
         final orderData = jsonDecode(orderResponse.body);
         debugPrint('Order data recibido: $orderData');
-        debugPrint('Type de orderData[\'type\']: ${orderData['type'].runtimeType}');
+        debugPrint(
+            'Type de orderData[\'type\']: ${orderData['type'].runtimeType}');
 
         final orderType = orderData['type'].toString();
 
@@ -213,8 +212,13 @@ void _onPaymentSuccess(Uri uri) async {
             MaterialPageRoute(builder: (context) => const BookingScreen()),
           );
         } else if (orderType == 'bono') {
-          Navigator.of(navigatorKey.currentContext!).push(
-            MaterialPageRoute(builder: (context) => BonosScreen(bonoService: _bonoService)),
+          // En lugar de push simple, usa pushAndRemoveUntil para limpiar la pila de navegación
+          // y volver a la pantalla principal con BottomNavBar
+          Navigator.of(navigatorKey.currentContext!).pushAndRemoveUntil(
+            MaterialPageRoute(
+                builder: (context) => BottomNavBar(initialIndex: 1)),
+            (route) =>
+                false, // Esto elimina todas las pantallas anteriores de la pila
           );
         } else {
           debugPrint('Tipo de orden desconocido: $orderType');

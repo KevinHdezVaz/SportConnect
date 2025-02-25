@@ -8,25 +8,29 @@ import 'package:user_auth_crudd10/services/BonoService.dart';
 import 'package:user_auth_crudd10/utils/constantes.dart';
 
 class BottomNavBar extends StatefulWidget {
-  const BottomNavBar({super.key});
+  final int initialIndex;
+
+  const BottomNavBar({Key? key, this.initialIndex = 0}) : super(key: key);
 
   @override
   State<BottomNavBar> createState() => _BottomNavBarState();
 }
 
 class _BottomNavBarState extends State<BottomNavBar> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
   final BonoService _bonoService = BonoService(baseUrl: baseUrl);
   late final List<Widget> _pages;
-   void _changeIndex(int index) {
+  void _changeIndex(int index) {
     setState(() {
       _selectedIndex = index;
     });
   }
 
-@override
+  @override
   void initState() {
     super.initState();
+    _selectedIndex = widget.initialIndex; // Usa el índice inicial proporcionado
+
     _pages = [
       HomePage(),
       BonosScreen(bonoService: _bonoService),
@@ -34,33 +38,30 @@ class _BottomNavBarState extends State<BottomNavBar> {
       ProfilePage(),
     ];
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages[_selectedIndex],
       bottomNavigationBar: Container(
-        color: Colors.white,  
+        color: Colors.white,
         child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(12), 
+            borderRadius: BorderRadius.circular(12),
             child: BottomNavigationBar(
               type: BottomNavigationBarType.fixed,
-              selectedItemColor: Colors.white,  
-              unselectedItemColor: Colors.white
-                  .withOpacity(0.6),  
-              backgroundColor:
-                  Colors.blue, 
+              selectedItemColor: Colors.white,
+              unselectedItemColor: Colors.white.withOpacity(0.6),
+              backgroundColor: Colors.blue,
               currentIndex: _selectedIndex,
               onTap: _changeIndex,
-              elevation: 0, 
-              iconSize: 22,  
-              selectedFontSize:
-                  12, 
-              unselectedFontSize:
-                  12,  
-              showSelectedLabels: true,  
-              showUnselectedLabels: true,  
+              elevation: 0,
+              iconSize: 22,
+              selectedFontSize: 12,
+              unselectedFontSize: 12,
+              showSelectedLabels: true,
+              showUnselectedLabels: true,
               items: [
                 BottomNavigationBarItem(
                   icon: Container(
