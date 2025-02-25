@@ -1,5 +1,5 @@
-// ignore: depend_on_referenced_packages
 import 'dart:async';
+import 'dart:convert';
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -10,25 +10,30 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:user_auth_crudd10/auth/auth_check.dart';
 import 'package:user_auth_crudd10/onscreen/onboardingWrapper.dart';
 import 'package:user_auth_crudd10/pages/Mercadopago/payment_service.dart';
-import 'package:user_auth_crudd10/pages/PartidosDisponibles/MatchDetailsScreen.dart'; // Importar MatchDetailsScreen
+import 'package:user_auth_crudd10/pages/PartidosDisponibles/MatchDetailsScreen.dart';
+import 'package:user_auth_crudd10/pages/screens/BonoScreen.dart';
 import 'package:user_auth_crudd10/pages/screens/bookin/booking_screen.dart';
-import 'package:user_auth_crudd10/services/functions/firebase_notification.dart';
+import 'package:user_auth_crudd10/services/BonoService.dart';
+ import 'package:user_auth_crudd10/services/functions/firebase_notification.dart';
 import 'package:user_auth_crudd10/services/notifcationService.dart';
 import 'package:user_auth_crudd10/services/providers/storage_ans_provider.dart';
 import 'package:user_auth_crudd10/services/providers/storage_provider.dart';
 import 'package:user_auth_crudd10/services/settings/theme_data.dart';
 import 'package:user_auth_crudd10/services/settings/theme_provider.dart';
-import 'package:user_auth_crudd10/model/MathPartido.dart'; // Importar MathPartido
-import 'package:user_auth_crudd10/services/MatchService.dart'; // Importar MatchService
+import 'package:user_auth_crudd10/model/MathPartido.dart';
+import 'package:user_auth_crudd10/services/MatchService.dart';
+import 'package:user_auth_crudd10/utils/constantes.dart';
 import 'firebase_options.dart';
+import 'package:http/http.dart' as http;
 
 // Llaves globales
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
+  final BonoService _bonoService = BonoService(baseUrl: baseUrl);
 
 // Stream controller para estado del pago
-final paymentStatusController = StreamController<PaymentStatus>.broadcast();
+final paymentStatusController = StreamController<Map<String, dynamic>>.broadcast();
 final PaymentService _paymentService = PaymentService();
 
 enum PaymentStatus { success, failure, approved, pending, unknown }
@@ -39,10 +44,9 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 
 Future<void> createNotificationChannel() async {
   const AndroidNotificationChannel channel = AndroidNotificationChannel(
-    'default_notification_channel', // ID del canal
-    'Default Channel', // Nombre del canal
-    description:
-        'This channel is used for important notifications.', // Descripción
+    'default_notification_channel',
+    'Default Channel',
+    description: 'This channel is used for important notifications.',
     importance: Importance.high,
   );
 
@@ -52,14 +56,12 @@ Future<void> createNotificationChannel() async {
       ?.createNotificationChannel(channel);
 }
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inicializaciones
   SharedPreferences prefs = await SharedPreferences.getInstance();
   int isviewed = prefs.getInt('onBoard') ?? 1;
 
-  // Crear el canal de notificación
   await createNotificationChannel();
 
   try {
@@ -73,13 +75,21 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await FirbaseApi().initNotifications();
 
-  // Configurar deep links
   await _setupDeepLinks();
 
-  runApp(
+runApp(
     ChangeNotifierProvider(
       create: (context) => ThemeProvider(),
-      child: MyApp(isviewed: isviewed),
+      child: Builder(
+        builder: (context) {
+          // Configurar navigatorKey después de que MaterialApp se inicialice
+if (navigatorKey.currentState != null) {
+  navigatorKey.currentState!.push(
+    MaterialPageRoute(builder: (context) => BonosScreen(bonoService: _bonoService)),
+  );
+}          return MyApp(isviewed: isviewed);
+        },
+      ),
     ),
   );
 }
@@ -87,18 +97,21 @@ void main() async {
 Future<void> _setupDeepLinks() async {
   final appLinks = AppLinks();
 
-  // Manejar deep link inicial (app cerrada)
+  // Manejar deep link inicial solo si la app no está inicializando desde un estado autenticado
   try {
     final initialUri = await appLinks.getInitialAppLink();
     if (initialUri != null) {
       debugPrint('Deep link inicial: $initialUri');
-      _handleDeepLink(initialUri);
+      // Solo procesar si estamos en una pantalla que puede manejar pagos (por ejemplo, después de AuthCheckMain)
+      if (navigatorKey.currentState != null) {
+        _handleDeepLink(initialUri);
+      }
     }
   } catch (e) {
     debugPrint('Error al obtener deep link inicial: $e');
   }
 
-  // Manejar deep links en primer plano
+  // Manejar deep links en tiempo real
   appLinks.uriLinkStream.listen(
     (Uri? uri) {
       if (uri != null) {
@@ -117,40 +130,37 @@ void _handleDeepLink(Uri uri) async {
   debugPrint('Ruta del deep link: ${uri.path}');
   debugPrint('Parámetros del deep link: ${uri.queryParameters}');
 
-  // Manejo de deep links de pago (existente)
   if (uri.scheme == 'footconnect' && uri.host == 'checkout') {
-    PaymentStatus status;
+    String? paymentId = uri.queryParameters['payment_id'];
+    String? externalReference = uri.queryParameters['external_reference'];
+    Map<String, dynamic> event = {
+      'paymentId': paymentId,
+      'orderId': externalReference,
+    };
 
     if (uri.path.contains('/success') || uri.path.contains('/approved')) {
-      status = PaymentStatus.success;
-      _onPaymentSuccess(uri); // Llama a la función existente
-    } else if (uri.path.contains('/failure') ||
-        uri.path.contains('/rejected')) {
-      status = PaymentStatus.failure;
-    } else if (uri.path.contains('/pending') ||
-        uri.path.contains('/in_process')) {
-      status = PaymentStatus.pending;
+      event['status'] = PaymentStatus.success;
+      _onPaymentSuccess(uri); // Procesar éxito según el tipo
+    } else if (uri.path.contains('/failure') || uri.path.contains('/rejected')) {
+      event['status'] = PaymentStatus.failure;
+    } else if (uri.path.contains('/pending') || uri.path.contains('/in_process')) {
+      event['status'] = PaymentStatus.pending;
     } else {
-      // Estado desconocido: verificar con el backend
-      final paymentId = uri.queryParameters['payment_id'];
       try {
-        final paymentStatus =
-            await _paymentService.verifyPaymentStatus(paymentId!);
-        if (paymentStatus == 'approved' || paymentStatus == 'success') {
-          status = PaymentStatus.success;
-        } else {
-          status = PaymentStatus.unknown;
+        final paymentStatus = await _paymentService.verifyPaymentStatus(paymentId!);
+        event['status'] = paymentStatus == 'approved' ? PaymentStatus.success : PaymentStatus.unknown;
+        if (event['status'] == PaymentStatus.success) {
+          _onPaymentSuccess(uri);
         }
       } catch (e) {
         debugPrint('Error al verificar el estado del pago: $e');
-        status = PaymentStatus.unknown;
+        event['status'] = PaymentStatus.unknown;
       }
     }
-    paymentStatusController.add(status);
+    paymentStatusController.add(event);
     return;
   }
 
-  // Manejo de deep links de partidos (nuevo)
   if (uri.scheme == 'miapp' && uri.host == 'partido') {
     final matchId = uri.pathSegments.isNotEmpty ? uri.pathSegments[0] : null;
     if (matchId != null) {
@@ -172,7 +182,6 @@ void _handleDeepLink(Uri uri) async {
     }
   }
 }
-
 void _onPaymentSuccess(Uri uri) async {
   final paymentId = uri.queryParameters['payment_id'];
   final externalReference = uri.queryParameters['external_reference'];
@@ -180,27 +189,55 @@ void _onPaymentSuccess(Uri uri) async {
   try {
     final paymentStatus = await _paymentService.verifyPaymentStatus(paymentId!);
     if (paymentStatus == 'approved' || paymentStatus == 'success') {
-      ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
-        SnackBar(content: Text('¡Pago aprobado!')),
+      final orderResponse = await http.get(
+        Uri.parse('https://proyect.aftconta.mx/api/orders/$externalReference'),
+        headers: {
+          'Authorization': 'Bearer ${await _paymentService.storage.getToken()}',
+          'Accept': 'application/json',
+        },
       );
-      Navigator.of(navigatorKey.currentContext!).pushReplacement(
-        MaterialPageRoute(builder: (context) => const BookingScreen()),
-      );
+
+      if (orderResponse.statusCode == 200) {
+        final orderData = jsonDecode(orderResponse.body);
+        debugPrint('Order data recibido: $orderData');
+        debugPrint('Type de orderData[\'type\']: ${orderData['type'].runtimeType}');
+
+        final orderType = orderData['type'].toString();
+
+        ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
+          SnackBar(content: Text('¡Pago aprobado!')),
+        );
+
+        if (orderType == 'booking') {
+          Navigator.of(navigatorKey.currentContext!).push(
+            MaterialPageRoute(builder: (context) => const BookingScreen()),
+          );
+        } else if (orderType == 'bono') {
+          Navigator.of(navigatorKey.currentContext!).push(
+            MaterialPageRoute(builder: (context) => BonosScreen(bonoService: _bonoService)),
+          );
+        } else {
+          debugPrint('Tipo de orden desconocido: $orderType');
+          Navigator.of(navigatorKey.currentContext!).pop();
+        }
+      } else {
+        debugPrint('Error al obtener la orden: ${orderResponse.body}');
+        _showPaymentMessage('Error al procesar el pago', Colors.red);
+      }
     } else {
       debugPrint('Estado de pago no esperado: $paymentStatus');
+      _showPaymentMessage('Pago no aprobado', Colors.orange);
     }
   } catch (e) {
     debugPrint('Error al verificar el estado del pago: $e');
+    _showPaymentMessage('Error al procesar el pago: $e', Colors.red);
   }
 }
 
 void _showPaymentMessage(String message, Color color) {
   scaffoldMessengerKey.currentState?.showSnackBar(
     SnackBar(
-      content: Text(
-        message,
-        style: const TextStyle(color: Colors.white),
-      ),
+      content: Text(message, style: const TextStyle(color: Colors.white)),
       backgroundColor: color,
       duration: const Duration(seconds: 4),
       behavior: SnackBarBehavior.floating,
@@ -209,9 +246,7 @@ void _showPaymentMessage(String message, Color color) {
 }
 
 void _refreshBookings() {
-  // Implementar lógica para actualizar la lista de reservas
-  // Por ejemplo:
-  // Provider.of<BookingsProvider>(navigatorKey.currentContext!, listen: false).loadBookings();
+  // Implementar si es necesario
 }
 
 class MyApp extends StatelessWidget {

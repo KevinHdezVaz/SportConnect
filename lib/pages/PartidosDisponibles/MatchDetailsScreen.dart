@@ -57,7 +57,7 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
     _selectedPredefinedTeam = null; // Inicializar aquí
     _tabController = TabController(length: 2, vsync: this);
     _loadTeams();
-    _setupPaymentListener();
+   // _setupPaymentListener();
     _fieldFuture = getFieldById(widget.match.fieldId!);
     _initializePositions();
     _predefinedTeamsFuture = _loadPredefinedTeams();
@@ -106,6 +106,7 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
     throw Exception('Failed to load field');
   }
 
+/*
   void _setupPaymentListener() {
     _paymentSubscription =
         paymentStatusController.stream.listen((status) async {
@@ -131,6 +132,7 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
       }
     });
   }
+*/
 
   @override
   void dispose() {

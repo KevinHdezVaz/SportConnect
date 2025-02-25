@@ -86,8 +86,7 @@ class _BookingScreenState extends State<BookingScreen> {
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
           centerTitle: true,
           elevation: 0,
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.blue[800],
+           foregroundColor: Colors.blue[800],
         ),
         body: Column(
           children: [

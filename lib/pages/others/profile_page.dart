@@ -225,6 +225,12 @@ class _ProfilePageState extends State<ProfilePage> {
                                   title: 'Mi Código',
                                   subtitle: 'Para unirme a equipos',
                                   onTap: _mostrarCodigo,
+                                ), 
+                                   _buildMenuItem(
+                                  icon: Icons.monetization_on,
+                                  title: 'Mis Reservaciones',
+                                  subtitle: 'Ver Reservaciones',
+                                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => BookingScreen())),
                                 ),
                             
                                 _buildMenuItem(

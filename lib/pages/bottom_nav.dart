@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:user_auth_crudd10/pages/home_page.dart';
 import 'package:user_auth_crudd10/pages/others/profile_page.dart';
+import 'package:user_auth_crudd10/pages/screens/BonoScreen.dart';
 import 'package:user_auth_crudd10/pages/screens/bookin/booking_screen.dart';
 import 'package:user_auth_crudd10/pages/screens/fields_screen.dart';
+import 'package:user_auth_crudd10/services/BonoService.dart';
+import 'package:user_auth_crudd10/utils/constantes.dart';
 
 class BottomNavBar extends StatefulWidget {
   const BottomNavBar({super.key});
@@ -13,47 +16,51 @@ class BottomNavBar extends StatefulWidget {
 
 class _BottomNavBarState extends State<BottomNavBar> {
   int _selectedIndex = 0;
-
-  void _changeIndex(int index) {
+  final BonoService _bonoService = BonoService(baseUrl: baseUrl);
+  late final List<Widget> _pages;
+   void _changeIndex(int index) {
     setState(() {
       _selectedIndex = index;
     });
   }
 
-  List<Widget> _pages = [
-    HomePage(),
-    BookingScreen(),
-    FieldsScreen(),
-    ProfilePage(),
-  ];
-
+@override
+  void initState() {
+    super.initState();
+    _pages = [
+      HomePage(),
+      BonosScreen(bonoService: _bonoService),
+      FieldsScreen(),
+      ProfilePage(),
+    ];
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages[_selectedIndex],
       bottomNavigationBar: Container(
-        color: Colors.white, // Fondo azul para el BottomNavigationBar
+        color: Colors.white,  
         child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(12), // Bordes redondeados
+            borderRadius: BorderRadius.circular(12), 
             child: BottomNavigationBar(
               type: BottomNavigationBarType.fixed,
-              selectedItemColor: Colors.white, // Color del ítem seleccionado
+              selectedItemColor: Colors.white,  
               unselectedItemColor: Colors.white
-                  .withOpacity(0.6), // Color del ítem no seleccionado
+                  .withOpacity(0.6),  
               backgroundColor:
-                  Colors.blue, // Fondo azul para el BottomNavigationBar
+                  Colors.blue, 
               currentIndex: _selectedIndex,
               onTap: _changeIndex,
-              elevation: 0, // Eliminar la sombra
-              iconSize: 22, // Tamaño más pequeño para los íconos
+              elevation: 0, 
+              iconSize: 22,  
               selectedFontSize:
-                  12, // Tamaño de fuente más pequeño para el texto seleccionado
+                  12, 
               unselectedFontSize:
-                  12, // Tamaño de fuente más pequeño para el texto no seleccionado
-              showSelectedLabels: true, // Mostrar etiquetas seleccionadas
-              showUnselectedLabels: true, // Mostrar etiquetas no seleccionadas
+                  12,  
+              showSelectedLabels: true,  
+              showUnselectedLabels: true,  
               items: [
                 BottomNavigationBarItem(
                   icon: Container(
@@ -86,14 +93,14 @@ class _BottomNavBarState extends State<BottomNavBar> {
                           : Colors.transparent,
                     ),
                     child: Icon(
-                      Icons.question_answer,
+                      Icons.shopping_cart_sharp,
                       color: _selectedIndex == 1
                           ? Colors.white
                           : Colors.white.withOpacity(0.6),
                       size: 22, // Tamaño reducido del ícono
                     ),
                   ),
-                  label: "Reservas",
+                  label: "Bonos",
                 ),
                 BottomNavigationBarItem(
                   icon: Container(

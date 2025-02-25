@@ -133,70 +133,43 @@ class _BookingDialogState extends State<BookingDialog> {
       return;
     }
 
-    setState(() {
-      isLoading = true;
-    });
+    setState(() => isLoading = true);
 
-    try {
-      // 1. Crear items para MercadoPago
-      final items = [
-        OrderItem(
-          title: "Reserva - ${widget.field.name}",
-          quantity: 1,
-          unitPrice: double.parse(widget.field.price_per_match.toString()),
-        ),
-      ];
+  try {
+    final items = [
+      OrderItem(
+        title: "Reserva - ${widget.field.name}",
+        quantity: 1,
+        unitPrice: double.parse(widget.field.price_per_match.toString()),
+      ),
+    ];
 
-      // Configurar listener para el estado del pago
-      late StreamSubscription paymentSubscription;
-      paymentSubscription = paymentStatusController.stream.listen((status) {
-        paymentSubscription
-            .cancel(); // Cancelar después de recibir el primer evento
-
-        switch (status) {
-          case PaymentStatus.success:
-            widget.onBookingComplete?.call();
-            Navigator.pop(context, true);
-            break;
-          case PaymentStatus.failure:
-            Navigator.pop(context, false);
-            break;
-          case PaymentStatus.pending:
-            Navigator.pop(context, 'pending');
-            break;
-          default:
-            Navigator.pop(context, false);
-        }
-      });
-
-      // 2. Procesar el pago con MercadoPago
-      await _paymentService.procesarPago(context, items, additionalData: {
-        'field_id': widget.field.id,
+    final paymentResult = await _paymentService.procesarPago(
+      context,
+      items,
+      additionalData: {
+        'reference_id': widget.field.id,
         'date': DateFormat('yyyy-MM-dd').format(selectedDate),
         'start_time': selectedTime,
         'players_needed': playersNeeded,
-        'customer': {
-          'name': 'Usuario', // Aquí deberías poner el nombre real del usuario
-          'email':
-              'usuario@ejemplo.com', // Aquí deberías poner el email real del usuario
-        },
-      });
-    } catch (e, stackTrace) {
-      debugPrint("Error: ${e.toString()}");
-      debugPrint("Stack trace: $stackTrace");
+        'customer': {'name': 'Usuario', 'email': 'usuario@ejemplo.com'},
+      },
+      type: 'booking',
+    );
 
-      Fluttertoast.showToast(
-        msg: 'Error al procesar el pago: ${e.toString()}',
-        backgroundColor: Colors.red,
-      );
-
-      await _refreshAvailableHours();
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
+    if (paymentResult['status'] == PaymentStatus.success) {
+      widget.onBookingComplete?.call();
+      Navigator.pop(context, true);
+    } else {
+      Fluttertoast.showToast(msg: 'Pago ${paymentResult['status']}', backgroundColor: Colors.orange);
     }
+  } catch (e) {
+    Fluttertoast.showToast(msg: 'Error al procesar el pago: $e', backgroundColor: Colors.red);
+    await _refreshAvailableHours();
+  } finally {
+    setState(() => isLoading = false);
   }
+}
 
   Widget _buildConfirmButton() {
     final bool isDisabled = isLoading || selectedTime == null;
