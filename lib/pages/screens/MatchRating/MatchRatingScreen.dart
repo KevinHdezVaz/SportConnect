@@ -343,21 +343,23 @@ class _MatchRatingScreenState extends State<MatchRatingScreen>
   }
 
   Widget _buildCommentField(int userId) {
-    return TextField(
-      maxLines: 2,
-      decoration: InputDecoration(
-        hintText: 'Escribe un comentario (opcional)',
-        hintStyle: TextStyle(color: Colors.black),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey[300]!),
-        ),
-        filled: true,
-        fillColor: Colors.grey[50],
-        contentPadding: const EdgeInsets.all(12),
-      ),
-      onChanged: (value) => _comments[userId] = value,
-    );
+  return TextField(
+  maxLines: 2,
+  style: TextStyle(color: Colors.black),  
+  decoration: InputDecoration(
+    hintText: 'Escribe un comentario (opcional)',
+    hintStyle: TextStyle(color: Colors.black54),  
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Colors.grey[300]!),
+    ),
+    filled: true,
+    fillColor: Colors.grey[50],
+    contentPadding: const EdgeInsets.all(12),
+  ),
+  onChanged: (value) => _comments[userId] = value,
+);
+
   }
 
   Widget _buildMvpSelection() {

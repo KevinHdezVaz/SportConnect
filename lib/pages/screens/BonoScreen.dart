@@ -287,7 +287,7 @@ class _BonosScreenState extends State<BonosScreen>
                 ),
                 TextSpan(text: ' por '),
                 TextSpan(
-                  text: '\$${bono.precio.toStringAsFixed(2)} MXN',
+                  text: '\$${bono.precio.toStringAsFixed(2)} UYU',
                   style: TextStyle(color: Colors.green.shade700),
                 ),
                 TextSpan(text: '?'),

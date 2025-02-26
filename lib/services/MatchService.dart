@@ -6,6 +6,7 @@ import 'package:user_auth_crudd10/model/Equipo.dart';
 import 'package:user_auth_crudd10/model/MatchTeam.dart';
 import 'package:user_auth_crudd10/model/MathPartido.dart';
 import 'package:user_auth_crudd10/model/OrderItem.dart';
+import 'package:user_auth_crudd10/pages/Mercadopago/payment_service.dart';
 import 'package:user_auth_crudd10/services/storage_service.dart';
 import 'package:user_auth_crudd10/utils/constantes.dart';
 
@@ -59,29 +60,75 @@ class MatchService {
     }
   }
 
-  Future<Map<String, dynamic>> registerPredefinedTeamForMatch(int matchId,
-      int predefinedTeamId, int targetTeamId // Agregar este parámetro
-      ) async {
-    final url = Uri.parse('$baseUrl/match-teams/register-predefined-team');
+Future<void> finalizeTeamRegistration(int teamId) async {
+  try {
     final token = await storage.getToken();
-
+    final url = Uri.parse('$baseUrl/match-teams/$teamId/finalize');
     final response = await http.post(
       url,
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       },
-      body: jsonEncode({
-        'match_id': matchId,
-        'predefined_team_id': predefinedTeamId,
-        'target_team_id': targetTeamId // Agregar este campo
-      }),
     );
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+    debugPrint('Finalize Team Response status: ${response.statusCode}');
+    debugPrint('Finalize Team Response body: ${response.body}');
+
+    if (response.statusCode != 200) {
+      throw Exception('Error al finalizar inscripción: ${response.body}');
     }
-    throw Exception('Failed to register predefined team');
+  } catch (e) {
+    debugPrint('Error en finalizeTeamRegistration: $e');
+    throw Exception('Error al finalizar inscripción: $e');
+  }
+}
+
+  Future<Map<String, dynamic>> registerPredefinedTeamForMatch(
+      int matchId,
+      int predefinedTeamId,
+      int targetTeamId // Agregar este parámetro
+      ) async {
+    debugPrint('⚽ Iniciando registro de equipo predefinido para partido...');
+    debugPrint('📊 Parámetros: matchId=$matchId, predefinedTeamId=$predefinedTeamId, targetTeamId=$targetTeamId');
+    
+    final url = Uri.parse('$baseUrl/match-teams/register-predefined-team');
+     
+    final token = await storage.getToken();
+     
+    final requestBody = {
+      'match_id': matchId,
+      'predefined_team_id': predefinedTeamId,
+      'target_team_id': targetTeamId // Agregar este campo
+    };
+    debugPrint('📦 Body del request: ${jsonEncode(requestBody)}');
+    
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(requestBody),
+      );
+      
+      debugPrint('📡 Status code respuesta: ${response.statusCode}');
+      debugPrint('📡 Respuesta: ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final decodedResponse = jsonDecode(response.body);
+        debugPrint('✅ Registro exitoso de equipo predefinido');
+        return decodedResponse;
+      } else {
+        debugPrint('❌ Error en registro: Status ${response.statusCode}');
+        debugPrint('❌ Detalle error: ${response.body}');
+        throw Exception('Failed to register predefined team: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('💥 Excepción capturada: $e');
+      throw Exception('Failed to register predefined team: $e');
+    }
   }
 
   Future<List<Equipo>> getPredefinedTeams() async {
@@ -398,48 +445,87 @@ class MatchService {
     }
   }
 
-  // Procesar pago y unirse al equipo
-  Future<void> processTeamJoinPayment(
-      int teamId, String position, double price, int matchId) async {
-    try {
-      // Validaciones básicas
-      if (teamId <= 0) throw Exception('ID de equipo inválido');
-      if (position.isEmpty) throw Exception('Posición requerida');
-      if (price <= 0) throw Exception('Precio inválido');
-      if (matchId <= 0) throw Exception('ID de partido inválido');
-
-      // Por ahora, solo unirse al equipo
+  // Actualiza este método en tu clase MatchService
+Future<Map<String, dynamic>> processTeamJoinPayment(
+    int teamId, String position, double price, int matchId, BuildContext context) async {
+  try {
+    // Validaciones básicas
+    if (teamId <= 0) throw Exception('ID de equipo inválido');
+    if (position.isEmpty) throw Exception('Posición requerida');
+    if (price <= 0) throw Exception('Precio inválido');
+    if (matchId <= 0) throw Exception('ID de partido inválido');
+    
+    // Si el partido es gratuito, simplemente unirse sin pago
+    if (price == 0) {
       await joinTeam(teamId, position, matchId);
+      return {'status': 'success', 'message': 'Te has unido al equipo exitosamente'};
+    }
+    
+    // Obtener datos del usuario actual para el pago
+    final authService = AuthService();
+    final currentUserId = await authService.getCurrentUserId();
+    final userData = await authService.getProfile();
+    
+    // Crear los items para el pago
+    final items = [
+      OrderItem(
+        title: "Inscripción a Partido",
+        quantity: 1,
+        unitPrice: price,
+      )
+    ];
+    
+    // Datos adicionales para el procesamiento del pago
+    final additionalData = {
+      'customer': {
+        'name': userData['name'] ?? 'Usuario',
+        'email': userData['email'] ?? 'usuario@ejemplo.com',
+      },
+      'reference_id': matchId,
+      'team_id': teamId,
+      'position': position,
+    };
+    
+    // Usar el PaymentService existente para procesar el pago
+    final paymentService = PaymentService();
+    final result = await paymentService.procesarPago(
+      context,
+      items,
+      additionalData: additionalData,
+      type: 'match', // Usar 'match' como tipo para identificar
+    );
+    
+    debugPrint('Resultado del pago: $result');
+    return result;
+  } catch (e) {
+    debugPrint('Error procesando pago: $e');
+    throw Exception('Error al procesar el pago: $e');
+  }
+}
 
-      /* Implementación futura del sistema de pago
-      final items = [
-        OrderItem(
-          title: "Inscripción a Partido",
-          quantity: 1,
-          unitPrice: price,
-        )
-      ];
-
-      final userData = await AuthService().getProfile();
-      final additionalData = {
-        'payer': {
-          'name': userData['name'] ?? 'Usuario',
-          'email': userData['email'] ?? 'usuario@ejemplo.com',
+Future<List<dynamic>> getUserBonos() async {
+    try {
+      final token = await storage.getToken();
+      final response = await http.get(
+        Uri.parse('$baseUrl/bonos/mis-bonos'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
         },
-        'team_id': teamId,
-        'position': position,
-        'match_id': matchId,
-        'type': 'team_join'
-      };
+      );
 
-      final paymentService = PaymentService();
-      final result = await paymentService.createPayment(items, additionalData);
-      */
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Error al obtener bonos: ${response.statusCode}');
+      }
     } catch (e) {
-      debugPrint('Error procesando pago: $e');
-      throw Exception('Error al procesar el pago: $e');
+      debugPrint('Error en getUserBonos: $e');
+      return [];
     }
   }
+
+  
 
   // Unirse a un partido
   Future<void> joinMatch(int matchId) async {

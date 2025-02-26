@@ -116,7 +116,6 @@ Future<void> _setupDeepLinks() async {
     },
   );
 }
-
 void _handleDeepLink(Uri uri) async {
   debugPrint('Procesando deep link: ${uri.toString()}');
   debugPrint('Ruta del deep link: ${uri.path}');
@@ -125,27 +124,30 @@ void _handleDeepLink(Uri uri) async {
   if (uri.scheme == 'footconnect' && uri.host == 'checkout') {
     String? paymentId = uri.queryParameters['payment_id'];
     String? externalReference = uri.queryParameters['external_reference'];
+    String? status = uri.queryParameters['status'];
+    
     Map<String, dynamic> event = {
       'paymentId': paymentId,
       'orderId': externalReference,
     };
 
-    if (uri.path.contains('/success') || uri.path.contains('/approved')) {
+    // Determinar el estado del pago
+    if (uri.path.contains('/success') || uri.path.contains('/approved') || status == 'approved') {
       event['status'] = PaymentStatus.success;
       _onPaymentSuccess(uri); // Procesar éxito según el tipo
-    } else if (uri.path.contains('/failure') ||
-        uri.path.contains('/rejected')) {
+    } else if (uri.path.contains('/failure') || uri.path.contains('/rejected') || status == 'rejected') {
       event['status'] = PaymentStatus.failure;
-    } else if (uri.path.contains('/pending') ||
-        uri.path.contains('/in_process')) {
+    } else if (uri.path.contains('/pending') || uri.path.contains('/in_process') || status == 'pending' || status == 'in_process') {
       event['status'] = PaymentStatus.pending;
     } else {
       try {
-        final paymentStatus =
-            await _paymentService.verifyPaymentStatus(paymentId!);
+        final paymentStatus = await _paymentService.verifyPaymentStatus(paymentId!);
+        debugPrint('Estado verificado del pago: $paymentStatus');
+        
         event['status'] = paymentStatus == 'approved'
             ? PaymentStatus.success
             : PaymentStatus.unknown;
+            
         if (event['status'] == PaymentStatus.success) {
           _onPaymentSuccess(uri);
         }
@@ -154,6 +156,8 @@ void _handleDeepLink(Uri uri) async {
         event['status'] = PaymentStatus.unknown;
       }
     }
+    
+    debugPrint('Enviando evento al controlador de pagos: $event');
     paymentStatusController.add(event);
     return;
   }
@@ -180,13 +184,26 @@ void _handleDeepLink(Uri uri) async {
   }
 }
 
-void _onPaymentSuccess(Uri uri) async {
+ 
+ void _onPaymentSuccess(Uri uri) async {
   final paymentId = uri.queryParameters['payment_id'];
   final externalReference = uri.queryParameters['external_reference'];
-
+  
+  debugPrint('Procesando pago exitoso: payment_id=$paymentId, external_reference=$externalReference');
+  
+  if (paymentId == null || externalReference == null) {
+    debugPrint('Error: payment_id o external_reference es null');
+    _showPaymentMessage('Error en los datos del pago', Colors.red);
+    return;
+  }
+  
   try {
-    final paymentStatus = await _paymentService.verifyPaymentStatus(paymentId!);
+    final paymentStatus = await _paymentService.verifyPaymentStatus(paymentId);
+    debugPrint('Estado verificado del pago: $paymentStatus');
+    
     if (paymentStatus == 'approved' || paymentStatus == 'success') {
+      debugPrint('Obteniendo detalles de la orden: $externalReference');
+      
       final orderResponse = await http.get(
         Uri.parse('https://proyect.aftconta.mx/api/orders/$externalReference'),
         headers: {
@@ -194,35 +211,54 @@ void _onPaymentSuccess(Uri uri) async {
           'Accept': 'application/json',
         },
       );
-
+      
+      debugPrint('Respuesta de la orden: status=${orderResponse.statusCode}, body=${orderResponse.body}');
+      
       if (orderResponse.statusCode == 200) {
         final orderData = jsonDecode(orderResponse.body);
         debugPrint('Order data recibido: $orderData');
-        debugPrint(
-            'Type de orderData[\'type\']: ${orderData['type'].runtimeType}');
-
+        
         final orderType = orderData['type'].toString();
-
-        ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
-          SnackBar(content: Text('¡Pago aprobado!')),
-        );
-
+        debugPrint('Tipo de orden: $orderType');
+        
+        // Notificar al usuario de que el pago fue aprobado
+        if (navigatorKey.currentContext != null) {
+          ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
+            SnackBar(content: Text('¡Pago aprobado!')),
+          );
+        }
+        
+        // Manejar la navegación según el tipo de orden
         if (orderType == 'booking') {
+          debugPrint('Navegando a BookingScreen');
           Navigator.of(navigatorKey.currentContext!).push(
             MaterialPageRoute(builder: (context) => const BookingScreen()),
           );
         } else if (orderType == 'bono') {
-          // En lugar de push simple, usa pushAndRemoveUntil para limpiar la pila de navegación
-          // y volver a la pantalla principal con BottomNavBar
+          debugPrint('Navegando a BottomNavBar (index 1)');
           Navigator.of(navigatorKey.currentContext!).pushAndRemoveUntil(
             MaterialPageRoute(
                 builder: (context) => BottomNavBar(initialIndex: 1)),
-            (route) =>
-                false, // Esto elimina todas las pantallas anteriores de la pila
+            (route) => false,
           );
+        } else if (orderType == 'match') {
+          debugPrint('Pago para partido procesado exitosamente');
+          
+          // Para pagos de tipo 'match', refrescar la pantalla actual
+          if (navigatorKey.currentContext != null) {
+            
+            // Actualizar el controlador para que el MatchDetailsScreen se actualice
+            if (orderData['payment_details'] != null && 
+                orderData['reference_id'] != null) {
+              // También aquí podríamos intentar una recarga forzada
+              // pero ya debería funcionar con el evento del controlador
+            }
+          }
         } else {
           debugPrint('Tipo de orden desconocido: $orderType');
-          Navigator.of(navigatorKey.currentContext!).pop();
+          if (navigatorKey.currentContext != null) {
+            Navigator.of(navigatorKey.currentContext!).pop();
+          }
         }
       } else {
         debugPrint('Error al obtener la orden: ${orderResponse.body}');
@@ -237,6 +273,7 @@ void _onPaymentSuccess(Uri uri) async {
     _showPaymentMessage('Error al procesar el pago: $e', Colors.red);
   }
 }
+
 
 void _showPaymentMessage(String message, Color color) {
   scaffoldMessengerKey.currentState?.showSnackBar(
