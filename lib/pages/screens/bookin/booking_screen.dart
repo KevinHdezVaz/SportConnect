@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:user_auth_crudd10/auth/booking_service.dart';
 import 'package:user_auth_crudd10/model/booking.dart';
 import 'package:user_auth_crudd10/pages/screens/bookin/BookingDetailsScreen.dart';
 
 class BookingScreen extends StatefulWidget {
   const BookingScreen({Key? key}) : super(key: key);
-
   @override
   _BookingScreenState createState() => _BookingScreenState();
 }
@@ -24,13 +24,13 @@ class _BookingScreenState extends State<BookingScreen> {
     super.initState();
     _loadReservations();
   }
+  //pago para el sabado 08/03 a las 22:00 
 
   Future<void> _loadReservations() async {
     try {
       setState(() => isLoading = true);
       final active = await bookingService.getActiveReservations();
       final history = await bookingService.getReservationHistory();
-
       setState(() {
         activeReservations = active;
         reservationHistory = history;
@@ -42,26 +42,88 @@ class _BookingScreenState extends State<BookingScreen> {
     }
   }
 
-  Future<void> _handleCancelReservation(int id) async {
-    try {
-      final result = await bookingService.cancelReservation(id.toString());
-      if (result) {
-        await _loadReservations();
-        _showSuccessSnackBar('Reserva cancelada exitosamente');
-      } else {
-        _showErrorSnackBar('No se pudo cancelar la reserva');
-      }
-    } catch (e) {
-      _showErrorSnackBar('Error al cancelar la reserva');
+  Future<void> _handleCancelReservation(Booking reservation) async {
+  try {
+    // Verificar si se puede cancelar (menos de 2 horas de anticipación)
+    final now = DateTime.now();
+    if (reservation.startTime.difference(now).inHours < 2) {
+      _showErrorSnackBar('No puedes cancelar con menos de 2 horas de antelación');
+      return;
     }
-  }
 
+    // Solicitar confirmación al usuario
+    bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar cancelación', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),),
+        content: const Text('La reserva será cancelada y el monto se reembolsará a tu monedero. ¿Deseas continuar?', style: TextStyle(color: Colors.black),),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('No'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Sí, cancelar reserva', style: TextStyle(color: Colors.white),),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) {
+      return;
+    }
+
+    // Procesar la cancelación
+    final result = await bookingService.cancelReservation(reservation.id.toString());
+    
+    // Si la operación fue exitosa O si la reserva ya estaba cancelada
+    if (result['success'] || (result['message'] != null && result['message'].contains('ya está cancelada'))) {
+      // Recargar las reservas en ambos casos
+      await _loadReservations();
+      
+      if (result['success']) {
+        _showSuccessSnackBar(result['message'] ?? 'Reserva cancelada exitosamente');
+        
+        // Mostrar cuánto se reembolsó si está disponible
+        if (result['refunded_amount'] != null) {
+          Fluttertoast.showToast(
+            msg: 'Monto reembolsado: \$${result['refunded_amount']}',
+            backgroundColor: Colors.blue,
+            toastLength: Toast.LENGTH_LONG,
+          );
+        }
+      } else {
+        // Si la reserva ya estaba cancelada, mostrar esa información
+        _showInfoSnackBar(result['message']);
+      }
+    } else {
+      _showErrorSnackBar(result['message'] ?? 'No se pudo cancelar la reserva');
+    }
+  } catch (e) {
+    _showErrorSnackBar('Error al cancelar la reserva: $e');
+  }
+}
+
+// Añade un nuevo método para mostrar información (no es error ni éxito)
+void _showInfoSnackBar(String message) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message, style: const TextStyle(color: Colors.white)),
+      backgroundColor: Colors.blue[700],
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    ),
+  );
+}
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text(message, style: const TextStyle(color: Colors.white)),
         backgroundColor: Colors.red[800],
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
@@ -69,9 +131,10 @@ class _BookingScreenState extends State<BookingScreen> {
   void _showSuccessSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text(message, style: const TextStyle(color: Colors.white)),
         backgroundColor: Colors.green[800],
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
@@ -80,46 +143,52 @@ class _BookingScreenState extends State<BookingScreen> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-        backgroundColor: Colors.grey[50],
+        backgroundColor: Colors.grey[100],
         appBar: AppBar(
-          title: const Text('Mis Reservas',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          title: const Text(
+            'Mis Reservas',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
+          ),
           centerTitle: true,
-          elevation: 0,
-           foregroundColor: Colors.blue[800],
+          backgroundColor: Colors.white,
+          elevation: 2,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios, color: Colors.blue),
+            onPressed: () => Navigator.pop(context),
+          ),
         ),
         body: Column(
           children: [
-            // Tabs modernos con indicador animado
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+              padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
               child: Container(
+                padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   color: Colors.grey[200],
                   borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Row(
                   children: [
-                    Expanded(
-                      child: _buildTabButton('active', 'Reservas Activas'),
-                    ),
-                    Expanded(
-                      child: _buildTabButton('history', 'Historial'),
-                    ),
+                    Expanded(child: _buildTabButton('active', 'Reservas Activas')),
+                    Expanded(child: _buildTabButton('history', 'Historial')),
                   ],
                 ),
               ),
             ),
-
-            // Contenido de las reservas
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: isLoading
                     ? const Center(
                         child: CircularProgressIndicator(
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.blue),
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
                         ),
                       )
                     : PageView(
@@ -143,7 +212,7 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   Widget _buildTabButton(String tabType, String text) {
-    return InkWell(
+    return GestureDetector(
       onTap: () {
         setState(() => activeTab = tabType);
         _pageController.animateToPage(
@@ -155,14 +224,21 @@ class _BookingScreenState extends State<BookingScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: activeTab == tabType ? Colors.blue[800] : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
+          gradient: activeTab == tabType
+              ? LinearGradient(
+                  colors: [Colors.blue[800]!, Colors.blue[600]!],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+          color: activeTab == tabType ? null : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Center(
           child: Text(
             text,
             style: TextStyle(
-              color: activeTab == tabType ? Colors.white : Colors.blue,
+              color: activeTab == tabType ? Colors.white : Colors.blue[800],
               fontWeight: FontWeight.bold,
               fontSize: 16,
             ),
@@ -179,49 +255,41 @@ class _BookingScreenState extends State<BookingScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.calendar_today,
-              size: 50,
+              Icons.event_busy_outlined,
+              size: 60,
               color: Colors.grey[400],
             ),
             const SizedBox(height: 16),
             Text(
-              isActive
-                  ? 'No tienes reservas activas'
-                  : 'No hay historial de reservas',
+              isActive ? 'Sin reservas activas' : 'Sin historial de reservas',
               style: TextStyle(
                 fontSize: 18,
                 color: Colors.grey[600],
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
         ),
       );
     }
-
     return ListView.builder(
       itemCount: reservations.length,
       itemBuilder: (context, index) {
         final reservation = reservations[index];
-        return InkWell(
-          // Agregar este widget
+        return GestureDetector(
           onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => BookingDetailsScreen(
-                  booking: reservation,
-                  isActive: isActive,
-                ),
+                builder: (context) => BookingDetailsScreen(booking: reservation, isActive: isActive),
               ),
-            );
+            ).then((_) => _loadReservations()); // Recargar al volver
           },
           child: Card(
-            margin: const EdgeInsets.symmetric(vertical: 8),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            elevation: 2,
+            margin: const EdgeInsets.symmetric(vertical: 10),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            elevation: 4,
+            color: Colors.white,
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -243,19 +311,22 @@ class _BookingScreenState extends State<BookingScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          '${reservation.fieldName}',
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.blueGrey,
+        Flexible(
+          child: Text(
+            reservation.fieldName,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
-        if (isActive)
+        if (isActive && reservation.status.toLowerCase() != 'cancelled')
           IconButton(
-            icon: const Icon(Icons.cancel, size: 24),
-            color: Colors.red[800],
-            onPressed: () => _handleCancelReservation(reservation.id),
+            icon: Icon(Icons.cancel_outlined, size: 26, color: Colors.red[800]),
+            onPressed: () => _handleCancelReservation(reservation),
+            tooltip: 'Cancelar reserva',
           ),
       ],
     );
@@ -265,17 +336,17 @@ class _BookingScreenState extends State<BookingScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildInfoRow(Icons.calendar_today, Colors.blue[800]!,
+        _buildInfoRow(Icons.calendar_today_outlined, Colors.blue[800]!,
             _formatDateTime(reservation.startTime)),
-        const SizedBox(height: 8),
-        _buildInfoRow(Icons.access_time, Colors.green[800]!,
+        const SizedBox(height: 10),
+        _buildInfoRow(Icons.access_time_filled, Colors.green[800]!,
             '${_formatTime(reservation.startTime)} - ${_formatTime(reservation.endTime)}'),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         _buildInfoRow(Icons.attach_money, Colors.purple[800]!,
-            'Precio: ${reservation.totalPrice.toStringAsFixed(2)}'),
-        const SizedBox(height: 8),
-        _buildInfoRow(
-            Icons.info, Colors.orange[800]!, 'Estado: ${reservation.status}'),
+            '\$${reservation.totalPrice.toStringAsFixed(2)}'),
+        const SizedBox(height: 10),
+        _buildInfoRow(Icons.info_outline, _getStatusColor(reservation.status),
+            'Estado: ${_getStatusText(reservation.status)}'),
       ],
     );
   }
@@ -283,13 +354,24 @@ class _BookingScreenState extends State<BookingScreen> {
   Widget _buildInfoRow(IconData icon, Color color, String text) {
     return Row(
       children: [
-        Icon(icon, color: color, size: 20),
-        const SizedBox(width: 8),
-        Text(
-          text,
-          style: const TextStyle(
-            fontSize: 16,
-            color: Colors.blueGrey,
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.black87,
+              fontWeight: FontWeight.w500,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
@@ -302,5 +384,35 @@ class _BookingScreenState extends State<BookingScreen> {
 
   String _formatTime(DateTime dateTime) {
     return DateFormat('HH:mm').format(dateTime);
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Colors.orange[800]!;
+      case 'completed':
+        return Colors.green[800]!;
+      case 'cancelled':
+        return Colors.red[800]!;
+      case 'confirmed':
+        return Colors.blue[800]!;
+      default:
+        return Colors.blue[800]!;
+    }
+  }
+  
+  String _getStatusText(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'Pendiente';
+      case 'completed':
+        return 'Completada';
+      case 'cancelled':
+        return 'Cancelada';
+      case 'confirmed':
+        return 'Confirmada';
+      default:
+        return status;
+    }
   }
 }

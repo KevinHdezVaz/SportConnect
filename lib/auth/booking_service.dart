@@ -34,31 +34,58 @@ class BookingService {
     }
   }
 
-  // Método para cancelar reserva
-  Future<bool> cancelReservation(String reservationId) async {
-    try {
-      final token = await storage.getToken();
-      final response = await http.post(
-        Uri.parse('$baseUrl/cancelReservation/$reservationId'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
+Future<Map<String, dynamic>> cancelReservation(String reservationId) async {
+  try {
+    final token = await storage.getToken();
+    final response = await http.put(
+      Uri.parse('$baseUrl/bookings/$reservationId/cancel'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'reason': 'Usuario canceló la reserva'}), 
+    );
 
+    debugPrint('Cancel Booking Status Code: ${response.statusCode}');
+    debugPrint('Cancel Booking Response: ${response.body}');
+
+    try {
+      final responseData = json.decode(response.body);
+      
       if (response.statusCode == 200) {
-        print('Reserva cancelada exitosamente');
-        return true;
+        return {
+          'success': true,
+          'message': responseData['message'] ?? 'Reserva cancelada exitosamente',
+          'refunded_amount': responseData['refunded_amount'],
+          'booking': responseData['booking']
+        };
+      } else if (response.statusCode == 400 && responseData['message'] == 'La reserva ya está cancelada') {
+        // Manejar específicamente el caso donde la reserva ya está cancelada
+        return {
+          'success': false,
+          'message': responseData['message']
+        };
       } else {
-        print(
-            'Error al cancelar la reserva. Código de estado: ${response.statusCode}');
-        return false;
+        return {
+          'success': false,
+          'message': responseData['message'] ?? 'Error al cancelar la reserva'
+        };
       }
     } catch (e) {
-      print('Error al cancelar la reserva: $e');
-      return false;
+      debugPrint('Error al decodificar JSON: $e');
+      return {
+        'success': false,
+        'message': 'Error en el servidor. Por favor, inténtalo más tarde.'
+      };
     }
+  } catch (e) {
+    debugPrint('Error al cancelar la reserva: $e');
+    return {
+      'success': false,
+      'message': 'Error de conexión: ${e.toString()}'
+    };
   }
+}
 
   Future<List<String>> getAvailableHours(int fieldId, String date) async {
     try {
@@ -153,55 +180,105 @@ class BookingService {
     }
   }
 
-  Future<Map<String, dynamic>> createBooking({
-    required int fieldId,
-    required String date,
-    required String startTime,
-    int? playersNeeded,
-  }) async {
-    try {
-      final token = await storage.getToken();
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/bookings'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: json.encode({
-          'field_id': fieldId,
-          'date': date,
-          'start_time': startTime,
-          'players_needed': playersNeeded,
-        }),
-      );
-
-      debugPrint('Booking Status Code: ${response.statusCode}');
-      debugPrint('Booking Response: ${response.body}');
-
-      if (response.statusCode == 201) {
-        return {'success': true, 'message': 'Reserva creada exitosamente'};
-      } else if (response.statusCode == 422) {
-        final responseData = json.decode(response.body);
-        return {
-          'success': false,
-          'message': responseData['message'] ?? 'Horario no disponible'
-        };
-      } else {
-        final responseData = json.decode(response.body);
-        return {
-          'success': false,
-          'message': responseData['message'] ?? 'Error al crear la reserva'
-        };
+Future<Map<String, dynamic>> createBooking({
+  required int fieldId,
+  required String date,
+  required String startTime,
+  int? playersNeeded,
+  bool useWallet = false,
+  String? paymentId,
+  String? orderId,
+}) async {
+  try {
+    final token = await storage.getToken();
+     
+    final Map<String, dynamic> requestData = {
+      'field_id': fieldId,
+      'date': date,
+      'start_time': startTime,
+      'players_needed': playersNeeded,
+      'use_wallet': useWallet,
+    };
+    
+    // Agregar payment_id y order_id solo si no son nulos
+    if (paymentId != null) {
+      requestData['payment_id'] = paymentId;
+    }
+    
+    if (orderId != null) {
+      requestData['order_id'] = orderId;
+    }
+    
+    final response = await http.post(
+      Uri.parse('$baseUrl/bookings'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: json.encode(requestData),
+    );
+    
+    debugPrint('Booking Status Code: ${response.statusCode}');
+    debugPrint('Booking Response: ${response.body}');
+    
+    // Aceptar tanto 201 (creado) como 200 (encontrado existente)
+    if (response.statusCode == 201 || response.statusCode == 200) {
+      return {
+        'success': true, 
+        'data': json.decode(response.body),
+        'message': response.statusCode == 200 
+            ? 'La reserva ya fue procesada anteriormente' 
+            : 'Reserva creada exitosamente'
+      };
+    } else if (response.statusCode == 422) {
+      final responseData = json.decode(response.body);
+      
+      // Si el error es por horario no disponible pero tenemos un payment_id,
+      // verificar si ya existe una reserva con ese payment_id
+      if (paymentId != null && responseData['message'] == 'Horario no disponible') {
+        // Intentar verificar si la reserva ya existe con ese paymentId
+        final verifyResponse = await http.get(
+          Uri.parse('$baseUrl/bookings/check-payment/$paymentId'),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        );
+        
+        if (verifyResponse.statusCode == 200) {
+          final verifyData = json.decode(verifyResponse.body);
+          if (verifyData['exists'] == true) {
+            return {
+              'success': true,
+              'message': 'La reserva ya fue procesada exitosamente',
+              'booking_id': verifyData['booking_id']
+            };
+          }
+        }
       }
-    } catch (e) {
-      debugPrint('Error en la reserva: $e');
+      
       return {
         'success': false,
-        'message': 'Error de conexión: ${e.toString()}'
+        'message': responseData['message'] ?? 'Horario no disponible'
+      };
+    } else {
+      final responseData = json.decode(response.body);
+      return {
+        'success': false,
+        'message': responseData['message'] ?? 'Error al crear la reserva'
       };
     }
+  } catch (e) {
+    debugPrint('Error en la reserva: $e');
+    return {
+      'success': false,
+      'message': 'Error de conexión: ${e.toString()}'
+    };
   }
+}
+
+
 
   Future<List<Booking>> getReservationHistory() async {
     try {

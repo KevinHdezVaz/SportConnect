@@ -258,8 +258,16 @@ class _FieldDetailScreenState extends State<FieldDetailScreen>
                 child: Column(
                   children: [
                     Container(
-                      color: const Color.fromARGB(255, 135, 183, 223),
-                      padding: EdgeInsets.all(16),
+decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color.fromARGB(255, 81, 139, 190), // Color inicial
+                  Color.fromARGB(255, 234, 237, 238), // Color final
+                ],
+                begin: Alignment.center, // Punto de inicio del gradiente
+                end: Alignment.bottomCenter, // Punto final del gradiente
+              ),
+            ),                      padding: EdgeInsets.all(16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [

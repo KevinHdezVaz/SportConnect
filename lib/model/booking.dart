@@ -4,7 +4,7 @@ class Booking {
   final int id;
   final int userId;
   final int fieldId;
-  final String fieldName; // Agregar esta propiedad
+  final String fieldName;
   final DateTime startTime;
   final DateTime endTime;
   final double totalPrice;
@@ -21,7 +21,7 @@ class Booking {
     required this.id,
     required this.userId,
     required this.fieldId,
-    required this.fieldName, 
+    required this.fieldName,
     required this.startTime,
     required this.endTime,
     required this.totalPrice,
@@ -60,9 +60,9 @@ class Booking {
       id: json['id'],
       userId: json['user_id'],
       fieldId: json['field_id'],
-      fieldName: json['field']['name'] ?? '', // Obtener el nombre desde la relación
-      startTime: DateTime.parse(json['start_time']),
-      endTime: DateTime.parse(json['end_time']),
+      fieldName: json['field']['name'] ?? '',
+      startTime: DateTime.parse(json['start_time']).toLocal(), // Convertir UTC a local (CST)
+      endTime: DateTime.parse(json['end_time']).toLocal(),     // Convertir UTC a local (CST)
       totalPrice: double.parse(json['total_price'].toString()),
       status: json['status'],
       paymentStatus: json['payment_status'],
@@ -80,7 +80,7 @@ class Booking {
       'id': id,
       'user_id': userId,
       'field_id': fieldId,
-      'field_name': fieldName, // Agregar al toJson
+      'field_name': fieldName,
       'start_time': startTime.toIso8601String(),
       'end_time': endTime.toIso8601String(),
       'total_price': totalPrice,

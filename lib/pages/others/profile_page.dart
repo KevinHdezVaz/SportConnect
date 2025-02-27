@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:user_auth_crudd10/auth/auth_check.dart';
 import 'package:user_auth_crudd10/auth/auth_service.dart';
+import 'package:user_auth_crudd10/pages/WalletScreen.dart';
 import 'package:user_auth_crudd10/pages/others/StatsTab.dart';
 import 'package:user_auth_crudd10/pages/screens/Equipos/detalle_equipo.screen.dart';
 import 'package:user_auth_crudd10/pages/screens/Equipos/invitaciones.screen.dart';
@@ -221,13 +222,21 @@ class _ProfilePageState extends State<ProfilePage> {
                                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => InvitacionesScreen())),
                                 ),
                                 _buildMenuItem(
+                                  icon: Icons.monetization_on,
+                                  title: 'Monedero',
+                                  subtitle: 'Ver mi Monedero',
+                                  count: _invitacionesPendientes,
+                                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => WalletScreen())),
+                                ),
+
+                                _buildMenuItem(
                                   icon: Icons.qr_code,
                                   title: 'Mi Código',
                                   subtitle: 'Para unirme a equipos',
                                   onTap: _mostrarCodigo,
                                 ), 
                                    _buildMenuItem(
-                                  icon: Icons.monetization_on,
+                                  icon: Icons.sports_soccer,
                                   title: 'Mis Reservaciones',
                                   subtitle: 'Ver Reservaciones',
                                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => BookingScreen())),

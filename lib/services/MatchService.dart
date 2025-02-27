@@ -335,54 +335,73 @@ Future<void> finalizeTeamRegistration(int teamId) async {
     }
   }
 
-  Future<void> joinTeam(int teamId, String position, int matchId) async {
-    if (teamId <= 0) throw Exception('ID de equipo inválido');
-    if (position.isEmpty) throw Exception('Posición requerida');
-    if (matchId <= 0) throw Exception('ID de partido inválido');
 
-    try {
-      // Primero verificamos si la posición está disponible
-      final teams = await getTeamsForMatch(matchId);
-      final team = teams.firstWhere((t) => t.id == teamId);
+//enum JoinTeamStatus { initial, processing, success, error }
 
-      if (team.players.any((player) => player.position == position)) {
-        throw Exception('La posición ya está ocupada');
-      }
+ Future<void> joinTeam(int teamId, String position, int matchId,
+    {bool useWallet = false}) async {
+  if (teamId <= 0) throw Exception('ID de equipo inválido');
+  if (position.isEmpty) throw Exception('Posición requerida');
+  if (matchId <= 0) throw Exception('ID de partido inválido');
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/matches/join-team'),
-        headers: await getHeaders(),
-        body: json.encode({
+  try {
+    // Primero verificamos si la posición está disponible
+    final teams = await getTeamsForMatch(matchId);
+    final team = teams.firstWhere((t) => t.id == teamId);
+
+    if (team.players.any((player) => player.position == position)) {
+      throw Exception('La posición ya está ocupada');
+    }
+
+    final token = await storage.getToken();
+    final url = Uri.parse('$baseUrl/match/join-team');
+    final response = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'match_id': matchId,
+        'equipo_partido_id': teamId,
+        'position': position,
+        'use_wallet': useWallet, // Enviar si se usa el monedero
+      }),
+    );
+
+    debugPrint('Request URL: $url');
+    debugPrint('Request body: ${jsonEncode({
           'match_id': matchId,
           'equipo_partido_id': teamId,
           'position': position,
-        }),
-      );
+          'use_wallet': useWallet,
+        })}');
+    debugPrint('Response status: ${response.statusCode}');
+    debugPrint('Response body: ${response.body}');
 
-      debugPrint('Request URL: ${Uri.parse('$baseUrl/matches/join-team')}');
-      debugPrint('Request body: ${json.encode({
-            'match_id': matchId,
-            'equipo_partido_id': teamId,
-            'position': position,
-          })}');
-      debugPrint('Response status: ${response.statusCode}');
-      debugPrint('Response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        return;
-      } else if (response.statusCode == 422) {
-        final error = json.decode(response.body);
-        throw Exception(error['message'] ?? 'Error de validación');
+    if (response.statusCode == 200) {
+      // Éxito: el usuario se unió al equipo
+      final jsonResponse = jsonDecode(response.body);
+      if (jsonResponse['used_wallet'] == true) {
+        debugPrint(
+            'Pago exitoso con monedero: \$${jsonResponse['amount_paid']}');
       } else {
-        final errorMessage = json.decode(response.body)['message'] ??
-            'Error al unirse al equipo';
-        throw Exception(errorMessage);
+        debugPrint('Unión al equipo exitosa sin pago con monedero');
       }
-    } catch (e) {
-      debugPrint('Error al unirse al equipo: $e');
-      throw Exception('Error al unirse al equipo: $e');
+      return;
+    } else if (response.statusCode == 422) {
+      final error = jsonDecode(response.body);
+      throw Exception(error['message'] ?? 'Error de validación');
+    } else {
+      final errorMessage = jsonDecode(response.body)['message'] ??
+          'Error al unirse al equipo';
+      throw Exception(errorMessage);
     }
+  } catch (e) {
+    debugPrint('Error al unirse al equipo: $e');
+    throw Exception('Error al unirse al equipo: $e');
   }
+}
 
   Future<bool> isUserTeamCaptain(int teamId) async {
     try {
@@ -418,30 +437,21 @@ Future<void> finalizeTeamRegistration(int teamId) async {
     }
   }
 
-  Future<void> leaveTeam(int matchId) async {
-    try {
-      print('Intentando abandonar partido: $matchId');
-      final url = Uri.parse('$baseUrl/matches/$matchId/leave');
-      final token = await storage.getToken();
-      print('Token obtenido: $token');
+ Future<dynamic> leaveTeam(int matchId) async {
+    final token = await StorageService().getToken();
+    final url = Uri.parse('$baseUrl/api/match-teams/leave/$matchId');
+    final response = await http.delete(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
 
-      final response = await http.post(
-        url,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      print('Respuesta del servidor: ${response.statusCode}');
-      print('Cuerpo de la respuesta: ${response.body}');
-
-      if (response.statusCode != 200) {
-        throw Exception('Error al abandonar el equipo: ${response.body}');
-      }
-    } catch (e) {
-      print('Error en leaveTeam: $e');
-      throw e;
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to leave team: ${response.body}');
     }
   }
 

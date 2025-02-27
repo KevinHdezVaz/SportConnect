@@ -15,15 +15,21 @@ class BookingDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white, // Fondo blanco sólido
       appBar: AppBar(
-        title: const Text('Detalles de Reserva',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Detalles de Reserva',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
         centerTitle: true,
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.blue[800],
+        backgroundColor: Colors.white,
+        elevation: 2,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios),
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.blue),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -46,35 +52,46 @@ class BookingDetailsScreen extends StatelessWidget {
 
   Widget _buildStatusCard() {
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [_getStatusColor(), _getStatusColor().withOpacity(0.6)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        padding: const EdgeInsets.all(20),
         width: double.infinity,
         child: Column(
           children: [
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: _getStatusColor().withOpacity(0.1),
+                color: Colors.white.withOpacity(0.9),
                 borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white, width: 1),
               ),
               child: Text(
                 booking.status.toUpperCase(),
                 style: TextStyle(
                   color: _getStatusColor(),
                   fontWeight: FontWeight.bold,
+                  fontSize: 16,
                 ),
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Text(
-              '${booking.fieldName}',
+              booking.fieldName,
               style: const TextStyle(
-                fontSize: 24,
-                color: Colors.black,
+                fontSize: 26,
+                color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -84,29 +101,30 @@ class BookingDetailsScreen extends StatelessWidget {
 
   Widget _buildDetailsCard() {
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      color: Colors.white,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               'Información de la Reserva',
               style: TextStyle(
-                fontSize: 18,
-                color: Colors.black,
+                fontSize: 20,
+                color: Colors.black87,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 16),
             _buildDetailRow(
-              Icons.calendar_today,
+              Icons.calendar_today_outlined,
               'Fecha',
               DateFormat('dd/MM/yyyy').format(booking.startTime),
             ),
             _buildDetailRow(
-              Icons.access_time,
+              Icons.access_time_filled,
               'Hora',
               '${DateFormat('HH:mm').format(booking.startTime)} - ${DateFormat('HH:mm').format(booking.endTime)}',
             ),
@@ -116,18 +134,18 @@ class BookingDetailsScreen extends StatelessWidget {
               '\$${booking.totalPrice.toStringAsFixed(2)}',
             ),
             _buildDetailRow(
-              Icons.confirmation_number,
+              Icons.confirmation_number_outlined,
               'ID de Reserva',
               '#${booking.id}',
             ),
             if (booking.paymentMethod != null)
               _buildDetailRow(
-                Icons.payment,
+                Icons.payment_outlined,
                 'Método de Pago',
                 booking.paymentMethod!,
               ),
             _buildDetailRow(
-              Icons.event_available,
+              Icons.event_available_outlined,
               'Estado de Pago',
               booking.paymentStatus,
             ),
@@ -138,28 +156,50 @@ class BookingDetailsScreen extends StatelessWidget {
   }
 
   Widget _buildDetailRow(IconData icon, String title, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Row(
         children: [
-          Icon(icon, color: Colors.blue[800], size: 24),
-          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: const BoxDecoration(
+              color: Colors.blue,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: Colors.white, size: 24),
+          ),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: TextStyle(
-                    color: Colors.grey[600],
+                  style: const TextStyle(
+                    color: Colors.black, // Subtítulo en negro
                     fontSize: 14,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
+                const SizedBox(height: 4),
                 Text(
                   value,
                   style: const TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
