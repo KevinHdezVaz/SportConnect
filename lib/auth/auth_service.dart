@@ -239,71 +239,42 @@ class AuthService {
     return idStr != null ? int.parse(idStr) : null;
   }
 
-  Future<bool> register({
+   Future<bool> register({
     required String name,
     required String email,
-    required String password,
     required String codigpostal,
+    required String password,
     required String phone,
     File? profileImage,
+    String? referralCode,
   }) async {
-    try {
-      final uri = Uri.parse('$baseUrl/register');
-      final request = http.MultipartRequest('POST', uri);
+    var request = http.MultipartRequest(
+      'POST',
+      Uri.parse('https://proyect.aftconta.mx/api/register'),
+    );
 
-      // Imprimir URL y cuerpo de la solicitud
-      print('Request URL: $baseUrl/register');
-      print('Request body: ${json.encode({
-            'name': name,
-            'email': email,
-            'codigo_postal': codigpostal,
-            'password': password,
-            'phone': phone,
-          })}');
+    request.fields['name'] = name;
+    request.fields['email'] = email;
+    request.fields['codigo_postal'] = codigpostal;
+    request.fields['password'] = password;
+    request.fields['phone'] = phone;
+    if (referralCode != null) {
+      request.fields['referral_code'] = referralCode;
+    }
 
-      request.fields['name'] = name;
-      request.fields['email'] = email;
-      request.fields['password'] = password;
-      request.fields['codigo_postal'] = codigpostal;
-      request.fields['phone'] = phone;
+    if (profileImage != null) {
+      request.files.add(await http.MultipartFile.fromPath('profile_image', profileImage.path));
+    }
 
-      if (profileImage != null) {
-        print('Profile image path: ${profileImage.path}');
-        print('File size: ${await profileImage.length()} bytes');
+    final response = await request.send();
+    final responseData = await response.stream.bytesToString();
+    final jsonResponse = jsonDecode(responseData);
 
-        final fileStream = http.ByteStream(profileImage.openRead());
-        final length = await profileImage.length();
-        final multipartFile = http.MultipartFile(
-          'profile_image',
-          fileStream,
-          length,
-          filename: profileImage.path.split('/').last,
-        );
-        request.files.add(multipartFile);
-        print('Profile image added to request');
-      }
-
-      // Enviar solicitud
-      final response = await request.send();
-      final responseBody = await response.stream.bytesToString();
-
-      // Imprimir detalles de la respuesta
-      print('Response status: ${response.statusCode}');
-      print('Response body: $responseBody');
-
-      if (response.statusCode != 200 && response.statusCode != 201) {
-        throw Exception('Error: ${response.statusCode}');
-      }
-
-      final data = json.decode(responseBody);
-      if (data['token'] != null) {
-        await storage.saveToken(data['token']);
-        return true;
-      }
-      return false;
-    } catch (e) {
-      print('Error login: $e');
-      return false;
+    if (response.statusCode == 201) {
+      return true;
+    } else {
+      throw Exception(jsonResponse['message'] ?? 'Error al registrar usuario');
     }
   }
-}
+    }
+  

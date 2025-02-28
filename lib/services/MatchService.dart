@@ -36,6 +36,35 @@ class MatchService {
     }
   }
 
+
+Future<List<Map<String, dynamic>>> getComments(int matchId) async {
+    final token = await storage.getToken();
+    final response = await http.get(
+      Uri.parse('$baseUrl/matches/$matchId/comments'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) {
+      return List<Map<String, dynamic>>.from(jsonDecode(response.body));
+    }
+    throw Exception('Failed to load comments');
+  }
+
+  Future<void> addComment(int matchId, String text) async {
+    final token = await storage.getToken();
+    final response = await http.post(
+      Uri.parse('$baseUrl/matches/$matchId/comments'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'text': text}),
+    );
+    if (response.statusCode != 201) {
+      throw Exception('Failed to add comment: ${response.body}');
+    }
+  }
+
+  
   Future<List<dynamic>> getTopMvpPlayers() async {
     try {
       final token = await storage.getToken();
@@ -436,24 +465,33 @@ Future<void> finalizeTeamRegistration(int teamId) async {
       throw Exception('Failed to leave team as group');
     }
   }
+ 
 
- Future<dynamic> leaveTeam(int matchId) async {
-    final token = await StorageService().getToken();
-    final url = Uri.parse('$baseUrl/api/match-teams/leave/$matchId');
-    final response = await http.delete(
-      url,
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-    );
+Future<dynamic> leaveTeam(int teamId) async {
+  debugPrint('Intentando abandonar el equipo con teamId: $teamId');
+  final token = await StorageService().getToken();
+  final url = Uri.parse('$baseUrl/match-teams/$teamId/leave');
+  final response = await http.post(
+    url,
+    headers: {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    },
+  );
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Failed to leave team: ${response.body}');
-    }
+  debugPrint('Request URL: $url');
+  debugPrint('Response status: ${response.statusCode}');
+  debugPrint('Response body: ${response.body}');
+
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body);
+  } else if (response.statusCode == 404) {
+    throw Exception('Ruta no encontrada: ${response.body}');
+  } else {
+    final error = jsonDecode(response.body)['error'] ?? 'Error al abandonar el equipo';
+    throw Exception('Error al abandonar el equipo: $error - Status ${response.statusCode}');
   }
+}
 
   // Actualiza este método en tu clase MatchService
 Future<Map<String, dynamic>> processTeamJoinPayment(

@@ -81,7 +81,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
                       size: 22, // Tamaño reducido del ícono
                     ),
                   ),
-                  label: "Home",
+                  label: "Eventos",
                 ),
                 BottomNavigationBarItem(
                   icon: Container(
@@ -141,7 +141,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
                       size: 22, // Tamaño reducido del ícono
                     ),
                   ),
-                  label: "Profile",
+                  label: "Perfil",
                 ),
               ],
             ),

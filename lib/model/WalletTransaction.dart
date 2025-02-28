@@ -1,3 +1,4 @@
+
 class WalletTransaction {
   String type;
   double? amount;
@@ -14,7 +15,6 @@ class WalletTransaction {
   });
 
   factory WalletTransaction.fromJson(Map<String, dynamic> json) {
-    // Manejo más robusto para el amount
     double? amountValue;
     final amountRaw = json['amount'];
     if (amountRaw != null) {
@@ -24,8 +24,7 @@ class WalletTransaction {
         amountValue = double.tryParse(amountRaw);
       }
     }
-    
-    // Manejo más robusto para los points
+
     int? pointsValue;
     final pointsRaw = json['points'];
     if (pointsRaw != null) {
@@ -37,7 +36,7 @@ class WalletTransaction {
         pointsValue = pointsRaw.toInt();
       }
     }
-    
+
     return WalletTransaction(
       type: json['type'] ?? '',
       amount: amountValue,

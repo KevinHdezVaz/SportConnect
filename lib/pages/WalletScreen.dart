@@ -1,10 +1,11 @@
-// lib/pages/wallet_screen.dart
+import 'package:clipboard/clipboard.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
 import 'package:user_auth_crudd10/model/Wallet.dart';
-import 'package:user_auth_crudd10/services/WalletService.dart'; 
-
+import 'package:user_auth_crudd10/services/WalletService.dart';
+import 'package:share_plus/share_plus.dart'; // Para compartir
+ 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
   @override
@@ -15,65 +16,68 @@ class _WalletScreenState extends State<WalletScreen> {
   late WalletService _walletService;
   Wallet? wallet;
   bool isLoading = true;
-  final TextEditingController _referralController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    // Inicializar el servicio sin pasar token
     _walletService = WalletService();
     _loadWallet();
   }
 
+  Future<void> _loadWallet() async {
+    debugPrint('Iniciando carga del monedero...');
+    try {
+      debugPrint('Llamando a _walletService.getWallet()');
+      final loadedWallet = await _walletService.getWallet();
+      debugPrint('Monedero cargado exitosamente: balance=${loadedWallet.balance}, points=${loadedWallet.points}, referral_code=${loadedWallet.referralCode}');
+      
+      if (mounted) {
+        debugPrint('Widget montado, actualizando estado');
+        setState(() {
+          wallet = loadedWallet;
+          isLoading = false;
+          debugPrint('Estado actualizado: wallet asignado, isLoading=$isLoading');
+        });
+      } else {
+        debugPrint('Widget no montado, no se actualiza el estado');
+      }
+    } catch (e) {
+      debugPrint('Error al cargar el monedero: $e');
+      Fluttertoast.showToast(msg: 'Error al cargar monedero: $e');
+      if (mounted) {
+        debugPrint('Widget montado, estableciendo isLoading=false tras error');
+        setState(() => isLoading = false);
+      } else {
+        debugPrint('Widget no montado, no se actualiza estado tras error');
+      }
+    }
+  }
 
-Future<void> _loadWallet() async {
-  debugPrint('Iniciando carga del monedero...');
-  try {
-    debugPrint('Llamando a _walletService.getWallet()');
-    final loadedWallet = await _walletService.getWallet();
-    debugPrint('Monedero cargado exitosamente: balance=${loadedWallet.balance}, points=${loadedWallet.points}');
-    
-    if (mounted) {
-      debugPrint('Widget montado, actualizando estado');
-      setState(() {
-        wallet = loadedWallet;
-        isLoading = false;
-        debugPrint('Estado actualizado: wallet asignado, isLoading=$isLoading');
+  // Función para compartir el referral_code
+  void _shareReferralCode() {
+    if (wallet?.referralCode != null) {
+      Share.share(
+        '¡Únete a la app con mi código de referido ${wallet!.referralCode} y ambos ganaremos 350 UYU cuando juegues tu primer partido!',
+        subject: 'Invitación a la app',
+      );
+    } else {
+      Fluttertoast.showToast(msg: 'No se encontró tu código de referido');
+    }
+  }
+
+  // Función para copiar el referral_code al portapapeles
+  void _copyReferralCode() {
+    if (wallet?.referralCode != null) {
+      FlutterClipboard.copy(wallet!.referralCode!).then((value) {
+        Fluttertoast.showToast(
+          msg: 'Código de referido copiado al portapapeles',
+          backgroundColor: Colors.green,
+        );
       });
     } else {
-      debugPrint('Widget no montado, no se actualiza el estado');
-    }
-  } catch (e) {
-    debugPrint('Error al cargar el monedero: $e');
-    Fluttertoast.showToast(msg: 'Error al cargar monedero: $e');
-    if (mounted) {
-      debugPrint('Widget montado, estableciendo isLoading=false tras error');
-      setState(() => isLoading = false);
-    } else {
-      debugPrint('Widget no montado, no se actualiza estado tras error');
+      Fluttertoast.showToast(msg: 'No se encontró tu código de referido');
     }
   }
-}
-
-  Future<void> _handleReferral(String referralCode) async {
-    setState(() => isLoading = true);
-    try {
-      await _walletService.addReferralPoints(referralCode);
-      await _loadWallet(); // Recargar el monedero tras agregar puntos
-      Fluttertoast.showToast(msg: 'Puntos por referido agregados', backgroundColor: Colors.green);
-    } catch (e) {
-      Fluttertoast.showToast(msg: 'Error al procesar referido: $e', backgroundColor: Colors.red);
-    } finally {
-      if (mounted) setState(() => isLoading = false);
-    }
-  }
-
-  @override
-  void dispose() {
-    _referralController.dispose();
-    super.dispose();
-  }
-
 
   @override
   Widget build(BuildContext context) {
@@ -99,7 +103,6 @@ Future<void> _loadWallet() async {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Saldo y puntos
           Card(
             elevation: 4,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -133,8 +136,6 @@ Future<void> _loadWallet() async {
             ),
           ),
           const SizedBox(height: 16),
-
-          // Sección de referidos
           Card(
             elevation: 4,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -144,34 +145,41 @@ Future<void> _loadWallet() async {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Invita y Gana',
+                    'Tu Código de Referido',
                     style: TextStyle(fontSize: 18, color: Colors.blue, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
-                  TextField(
-                    controller: _referralController,
-                    decoration: InputDecoration(
-                      labelText: 'Ingresa código de referido',
-                      border: OutlineInputBorder(),
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.send),
-                        onPressed: () => _handleReferral(_referralController.text),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween, 
+                    children: [
+                      Text(
+                        wallet!.referralCode ?? 'No disponible',
+                        style: TextStyle(fontSize: 20, color: Colors.black, fontWeight: FontWeight.bold),
                       ),
-                    ),
-                    onSubmitted: _handleReferral,
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.copy, color: Colors.blue),
+                            onPressed: _copyReferralCode,
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.share, color: Colors.blue),
+                            onPressed: _shareReferralCode,
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Invita a un amigo y ambos ganan 50 puntos.',
-                    style: TextStyle(color: Colors.grey),
+                    'Comparte tu código con un amigo. Cuando se registre con él y juegue su primer partido, ambos ganarán 350 UYU.',
+                    style: TextStyle(color: Colors.black87),
                   ),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 16),
-
-          // Historial de transacciones
           Card(
             elevation: 4,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -202,13 +210,13 @@ Future<void> _loadWallet() async {
                                     ? Colors.green
                                     : Colors.red,
                               ),
-                              title: Text(tx.description, style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),),
-                              subtitle: Text(DateFormat('dd/MM/yyyy HH:mm').format(tx.date), style: TextStyle(color: Colors.black),),
+                              title: Text(tx.description, style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                              subtitle: Text(DateFormat('dd/MM/yyyy HH:mm').format(tx.date), style: TextStyle(color: Colors.black)),
                               trailing: Text(
                                 tx.amount != null
                                     ? '\$${tx.amount!.toStringAsFixed(2)}'
                                     : '${tx.points} pts',
-                                style: TextStyle( 
+                                style: TextStyle(
                                   fontSize: 15,
                                   color: tx.type == 'deposit' || tx.type == 'points_earned'
                                       ? Colors.green

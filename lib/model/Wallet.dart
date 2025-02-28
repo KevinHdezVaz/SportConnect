@@ -3,16 +3,17 @@ import 'package:user_auth_crudd10/model/WalletTransaction.dart';
 class Wallet {
   double balance;
   int points;
+  String? referralCode; // Añadimos el campo referralCode
   List<WalletTransaction> transactions;
-  
+
   Wallet({
     required this.balance,
     required this.points,
+    this.referralCode,
     required this.transactions,
   });
-  
+
   factory Wallet.fromJson(Map<String, dynamic> json) {
-    // Manejo más robusto para el balance
     double balanceValue;
     final balanceRaw = json['balance'];
     if (balanceRaw is num) {
@@ -22,8 +23,7 @@ class Wallet {
     } else {
       balanceValue = 0.0;
     }
-    
-    // Manejo más robusto para los puntos
+
     int pointsValue;
     final pointsRaw = json['points'];
     if (pointsRaw is int) {
@@ -35,13 +35,15 @@ class Wallet {
     } else {
       pointsValue = 0;
     }
-    
+
     return Wallet(
       balance: balanceValue,
       points: pointsValue,
+      referralCode: json['referral_code'] as String?, // Parseamos el referral_code
       transactions: (json['transactions'] as List? ?? [])
           .map((t) => WalletTransaction.fromJson(t))
           .toList(),
     );
   }
 }
+ 

@@ -44,10 +44,10 @@ class _BookingScreenState extends State<BookingScreen> {
 
   Future<void> _handleCancelReservation(Booking reservation) async {
   try {
-    // Verificar si se puede cancelar (menos de 2 horas de anticipación)
+    // Verificar si se puede cancelar (menos de 5 de anticipación)
     final now = DateTime.now();
-    if (reservation.startTime.difference(now).inHours < 2) {
-      _showErrorSnackBar('No puedes cancelar con menos de 2 horas de antelación');
+    if (reservation.startTime.difference(now).inHours < 5) {
+      _showErrorSnackBar('No puedes cancelar con menos de 5 horas de antelación');
       return;
     }
 

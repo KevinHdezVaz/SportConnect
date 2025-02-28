@@ -225,9 +225,9 @@ if (bookingResult['success']) {
     final startTime = booking.startTime;
     final now = DateTime.now();
 
-    if (startTime.difference(now).inHours < 2) {
+    if (startTime.difference(now).inHours < 5) {
       Fluttertoast.showToast(
-        msg: 'No puedes cancelar con menos de 2 horas de antelación',
+        msg: 'No puedes cancelar con menos de 5 horas de antelación',
         backgroundColor: Colors.red,
       );
       setState(() => isLoading = false);

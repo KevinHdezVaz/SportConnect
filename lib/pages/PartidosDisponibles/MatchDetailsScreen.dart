@@ -15,12 +15,13 @@ import 'package:user_auth_crudd10/main.dart';
 import 'package:user_auth_crudd10/model/Equipo.dart';
 import 'package:user_auth_crudd10/model/MatchTeam.dart';
 import 'package:user_auth_crudd10/model/MathPartido.dart';
-import 'package:user_auth_crudd10/model/Wallet.dart'; // Importar modelo Wallet
+import 'package:user_auth_crudd10/model/Wallet.dart';
 import 'package:user_auth_crudd10/model/field.dart';
+import 'package:user_auth_crudd10/pages/PartidosDisponibles/CommentsTab.dart'; // Nueva importación
 import 'package:user_auth_crudd10/pages/PartidosDisponibles/MatchInfoTab.dart';
 import 'package:user_auth_crudd10/pages/PartidosDisponibles/PositionConfig.dart';
 import 'package:user_auth_crudd10/services/MatchService.dart';
-import 'package:user_auth_crudd10/services/WalletService.dart'; // Importar WalletService
+import 'package:user_auth_crudd10/services/WalletService.dart';
 import 'package:user_auth_crudd10/services/storage_service.dart';
 import 'package:user_auth_crudd10/utils/constantes.dart';
 
@@ -46,8 +47,8 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
   late Future<List<Equipo>> _predefinedTeamsFuture;
   List<Equipo>? _cachedTeams;
 
-  late Future<Wallet> _walletFuture; // Future para cargar el monedero
-  late WalletService _walletService; // Servicio para el monedero
+  late Future<Wallet> _walletFuture;
+  late WalletService _walletService;
 
   int _currentImage = 0;
   late Future<Field> _fieldFuture;
@@ -60,14 +61,14 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
   void initState() {
     super.initState();
     _selectedPredefinedTeam = null;
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this); // 3 pestañas
     _loadTeams();
     _setupPaymentListener();
     _fieldFuture = getFieldById(widget.match.fieldId!);
     _initializePositions();
     _predefinedTeamsFuture = _loadPredefinedTeams();
-    _walletService = WalletService(); // Inicializar WalletService
-    _walletFuture = _walletService.getWallet(); // Cargar el monedero
+    _walletService = WalletService();
+    _walletFuture = _walletService.getWallet();
   }
 
   Future<List<Equipo>> _loadPredefinedTeams() async {
@@ -223,8 +224,7 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.blue,
-        title:
-            Text('Detalles del Partido', style: TextStyle(color: Colors.white)),
+        title: Text('Detalles del Partido', style: TextStyle(color: Colors.white)),
         actions: [
           IconButton(
             icon: Icon(Icons.share, color: Colors.white),
@@ -236,7 +236,11 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
           labelColor: Colors.white,
           unselectedLabelColor: Color.fromARGB(255, 182, 190, 204),
           controller: _tabController,
-          tabs: [Tab(text: 'INFORMACIÓN'), Tab(text: 'PARTICIPANTES')],
+          tabs: [
+            Tab(text: 'INFORMACIÓN'),
+            Tab(text: 'PARTICIPANTES'),
+            Tab(text: 'COMENTARIOS'), // Nueva pestaña
+          ],
         ),
       ),
       body: TabBarView(
@@ -244,6 +248,7 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
         children: [
           MatchInfoTab(fieldFuture: _fieldFuture, match: widget.match),
           _buildTeamsTab(),
+          CommentsTab(matchId: widget.match.id), // Nueva pestaña de comentarios
         ],
       ),
     );
@@ -478,12 +483,14 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
     );
   }
 
-  Future<bool> _checkUserInTeam(List<MatchTeam> teams) async {
-    final currentUserId = await AuthService().getCurrentUserId();
-    if (currentUserId == null) return false;
-    return teams.any((team) =>
-        team.players.any((player) => player.user?.id == currentUserId));
-  }
+Future<bool> _checkUserInTeam(List<MatchTeam> teams) async {
+  final currentUserId = await AuthService().getCurrentUserId();
+  if (currentUserId == null) return false;
+  return teams.any((team) =>
+      team.players.any((player) => player.user?.id.toString() == currentUserId.toString()));
+}
+
+ 
 
   Widget _buildJoinButton(MatchTeam team, Color teamColor) {
     return FutureBuilder<List<MatchTeam>>(
@@ -1059,47 +1066,91 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
     }
   }
 
-  Future<bool> _isUserInTeam(MatchTeam team) async {
+ 
+
+Future<bool> _isUserInTeam(MatchTeam team) async {
+  final currentUserId = await AuthService().getCurrentUserId();
+  if (currentUserId == null) return false;
+  return team.players.any((player) => player.user?.id.toString() == currentUserId.toString());
+}
+
+Future<void> _leaveTeam() async {
+  try {
+    setState(() => _isLoading = true);
+
     final currentUserId = await AuthService().getCurrentUserId();
-    if (currentUserId == null) return false;
-    return team.players.any(
-        (player) => player.user?.id.toString() == currentUserId.toString());
-  }
+    if (currentUserId == null) {
+      throw Exception('No se pudo obtener el ID del usuario');
+    }
 
-  Future<void> _leaveTeam() async {
-    try {
-      setState(() => _isLoading = true);
+    final teams = await MatchService().getTeamsForMatch(widget.match.id);
+    final userTeam = teams.firstWhere(
+      (team) => team.players.any((player) => player.user?.id.toString() == currentUserId.toString()),
+      orElse: () => throw Exception('No estás en ningún equipo de este partido'),
+    );
 
-      // Llamar al endpoint actualizado leaveTeam
-      final response = await MatchService().leaveTeam(widget.match.id);
-      final jsonResponse = response is Map<String, dynamic> ? response : jsonDecode(response);
+    final teamId = userTeam.id;
+    debugPrint('Abandonando equipo con teamId: $teamId');
 
+    // Validación de las 5 horas en el frontend
+    final now = DateTime.now();
+    final matchStartTime = DateTime.parse(widget.match.scheduleDate.toString());
+    final hoursUntilStart = matchStartTime.difference(now).inHours;
+
+    if (hoursUntilStart < 5) {
+      setState(() => _isLoading = false);
       if (mounted) {
-        setState(() {
-          _teamsFuture = MatchService().getTeamsForMatch(widget.match.id);
-          _isLoading = false;
-        });
-
-        // Mostrar notificación según si hubo reembolso
-        String message = jsonResponse['refunded'] == true
-            ? 'Has abandonado el equipo y se te han reembolsado \$${jsonResponse['refunded_amount']} al monedero'
-            : 'Has abandonado el equipo exitosamente';
-
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.green,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Solo puedes abandonar el equipo con al menos 5 horas de antelación al inicio del partido'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
+      return;
+    }
+
+    final response = await MatchService().leaveTeam(teamId);
+    final jsonResponse = response is Map<String, dynamic> ? response : jsonDecode(response);
+
+    if (mounted) {
+      setState(() {
+        _teamsFuture = MatchService().getTeamsForMatch(widget.match.id);
+        _isLoading = false;
+      });
+
+      String message = jsonResponse['refunded'] == true
+          ? 'Has abandonado el equipo y se te han reembolsado \$${jsonResponse['refunded_amount']} al monedero'
+          : 'Has abandonado el equipo exitosamente';
+
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+      ));
+    }
+  } catch (e) {
+    if (mounted) {
+      setState(() => _isLoading = false);
+      if (e is Exception && e.toString().contains('No estás en este equipo')) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('No estás registrado en este equipo'),
+          backgroundColor: Colors.red,
+        ));
+      } else if (e is Exception && e.toString().contains('Trailing data')) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error del servidor: Intente nuevamente más tarde'),
+          backgroundColor: Colors.red,
+        ));
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Error al abandonar el equipo: $e'),
           backgroundColor: Colors.red,
         ));
       }
     }
+    throw e;
   }
+}
 
   Future<void> _handleJoinTeam(MatchTeam team, String? position,
       {required bool joinAsTeam,
