@@ -16,7 +16,8 @@ class MathPartido {
   final String status;
   final int? fieldId;
   final Field? field;
-  final List<MatchTeam>? teams; // Agregado para manejar equipos
+  final List<MatchTeam>? teams;
+  final DateTime createdAt; // Fecha y hora de creación del partido
 
   MathPartido({
     required this.id,
@@ -32,6 +33,7 @@ class MathPartido {
     this.fieldId,
     this.field,
     this.teams,
+    required this.createdAt, // Campo requerido
   });
 
   String get formattedStartTime => startTime.substring(0, 5);
@@ -39,17 +41,13 @@ class MathPartido {
 
   factory MathPartido.fromJson(Map<String, dynamic> json) {
     debugPrint('Parsing match JSON: ${json['id']}');
-    debugPrint(
-        'VERSIÓN ACTUALIZADA DE MathPartido.fromJson'); // Marca para confirmar
+    debugPrint('VERSIÓN ACTUALIZADA DE MathPartido.fromJson'); // Marca para confirmar
     try {
       final dateStr = json['schedule_date'] as String?; // Permitir null
-      final date =
-          dateStr != null ? DateTime.parse(dateStr).toLocal() : DateTime.now();
+      final date = dateStr != null ? DateTime.parse(dateStr).toLocal() : DateTime.now();
 
-      final startTime =
-          json['start_time'] as String? ?? '00:00:00'; // Permitir null
-      final endTime =
-          json['end_time'] as String? ?? '00:00:00'; // Permitir null
+      final startTime = json['start_time'] as String? ?? '00:00:00'; // Permitir null
+      final endTime = json['end_time'] as String? ?? '00:00:00'; // Permitir null
 
       final priceValue = json['price'] != null
           ? double.tryParse(json['price'].toString()) ?? 0.0
@@ -58,22 +56,29 @@ class MathPartido {
       final playerCount = json['player_count'] ?? 0;
       final maxPlayers = json['max_players'] ?? 0;
 
+      // Parsear created_at en UTC y convertir a local si es necesario
+      final createdAtStr = json['created_at'] as String?;
+      final createdAt = createdAtStr != null
+          ? DateTime.parse(createdAtStr).toLocal() // Convertir a la zona horaria local
+          : DateTime.now().toLocal(); // Fallback por defecto
+
       return MathPartido(
-        id: json['id'],
-        name: json['name'] ?? 'Sin nombre',
-        gameType: json['game_type'] ?? 'No especificado',
+        id: json['id'] as int,
+        name: json['name'] as String? ?? 'Sin nombre',
+        gameType: json['game_type'] as String? ?? 'No especificado',
         scheduleDate: date,
         startTime: startTime,
         endTime: endTime,
         price: priceValue,
         playerCount: playerCount,
         maxPlayers: maxPlayers,
-        status: json['status'] ?? 'open',
-        fieldId: json['field']?['id'],
-        field: json['field'] != null ? Field.fromJson(json['field']) : null,
+        status: json['status'] as String? ?? 'open',
+        fieldId: json['field']?['id'] as int?,
+        field: json['field'] != null ? Field.fromJson(json['field'] as Map<String, dynamic>) : null,
+        createdAt: createdAt, // Usar la fecha de creación parseada
         teams: json['teams'] != null
-            ? (json['teams'] as List)
-                .map((team) => MatchTeam.fromJson(team))
+            ? (json['teams'] as List<dynamic>? ?? [])
+                .map((team) => MatchTeam.fromJson(team as Map<String, dynamic>))
                 .toList()
             : null,
       );
@@ -101,6 +106,7 @@ class MathPartido {
       fieldId: fieldId,
       field: field,
       teams: teams,
+      createdAt: createdAt, // Mantener createdAt
     );
   }
 
@@ -110,6 +116,8 @@ class MathPartido {
         return 'Fútbol 5';
       case 'fut7':
         return 'Fútbol 7';
+      case 'fut11':
+        return 'Fútbol 11';
       default:
         return 'No especificado';
     }

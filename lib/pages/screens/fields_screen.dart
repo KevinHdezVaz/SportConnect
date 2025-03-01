@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -16,8 +18,7 @@ class FieldsScreen extends StatefulWidget {
   _FieldsScreenState createState() => _FieldsScreenState();
 }
 
-class _FieldsScreenState extends State<FieldsScreen>
-    with WidgetsBindingObserver {
+class _FieldsScreenState extends State<FieldsScreen> with WidgetsBindingObserver {
   final _fieldService = FieldService();
   List<Field>? fields;
   LatLng _initialPosition = LatLng(19.432608, -99.133209);
@@ -26,8 +27,7 @@ class _FieldsScreenState extends State<FieldsScreen>
   bool _isLocationServiceDialogShown = false;
   BitmapDescriptor _myLocationIcon = BitmapDescriptor.defaultMarker;
   String? _mapStyle;
-  PageController _pageController =
-      PageController(viewportFraction: 0.8); // Agrega esto
+  PageController _pageController = PageController(viewportFraction: 0.8);
 
   @override
   void initState() {
@@ -40,9 +40,7 @@ class _FieldsScreenState extends State<FieldsScreen>
   }
 
   Future<void> _loadMapStyle() async {
-    // Cargar el archivo JSON desde los assets
-    _mapStyle = await DefaultAssetBundle.of(context)
-        .loadString('assets/map_style.json');
+    _mapStyle = await DefaultAssetBundle.of(context).loadString('assets/map_style.json');
   }
 
   @override
@@ -74,7 +72,6 @@ class _FieldsScreenState extends State<FieldsScreen>
               snippet: field.description,
             ),
             onTap: () {
-              // Desplaza el PageView a la posición correspondiente
               _pageController.animateToPage(
                 i,
                 duration: Duration(milliseconds: 300),
@@ -170,7 +167,6 @@ class _FieldsScreenState extends State<FieldsScreen>
       );
     }
 
-    // Cargar canchas cercanas después de obtener la ubicación
     _loadFields();
 
     return position;
@@ -253,7 +249,7 @@ class _FieldsScreenState extends State<FieldsScreen>
         child: Stack(
           children: [
             Container(
-              height: screenHeight * 0.8, // 75% de la altura de la pantalla
+              height: screenHeight * 0.8,
               child: GoogleMap(
                 mapType: MapType.normal,
                 onMapCreated: (GoogleMapController controller) {
@@ -283,8 +279,7 @@ class _FieldsScreenState extends State<FieldsScreen>
               initialChildSize: 0.25,
               minChildSize: 0.25,
               maxChildSize: 0.75,
-              builder:
-                  (BuildContext context, ScrollController scrollController) {
+              builder: (BuildContext context, ScrollController scrollController) {
                 return Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -302,7 +297,6 @@ class _FieldsScreenState extends State<FieldsScreen>
                   ),
                   child: Column(
                     children: [
-                      // Barra deslizadora
                       Container(
                         margin: EdgeInsets.only(top: 10, bottom: 10),
                         width: 40,
@@ -312,42 +306,32 @@ class _FieldsScreenState extends State<FieldsScreen>
                           borderRadius: BorderRadius.circular(2.5),
                         ),
                       ),
-
-                      // Lista de canchas
                       Expanded(
                         child: fields == null
                             ? Center(child: CircularProgressIndicator())
                             : NotificationListener<ScrollNotification>(
-                                onNotification:
-                                    (ScrollNotification notification) {
+                                onNotification: (ScrollNotification notification) {
                                   if (notification is UserScrollNotification &&
-                                      notification.direction ==
-                                          ScrollDirection.forward) {}
+                                      notification.direction == ScrollDirection.forward) {}
                                   return false;
                                 },
                                 child: PageView.builder(
-                                  controller:
-                                      _pageController, // Usa el PageController aquí
+                                  controller: _pageController,
                                   itemCount: fields!.length,
                                   itemBuilder: (context, index) {
                                     final field = fields![index];
-
                                     return Padding(
                                       padding: const EdgeInsets.all(2.0),
                                       child: _buildVenueCard(
                                         name: field.name,
                                         descripcion: field.description,
-                                        distance: '2.5 km',
                                         images: field.images,
-                                        address: 'Calle Deportiva 456',
-                                        type: field.type,
+                                        types: field.types, // Usar directamente field.types
                                         onPressed: () {
                                           Navigator.push(
                                             context,
                                             MaterialPageRoute(
-                                                builder: (_) =>
-                                                    FieldDetailScreen(
-                                                        field: field)),
+                                                builder: (_) => FieldDetailScreen(field: field)),
                                           );
                                         },
                                       ),
@@ -378,12 +362,13 @@ class _FieldsScreenState extends State<FieldsScreen>
   Widget _buildVenueCard({
     required String name,
     required String descripcion,
-    required String distance,
-    required String address,
-    required String type,
-    required List<String>? images, // Changed this line
+    required List<String> types,
+    required List<String>? images,
     required VoidCallback onPressed,
   }) {
+    // Formatear los tipos en una cadena legible si hay múltiples tipos, o usar un solo chip si hay uno
+    String typesDisplay = _formatTypesForChip(types);
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -415,9 +400,7 @@ class _FieldsScreenState extends State<FieldsScreen>
                   ),
                   child: CachedNetworkImage(
                     imageUrl: images?.isNotEmpty == true
-                        ? Uri.parse(baseUrl)
-                            .replace(path: images!.first)
-                            .toString()
+                        ? Uri.parse(baseUrl).replace(path: images!.first).toString()
                         : 'https://via.placeholder.com/200',
                     fit: BoxFit.cover,
                     placeholder: (context, url) => _buildShimmer(),
@@ -435,20 +418,15 @@ class _FieldsScreenState extends State<FieldsScreen>
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            name,
-                            style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blueAccent),
-                          ),
-                        ],
+                      Text(
+                        name,
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blueAccent),
                       ),
                       Text(
                         descripcion,
@@ -456,14 +434,16 @@ class _FieldsScreenState extends State<FieldsScreen>
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      Row(
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
                         children: [
-                          Icon(Icons.sports_soccer,
-                              size: 14, color: Colors.grey),
-                          SizedBox(width: 4),
-                          Text(
-                            "Cancha de " + type,
-                            style: TextStyle(color: Colors.black, fontSize: 12),
+                          Chip(
+                            label: Text(
+                              typesDisplay, // Mostrar los tipos en un solo chip
+                              style: TextStyle(fontSize: 12, color: Colors.white),
+                            ),
+                            backgroundColor: _getColorForMultipleTypes(types),
                           ),
                         ],
                       ),
@@ -476,5 +456,54 @@ class _FieldsScreenState extends State<FieldsScreen>
         ),
       ),
     );
+  }
+
+  // Método para formatear los tipos en una cadena legible para un solo chip
+  String _formatTypesForChip(List<String> types) {
+    if (types.isEmpty) return 'No especificado';
+
+    final typeNames = types.map((type) {
+      switch (type.toLowerCase().trim()) {
+        case 'fut5':
+          return 'Fútbol 5';
+        case 'fut7':
+          return 'Fútbol 7';
+        case 'fut11':
+          return 'Fútbol 11';
+        default:
+          return type;
+      }
+    }).toList();
+
+    if (typeNames.length == 1) {
+      return typeNames[0];
+    } else if (typeNames.length == 2) {
+      return '${typeNames[0]} y ${typeNames[1]}';
+    } else {
+      // Para más de 2 tipos, usar una coma y "y" antes del último
+      return typeNames.sublist(0, typeNames.length - 1).join(', ') + ' y ${typeNames.last}';
+    }
+  }
+
+  // Método para obtener un color basado en múltiples tipos
+  Color _getColorForMultipleTypes(List<String> types) {
+    if (types.isEmpty) return Colors.grey;
+
+    // Determinar un color basado en los tipos presentes
+    final normalizedTypes = types.map((type) => type.toLowerCase().trim()).toList();
+    if (normalizedTypes.contains('fut5') && normalizedTypes.contains('fut11')) {
+      return Colors.teal; // Color para Futbol 5 y Futbol 11
+    } else if (normalizedTypes.contains('fut5') && normalizedTypes.contains('fut7')) {
+      return Colors.purple; // Color para Futbol 5 y Futbol 7
+    } else if (normalizedTypes.contains('fut7') && normalizedTypes.contains('fut11')) {
+      return Colors.amber; // Color para Futbol 7 y Futbol 11
+    } else if (normalizedTypes.contains('fut5')) {
+      return Colors.blue; // Color para Futbol 5
+    } else if (normalizedTypes.contains('fut7')) {
+      return Colors.green; // Color para Futbol 7
+    } else if (normalizedTypes.contains('fut11')) {
+      return Colors.orange; // Color para Futbol 11
+    }
+    return Colors.grey; // Color por defecto
   }
 }

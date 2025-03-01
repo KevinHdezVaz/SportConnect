@@ -82,24 +82,24 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
     }
   }
 
-  Future<void> _initializePositions() async {
-    try {
-      final field = await _fieldFuture;
-      final newPositions = PositionsConfig.getPositionsForFieldType(field.type);
-      setState(() {
-        positions = newPositions;
-        _positionsNotifier.value = newPositions;
-      });
-    } catch (e) {
-      debugPrint('Error loading positions: $e');
-      final defaultPositions = PositionsConfig.getPositionsForFieldType('fut7');
-      setState(() {
-        positions = defaultPositions;
-        _positionsNotifier.value = defaultPositions;
-      });
-    }
+Future<void> _initializePositions() async {
+  try {
+    // Usar el gameType del partido (widget.match.gameType)
+    final newPositions = PositionsConfig.getPositionsForFieldType(widget.match.gameType);
+    setState(() {
+      positions = newPositions;
+      _positionsNotifier.value = newPositions;
+    });
+  } catch (e) {
+    debugPrint('Error loading positions: $e');
+    // En caso de error, usar posiciones por defecto para 'fut7'
+    final defaultPositions = PositionsConfig.getPositionsForFieldType('fut7');
+    setState(() {
+      positions = defaultPositions;
+      _positionsNotifier.value = defaultPositions;
+    });
   }
-
+}
   Future<void> _loadTeams() async {
     _teamsFuture = MatchService().getTeamsForMatch(widget.match.id);
   }
@@ -248,11 +248,12 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
         children: [
           MatchInfoTab(fieldFuture: _fieldFuture, match: widget.match),
           _buildTeamsTab(),
-          CommentsTab(matchId: widget.match.id), // Nueva pestaña de comentarios
+          CommentsTab(matchId: widget.match.id, matchCreatedAt: widget.match.createdAt), // Pasar created_at del partido
         ],
       ),
     );
   }
+
 
   Widget _buildTeamsTab() {
     return FutureBuilder<List<MatchTeam>>(

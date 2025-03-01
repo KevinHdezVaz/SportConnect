@@ -44,12 +44,20 @@ Future<List<Map<String, dynamic>>> getComments(int matchId) async {
       headers: {'Authorization': 'Bearer $token'},
     );
     if (response.statusCode == 200) {
-      return List<Map<String, dynamic>>.from(jsonDecode(response.body));
+      final List<Map<String, dynamic>> comments = List<Map<String, dynamic>>.from(jsonDecode(response.body));
+      // Asegúrate de que cada comentario incluye 'created_at' para mostrar la fecha
+      return comments.map((comment) {
+        if (!comment.containsKey('created_at')) {
+          debugPrint('Warning: Comment missing created_at: $comment');
+          comment['created_at'] = DateTime.now().toIso8601String(); // Fallback por defecto
+        }
+        return comment;
+      }).toList();
     }
-    throw Exception('Failed to load comments');
+    throw Exception('Failed to load comments: ${response.body}');
   }
 
-  Future<void> addComment(int matchId, String text) async {
+ Future<void> addComment(int matchId, String text) async {
     final token = await storage.getToken();
     final response = await http.post(
       Uri.parse('$baseUrl/matches/$matchId/comments'),
@@ -63,7 +71,6 @@ Future<List<Map<String, dynamic>>> getComments(int matchId) async {
       throw Exception('Failed to add comment: ${response.body}');
     }
   }
-
   
   Future<List<dynamic>> getTopMvpPlayers() async {
     try {

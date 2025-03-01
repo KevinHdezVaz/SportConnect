@@ -7,8 +7,7 @@ class MatchTeam {
   final String color;
   final String emoji;
   final int playerCount;
-    final String gameType;  
-
+  final String gameType;  
   final int maxPlayers;
   final List<TeamPlayer> players;
 
