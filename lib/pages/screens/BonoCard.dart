@@ -409,56 +409,7 @@ class UserBonoCard extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: onReservar,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue.shade700,
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.calendar_today, size: 18),
-                            SizedBox(width: 8),
-                            Text('Reservar'),
-                          ],
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: onVerQR,
-                        style: OutlinedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                          side:
-                              BorderSide(color: Colors.blue.shade700, width: 2),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.qr_code,
-                                color: Colors.blue.shade700, size: 18),
-                            SizedBox(width: 8),
-                            Text(
-                              'Ver QR',
-                              style: TextStyle(color: Colors.blue.shade700),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                 
               ],
             ),
           ),
@@ -474,7 +425,7 @@ class UserBonoCard extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            color: Colors.grey.shade600,
+            color: Colors.black,
             fontSize: 14,
           ),
         ),
@@ -484,6 +435,7 @@ class UserBonoCard extends StatelessWidget {
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 14,
+            color: Colors.black
           ),
         ),
       ],

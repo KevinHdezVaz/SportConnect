@@ -27,7 +27,6 @@ class _FieldsScreenState extends State<FieldsScreen> with WidgetsBindingObserver
   bool _isLocationServiceDialogShown = false;
   BitmapDescriptor _myLocationIcon = BitmapDescriptor.defaultMarker;
   String? _mapStyle;
-  PageController _pageController = PageController(viewportFraction: 0.8);
 
   @override
   void initState() {
@@ -46,7 +45,6 @@ class _FieldsScreenState extends State<FieldsScreen> with WidgetsBindingObserver
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _pageController.dispose();
     super.dispose();
   }
 
@@ -72,11 +70,8 @@ class _FieldsScreenState extends State<FieldsScreen> with WidgetsBindingObserver
               snippet: field.description,
             ),
             onTap: () {
-              _pageController.animateToPage(
-                i,
-                duration: Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-              );
+              // Nota: Si usamos el sheetController, necesitamos otra forma de desplazar la lista
+              // Por ahora, esto no funcionará directamente, lo ajustaremos más adelante si es necesario
             },
           ),
         );
@@ -278,8 +273,8 @@ class _FieldsScreenState extends State<FieldsScreen> with WidgetsBindingObserver
             DraggableScrollableSheet(
               initialChildSize: 0.25,
               minChildSize: 0.25,
-              maxChildSize: 0.75,
-              builder: (BuildContext context, ScrollController scrollController) {
+              maxChildSize: 0.5,
+              builder: (BuildContext context, ScrollController sheetController) {
                 return Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -309,35 +304,29 @@ class _FieldsScreenState extends State<FieldsScreen> with WidgetsBindingObserver
                       Expanded(
                         child: fields == null
                             ? Center(child: CircularProgressIndicator())
-                            : NotificationListener<ScrollNotification>(
-                                onNotification: (ScrollNotification notification) {
-                                  if (notification is UserScrollNotification &&
-                                      notification.direction == ScrollDirection.forward) {}
-                                  return false;
+                            : ListView.builder(
+                                controller: sheetController, // Usar el controlador del sheet
+                                physics: ClampingScrollPhysics(), // Evita que el ListView "rebote" más allá de los límites
+                                itemCount: fields!.length,
+                                itemBuilder: (context, index) {
+                                  final field = fields![index];
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                                    child: _buildVenueCard(
+                                      name: field.name,
+                                      descripcion: field.description,
+                                      images: field.images,
+                                      types: field.types,
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (_) => FieldDetailScreen(field: field)),
+                                        );
+                                      },
+                                    ),
+                                  );
                                 },
-                                child: PageView.builder(
-                                  controller: _pageController,
-                                  itemCount: fields!.length,
-                                  itemBuilder: (context, index) {
-                                    final field = fields![index];
-                                    return Padding(
-                                      padding: const EdgeInsets.all(2.0),
-                                      child: _buildVenueCard(
-                                        name: field.name,
-                                        descripcion: field.description,
-                                        images: field.images,
-                                        types: field.types, // Usar directamente field.types
-                                        onPressed: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                                builder: (_) => FieldDetailScreen(field: field)),
-                                          );
-                                        },
-                                      ),
-                                    );
-                                  },
-                                ),
                               ),
                       ),
                     ],
@@ -366,7 +355,6 @@ class _FieldsScreenState extends State<FieldsScreen> with WidgetsBindingObserver
     required List<String>? images,
     required VoidCallback onPressed,
   }) {
-    // Formatear los tipos en una cadena legible si hay múltiples tipos, o usar un solo chip si hay uno
     String typesDisplay = _formatTypesForChip(types);
 
     return Material(
@@ -375,7 +363,7 @@ class _FieldsScreenState extends State<FieldsScreen> with WidgetsBindingObserver
         onTap: onPressed,
         borderRadius: BorderRadius.circular(10),
         child: Container(
-          width: 300,
+          width: double.infinity,
           margin: EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -440,7 +428,7 @@ class _FieldsScreenState extends State<FieldsScreen> with WidgetsBindingObserver
                         children: [
                           Chip(
                             label: Text(
-                              typesDisplay, // Mostrar los tipos en un solo chip
+                              typesDisplay,
                               style: TextStyle(fontSize: 12, color: Colors.white),
                             ),
                             backgroundColor: _getColorForMultipleTypes(types),
@@ -458,7 +446,6 @@ class _FieldsScreenState extends State<FieldsScreen> with WidgetsBindingObserver
     );
   }
 
-  // Método para formatear los tipos en una cadena legible para un solo chip
   String _formatTypesForChip(List<String> types) {
     if (types.isEmpty) return 'No especificado';
 
@@ -480,30 +467,27 @@ class _FieldsScreenState extends State<FieldsScreen> with WidgetsBindingObserver
     } else if (typeNames.length == 2) {
       return '${typeNames[0]} y ${typeNames[1]}';
     } else {
-      // Para más de 2 tipos, usar una coma y "y" antes del último
       return typeNames.sublist(0, typeNames.length - 1).join(', ') + ' y ${typeNames.last}';
     }
   }
 
-  // Método para obtener un color basado en múltiples tipos
   Color _getColorForMultipleTypes(List<String> types) {
     if (types.isEmpty) return Colors.grey;
 
-    // Determinar un color basado en los tipos presentes
     final normalizedTypes = types.map((type) => type.toLowerCase().trim()).toList();
     if (normalizedTypes.contains('fut5') && normalizedTypes.contains('fut11')) {
-      return Colors.teal; // Color para Futbol 5 y Futbol 11
+      return Colors.teal;
     } else if (normalizedTypes.contains('fut5') && normalizedTypes.contains('fut7')) {
-      return Colors.purple; // Color para Futbol 5 y Futbol 7
+      return Colors.purple;
     } else if (normalizedTypes.contains('fut7') && normalizedTypes.contains('fut11')) {
-      return Colors.amber; // Color para Futbol 7 y Futbol 11
+      return Colors.amber;
     } else if (normalizedTypes.contains('fut5')) {
-      return Colors.blue; // Color para Futbol 5
+      return Colors.blue;
     } else if (normalizedTypes.contains('fut7')) {
-      return Colors.green; // Color para Futbol 7
+      return Colors.green;
     } else if (normalizedTypes.contains('fut11')) {
-      return Colors.orange; // Color para Futbol 11
+      return Colors.orange;
     }
-    return Colors.grey; // Color por defecto
+    return Colors.grey;
   }
 }

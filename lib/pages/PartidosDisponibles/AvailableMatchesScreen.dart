@@ -1,8 +1,9 @@
 import 'dart:convert';
-
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
+import 'package:user_auth_crudd10/model/MatchTeam.dart';
 import 'package:user_auth_crudd10/model/MathPartido.dart';
 import 'package:user_auth_crudd10/pages/PartidosDisponibles/MatchDetailsScreen.dart';
 import 'package:user_auth_crudd10/services/storage_service.dart';
@@ -10,6 +11,8 @@ import 'package:user_auth_crudd10/utils/constantes.dart';
 import 'package:http/http.dart' as http;
 
 class AvailableMatchesScreen extends StatefulWidget {
+  const AvailableMatchesScreen({Key? key}) : super(key: key);
+
   @override
   _AvailableMatchesScreenState createState() => _AvailableMatchesScreenState();
 }
@@ -17,7 +20,7 @@ class AvailableMatchesScreen extends StatefulWidget {
 class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
   DateTime selectedDate = DateTime.now();
   List<DateTime> next7Days = [];
-  List<MathPartido> matches = []; // Lista de partidos
+  List<MathPartido> matches = [];
   bool isLoading = true;
   final storage = StorageService();
 
@@ -25,124 +28,81 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
   void initState() {
     super.initState();
     _initializeDates();
-        initializeDateFormatting('es_ES', null);
-
+    initializeDateFormatting('es_ES', null);
     _loadMatches();
   }
 
   void _initializeDates() {
-    DateTime now = DateTime.now();
-    DateTime startOfDay = DateTime(now.year, now.month, now.day);
-
-    next7Days.clear();
-    for (int i = 0; i < 7; i++) {
-      next7Days.add(startOfDay.add(Duration(days: i)));
-      print('Generated date: ${next7Days[i]}'); // Depuración
-    }
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
+    next7Days = List.generate(7, (i) => startOfDay.add(Duration(days: i)));
   }
 
- Future<void> _loadMatches() async {
-  setState(() => isLoading = true);
-  try {
-    final token = await storage.getToken();
-    print('Token: $token');
-    final response = await http.get(
-      Uri.parse('$baseUrl/daily-matches'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $token'
-      },
-    );
-    print('Response status: ${response.statusCode}');
-    print('Full response body: ${response.body}'); // Imprimir JSON completo
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> data = json.decode(response.body);
-      final List<dynamic> matchesData = data['matches'];
-      print('Matches data length: ${matchesData.length}');
-      matches = matchesData.map((json) {
-        try {
-          return MathPartido.fromJson(json);
-        } catch (e) {
-          print('Error parsing match: $e');
-          print('Problematic JSON: $json');
-          return null;
-        }
-      }).whereType<MathPartido>().toList();
-      print('Parsed matches: ${matches.length}');
-    } else {
-      print('Error: ${response.statusCode}');
-    }
-  } catch (e) {
-    print('Error loading matches: $e');
-  } finally {
-    setState(() => isLoading = false);
-  }
-}
-
-List<MathPartido> _getMatchesForDate(DateTime date) {
-  print('Filtrando partidos para fecha: ${date.toString()}');
-  print('Total de partidos antes del filtro: ${matches.length}');
-
-  final now = DateTime.now();
-  final filteredMatches = matches.where((match) {
-    // Verificar si es el mismo día
-    bool isSameDay = match.scheduleDate.year == date.year &&
-        match.scheduleDate.month == date.month &&
-        match.scheduleDate.day == date.day;
-
-    print('Partido ${match.name} - Fecha: ${match.scheduleDate} - Es mismo día: $isSameDay');
-
-    if (!isSameDay) return false;
-
-    // Si es el día actual, verificar la hora
-    if (DateUtils.isSameDay(date, now)) {
-      final matchTime = match.startTime.split(':');
-      final matchDateTime = DateTime(
-        match.scheduleDate.year,
-        match.scheduleDate.month,
-        match.scheduleDate.day,
-        int.parse(matchTime[0]),
-        int.parse(matchTime[1]),
+  Future<void> _loadMatches() async {
+    setState(() => isLoading = true);
+    try {
+      final token = await storage.getToken();
+      final response = await http.get(
+        Uri.parse('$baseUrl/daily-matches'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token'
+        },
       );
-
-      return matchDateTime.isAfter(now);
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        final List<dynamic> matchesData = data['matches'];
+        matches = matchesData
+            .map((json) => MathPartido.fromJson(json))
+            .whereType<MathPartido>()
+            .toList();
+      } else {
+        print('Error: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error loading matches: $e');
+    } finally {
+      setState(() => isLoading = false);
     }
+  }
 
-    // Si es un día futuro, mostrar todos los partidos
-    return true;
-  }).toList();
-
-  // Ordenar los partidos: primero los disponibles, luego los completos
-  filteredMatches.sort((a, b) {
-    if (a.status == 'open' && b.status != 'open') return -1;
-    if (a.status != 'open' && b.status == 'open') return 1;
-    
-    // Si ambos tienen el mismo status, ordenar por hora
-    final aTime = a.startTime.split(':');
-    final bTime = b.startTime.split(':');
-    final aHour = int.parse(aTime[0]);
-    final bHour = int.parse(bTime[0]);
-    return aHour.compareTo(bHour);
-  });
-
-  print('Partidos filtrados para mostrar: ${filteredMatches.length}');
-  return filteredMatches;
-}
-
+  List<MathPartido> _getMatchesForDate(DateTime date) {
+    final now = DateTime.now();
+    return matches
+        .where((match) {
+          final isSameDay = DateUtils.isSameDay(match.scheduleDate, date);
+          if (!isSameDay) return false;
+          if (DateUtils.isSameDay(date, now)) {
+            final matchTime = match.startTime.split(':');
+            final matchDateTime = DateTime(
+              match.scheduleDate.year,
+              match.scheduleDate.month,
+              match.scheduleDate.day,
+              int.parse(matchTime[0]),
+              int.parse(matchTime[1]),
+            );
+            return matchDateTime.isAfter(now);
+          }
+          return true;
+        })
+        .toList()
+      ..sort((a, b) {
+        if (a.status == 'open' && b.status != 'open') return -1;
+        if (a.status != 'open' && b.status == 'open') return 1;
+        return a.startTime.compareTo(b.startTime);
+      });
+  }
 
   @override
   Widget build(BuildContext context) {
     final matchesForSelectedDate = _getMatchesForDate(selectedDate);
 
-    print('Selected date: $selectedDate');
-    print('Matches found: ${matchesForSelectedDate.length}');
-
     return Column(
       children: [
-         Container(
-          height: 100, 
-          padding: EdgeInsets.symmetric(vertical: 10),
+        Container(
+          height: 100,
+          padding: const EdgeInsets.symmetric(vertical: 10),
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: next7Days.length,
@@ -152,20 +112,16 @@ List<MathPartido> _getMatchesForDate(DateTime date) {
               final matchesCount = _getMatchesForDate(date).length;
 
               return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    selectedDate = date;  
-                  });
-                },
+                onTap: () => setState(() => selectedDate = date),
                 child: Container(
                   width: 70,
-                  margin: EdgeInsets.symmetric(horizontal: 4),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? Theme.of(context).primaryColor
                         : Colors.white,
                     borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
+                    boxShadow: const [
                       BoxShadow(
                         color: Colors.black12,
                         blurRadius: 4,
@@ -177,14 +133,14 @@ List<MathPartido> _getMatchesForDate(DateTime date) {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-    DateFormat('EEE', 'es_ES').format(date).toUpperCase(),
+                        DateFormat('EEE', 'es_ES').format(date).toUpperCase(),
                         style: TextStyle(
                           color: isSelected ? Colors.white : Colors.grey,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
                         DateFormat('d').format(date),
                         style: TextStyle(
@@ -195,7 +151,7 @@ List<MathPartido> _getMatchesForDate(DateTime date) {
                       ),
                       if (matchesCount > 0)
                         Container(
-                          padding: EdgeInsets.all(4),
+                          padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? Colors.white
@@ -220,136 +176,217 @@ List<MathPartido> _getMatchesForDate(DateTime date) {
             },
           ),
         ),
-
-        // Lista de partidos
-        isLoading
-            ? Center(child: CircularProgressIndicator())
-            : matchesForSelectedDate.isEmpty
-                ? Center(
-                    child: Container(
-                        margin: EdgeInsets.only(top: 40),
-                        child: Text(
-                          'No hay partidos disponibles para esta fecha',
-                          style: TextStyle(color: Colors.black),
-                        )),
-                  )
-                : ListView.builder(
-  shrinkWrap: true,
-  physics: NeverScrollableScrollPhysics(),
-  padding: EdgeInsets.all(16),
-  itemCount: matchesForSelectedDate.length,
-  itemBuilder: (context, index) {
-    final match = matchesForSelectedDate[index];
-    final isFull = match.status == 'full'; 
-
-    return InkWell(
-      onTap: () {
-        if (!isFull) {  
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => MatchDetailsScreen(match: match),
+        if (isLoading)
+          const Center(child: CircularProgressIndicator())
+        else if (matchesForSelectedDate.isEmpty)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.only(top: 40),
+              child: Text(
+                'No hay partidos disponibles para esta fecha',
+                style: TextStyle(color: Colors.black),
+              ),
             ),
-          );
-        }
-      },
-      child: Card(
-        margin: EdgeInsets.only(bottom: 16),
-        elevation: 4,
-        color: isFull ? Colors.grey[300] : Colors.white,  
-        child: ListTile(
-          leading: CircleAvatar(
-            backgroundColor: isFull
-                ? Colors.grey
-                : Theme.of(context).primaryColor,  
-            child: Icon(Icons.sports_soccer, color: Colors.white),
+          )
+        else
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            itemCount: matchesForSelectedDate.length,
+            itemBuilder: (context, index) {
+              final match = matchesForSelectedDate[index];
+              final isFull = match.status == 'full';
+              final team1 = match.teams?.isNotEmpty == true ? match.teams![0] : null;
+              final team2 = match.teams?.length == 2 ? match.teams![1] : null;
+
+              return InkWell(
+                onTap: isFull
+                    ? null
+                    : () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => MatchDetailsScreen(match: match),
+                          ),
+                        ),
+                child: Card(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  elevation: 4,
+                  color: isFull ? Colors.grey[300] : Colors.white,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              match.name,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: isFull ? Colors.grey[700] : Colors.black,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: isFull
+                                    ? Colors.grey
+                                    : (match.status == 'open' ? Colors.green : Colors.grey),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                isFull
+                                    ? 'Completo'
+                                    : (match.status == 'open' ? 'Disponible' : 'Completo'),
+                                style: const TextStyle(color: Colors.white, fontSize: 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Icon(Icons.access_time,
+                                size: 14, color: isFull ? Colors.grey : Colors.black),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${match.formattedStartTime} - ${match.formattedEndTime}',
+                              style: TextStyle(
+                                color: isFull ? Colors.grey : Colors.green,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(Icons.people,
+                                size: 14, color: isFull ? Colors.grey : Colors.black),
+                            const SizedBox(width: 4),
+                            Text(
+                              match.gameTypeDisplay,
+                              style: TextStyle(
+                                color: isFull ? Colors.grey : Colors.black,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        if (team1 != null && team2 != null)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _buildTeamWidget(team1, isFull),
+                              const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 12),
+                                child: Text(
+                                  'VS',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.orange,
+                                  ),
+                                ),
+                              ),
+                              _buildTeamWidget(team2, isFull),
+                            ],
+                          )
+                        else
+                          const Text(
+                            'Aún no hay equipos asignados',
+                            style: TextStyle(color: Colors.grey, fontSize: 14),
+                          ),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                           "Precio: " '\$${match.price}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: isFull ? Colors.grey : Theme.of(context).primaryColor,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
-          title: Text(
-            match.name,
+      ],
+    );
+  }
+
+  Widget _buildTeamWidget(MatchTeam team, bool isFull) {
+    final players = team.players ?? [];
+    final extraPlayers = team.playerCount - (players.length > 3 ? 3 : players.length);
+
+    return Expanded(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            team.name,
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: isFull ? Colors.grey[700] : Colors.black,  
+              fontSize: 14,
+              color: isFull ? Colors.grey : Colors.black,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            alignment: WrapAlignment.center,
+            children: [
+              ...players.take(3).map((player) => CachedNetworkImage(
+                    imageUrl: player.user?.profileImage != null
+                        ? 'https://proyect.aftconta.mx/storage/${player.user!.profileImage}'
+                        : '',
+                    imageBuilder: (context, imageProvider) => CircleAvatar(
+                      radius: 16,
+                      backgroundImage: imageProvider,
+                    ),
+                    placeholder: (context, url) => const CircleAvatar(
+                      radius: 16,
+                      backgroundColor: Colors.grey,
+                      child: Icon(Icons.person, size: 16, color: Colors.white),
+                    ),
+                    errorWidget: (context, url, error) => const CircleAvatar(
+                      radius: 16,
+                      backgroundColor: Colors.grey,
+                      child: Icon(Icons.person, size: 16, color: Colors.white),
+                    ),
+                  )),
+              if (extraPlayers > 0)
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: Colors.grey[300],
+                  child: Text(
+                    '+$extraPlayers',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${team.playerCount}/${team.maxPlayers}',
+            style: TextStyle(
+              color: isFull ? Colors.grey : Colors.black,
+              fontSize: 12,
             ),
           ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(Icons.access_time, size: 16, color: isFull ? Colors.grey : Colors.black),
-                  SizedBox(width: 4),
-                  Text(
-                    '${match.formattedStartTime} - ${match.formattedEndTime}',
-                    style: TextStyle(
-                      color: isFull ? Colors.grey : Colors.green,  
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(Icons.people, size: 16, color: isFull ? Colors.grey : Colors.black),
-                  SizedBox(width: 4),
-                  Text(
-                    '${match.gameTypeDisplay}',
-                    style: TextStyle(
-                      color: isFull ? Colors.grey : Colors.black, 
-                    ),
-                  ),
-                ],
-              ),
-              if (isFull)  
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Text(
-                    'Partido completo',
-                    style: TextStyle(
-                      color: Colors.red,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          trailing: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '\$${match.price}',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: isFull ? Colors.grey : Theme.of(context).primaryColor, // Cambiar el color del precio si está completo
-                  fontSize: 18,
-                ),
-              ),
-              SizedBox(height: 4),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isFull
-                      ? Colors.grey
-                      : (match.status == 'open' ? Colors.green : Colors.grey), // Cambiar el color del estado si está completo
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  isFull ? 'Completo' : (match.status == 'open' ? 'Disponible' : 'Completo'), // Cambiar el texto del estado si está completo
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+        ],
       ),
-    );
-  },
-),
-      ],
     );
   }
 }

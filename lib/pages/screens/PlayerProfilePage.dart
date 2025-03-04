@@ -124,10 +124,10 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
                               // Sección "Evaluación"
                               _buildSection('Evaluación', [
                                 _buildEvaluationRow(
-                                    'Nivel', _calculateAverageLevel() ?? 0, 5),
+                                    'Global', _calculateAverageLevel() ?? 0, 5),
                                 _buildEvaluationRow('Actitud',
                                     _calculateAverageAttitude() ?? 0, 5),
-                                _buildEvaluationRow('Particip.',
+                                _buildEvaluationRow('Nivel.',
                                     _calculateAverageParticipation() ?? 0, 5),
                                 _buildEvaluationRow(
                                     'N. MVP',

@@ -99,11 +99,11 @@ class _StatsTabState extends State<StatsTab> {
                   SizedBox(height: 20),
                   _buildSection('Evaluación', [
                     _buildEvaluationRow(
-                        'Nivel', _calculateAverageLevel() ?? 0, 5),
+                        'Global', _calculateAverageLevel() ?? 0, 5),
                     _buildEvaluationRow(
                         'Actitud', _calculateAverageAttitude() ?? 0, 5),
                     _buildEvaluationRow(
-                        'Part.', _calculateAverageParticipation() ?? 0, 5),
+                        'Nivel.', _calculateAverageParticipation() ?? 0, 5),
                     _buildEvaluationRow(
                         'N. MVP',
                         ((playerData?['stats']?['mvp_count'] as int?) ?? 0),

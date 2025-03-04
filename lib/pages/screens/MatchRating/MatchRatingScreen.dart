@@ -268,7 +268,7 @@ class _MatchRatingScreenState extends State<MatchRatingScreen>
                     _buildRatingSection('Actitud', userId, _attitudeRatings),
                     const SizedBox(height: 8),
                     _buildRatingSection(
-                        'Participación', userId, _participationRatings),
+                        'Nivel', userId, _participationRatings),
                     const SizedBox(height: 16),
                     _buildCommentField(userId),
                   ],
