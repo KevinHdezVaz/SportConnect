@@ -18,7 +18,8 @@ class FieldsScreen extends StatefulWidget {
   _FieldsScreenState createState() => _FieldsScreenState();
 }
 
-class _FieldsScreenState extends State<FieldsScreen> with WidgetsBindingObserver {
+class _FieldsScreenState extends State<FieldsScreen>
+    with WidgetsBindingObserver {
   final _fieldService = FieldService();
   List<Field>? fields;
   LatLng _initialPosition = LatLng(19.432608, -99.133209);
@@ -39,7 +40,8 @@ class _FieldsScreenState extends State<FieldsScreen> with WidgetsBindingObserver
   }
 
   Future<void> _loadMapStyle() async {
-    _mapStyle = await DefaultAssetBundle.of(context).loadString('assets/map_style.json');
+    _mapStyle = await DefaultAssetBundle.of(context)
+        .loadString('assets/map_style.json');
   }
 
   @override
@@ -273,8 +275,9 @@ class _FieldsScreenState extends State<FieldsScreen> with WidgetsBindingObserver
             DraggableScrollableSheet(
               initialChildSize: 0.25,
               minChildSize: 0.25,
-              maxChildSize: 0.5,
-              builder: (BuildContext context, ScrollController sheetController) {
+              maxChildSize: 0.6,
+              builder:
+                  (BuildContext context, ScrollController sheetController) {
                 return Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -305,13 +308,16 @@ class _FieldsScreenState extends State<FieldsScreen> with WidgetsBindingObserver
                         child: fields == null
                             ? Center(child: CircularProgressIndicator())
                             : ListView.builder(
-                                controller: sheetController, // Usar el controlador del sheet
-                                physics: ClampingScrollPhysics(), // Evita que el ListView "rebote" más allá de los límites
+                                controller:
+                                    sheetController, // Usar el controlador del sheet
+                                physics:
+                                    ClampingScrollPhysics(), // Evita que el ListView "rebote" más allá de los límites
                                 itemCount: fields!.length,
                                 itemBuilder: (context, index) {
                                   final field = fields![index];
                                   return Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8.0, vertical: 4.0),
                                     child: _buildVenueCard(
                                       name: field.name,
                                       descripcion: field.description,
@@ -321,7 +327,8 @@ class _FieldsScreenState extends State<FieldsScreen> with WidgetsBindingObserver
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                              builder: (_) => FieldDetailScreen(field: field)),
+                                              builder: (_) => FieldDetailScreen(
+                                                  field: field)),
                                         );
                                       },
                                     ),
@@ -388,7 +395,9 @@ class _FieldsScreenState extends State<FieldsScreen> with WidgetsBindingObserver
                   ),
                   child: CachedNetworkImage(
                     imageUrl: images?.isNotEmpty == true
-                        ? Uri.parse(baseUrl).replace(path: images!.first).toString()
+                        ? Uri.parse(baseUrl)
+                            .replace(path: images!.first)
+                            .toString()
                         : 'https://via.placeholder.com/200',
                     fit: BoxFit.cover,
                     placeholder: (context, url) => _buildShimmer(),
@@ -429,7 +438,8 @@ class _FieldsScreenState extends State<FieldsScreen> with WidgetsBindingObserver
                           Chip(
                             label: Text(
                               typesDisplay,
-                              style: TextStyle(fontSize: 12, color: Colors.white),
+                              style:
+                                  TextStyle(fontSize: 12, color: Colors.white),
                             ),
                             backgroundColor: _getColorForMultipleTypes(types),
                           ),
@@ -467,19 +477,23 @@ class _FieldsScreenState extends State<FieldsScreen> with WidgetsBindingObserver
     } else if (typeNames.length == 2) {
       return '${typeNames[0]} y ${typeNames[1]}';
     } else {
-      return typeNames.sublist(0, typeNames.length - 1).join(', ') + ' y ${typeNames.last}';
+      return typeNames.sublist(0, typeNames.length - 1).join(', ') +
+          ' y ${typeNames.last}';
     }
   }
 
   Color _getColorForMultipleTypes(List<String> types) {
     if (types.isEmpty) return Colors.grey;
 
-    final normalizedTypes = types.map((type) => type.toLowerCase().trim()).toList();
+    final normalizedTypes =
+        types.map((type) => type.toLowerCase().trim()).toList();
     if (normalizedTypes.contains('fut5') && normalizedTypes.contains('fut11')) {
       return Colors.teal;
-    } else if (normalizedTypes.contains('fut5') && normalizedTypes.contains('fut7')) {
+    } else if (normalizedTypes.contains('fut5') &&
+        normalizedTypes.contains('fut7')) {
       return Colors.purple;
-    } else if (normalizedTypes.contains('fut7') && normalizedTypes.contains('fut11')) {
+    } else if (normalizedTypes.contains('fut7') &&
+        normalizedTypes.contains('fut11')) {
       return Colors.amber;
     } else if (normalizedTypes.contains('fut5')) {
       return Colors.blue;

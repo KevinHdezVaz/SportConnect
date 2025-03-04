@@ -46,6 +46,7 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
 
   late Future<List<Equipo>> _predefinedTeamsFuture;
   List<Equipo>? _cachedTeams;
+  String? selectedBonoId; // Estado para el bono seleccionado
 
   late Future<Wallet> _walletFuture;
   late WalletService _walletService;
@@ -82,24 +83,26 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
     }
   }
 
-Future<void> _initializePositions() async {
-  try {
-    // Usar el gameType del partido (widget.match.gameType)
-    final newPositions = PositionsConfig.getPositionsForFieldType(widget.match.gameType);
-    setState(() {
-      positions = newPositions;
-      _positionsNotifier.value = newPositions;
-    });
-  } catch (e) {
-    debugPrint('Error loading positions: $e');
-    // En caso de error, usar posiciones por defecto para 'fut7'
-    final defaultPositions = PositionsConfig.getPositionsForFieldType('fut7');
-    setState(() {
-      positions = defaultPositions;
-      _positionsNotifier.value = defaultPositions;
-    });
+  Future<void> _initializePositions() async {
+    try {
+      // Usar el gameType del partido (widget.match.gameType)
+      final newPositions =
+          PositionsConfig.getPositionsForFieldType(widget.match.gameType);
+      setState(() {
+        positions = newPositions;
+        _positionsNotifier.value = newPositions;
+      });
+    } catch (e) {
+      debugPrint('Error loading positions: $e');
+      // En caso de error, usar posiciones por defecto para 'fut7'
+      final defaultPositions = PositionsConfig.getPositionsForFieldType('fut7');
+      setState(() {
+        positions = defaultPositions;
+        _positionsNotifier.value = defaultPositions;
+      });
+    }
   }
-}
+
   Future<void> _loadTeams() async {
     _teamsFuture = MatchService().getTeamsForMatch(widget.match.id);
   }
@@ -224,7 +227,8 @@ Future<void> _initializePositions() async {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.blue,
-        title: Text('Detalles del Partido', style: TextStyle(color: Colors.white)),
+        title:
+            Text('Detalles del Partido', style: TextStyle(color: Colors.white)),
         actions: [
           IconButton(
             icon: Icon(Icons.share, color: Colors.white),
@@ -248,12 +252,14 @@ Future<void> _initializePositions() async {
         children: [
           MatchInfoTab(fieldFuture: _fieldFuture, match: widget.match),
           _buildTeamsTab(),
-          CommentsTab(matchId: widget.match.id, matchCreatedAt: widget.match.createdAt), // Pasar created_at del partido
+          CommentsTab(
+              matchId: widget.match.id,
+              matchCreatedAt:
+                  widget.match.createdAt), // Pasar created_at del partido
         ],
       ),
     );
   }
-
 
   Widget _buildTeamsTab() {
     return FutureBuilder<List<MatchTeam>>(
@@ -437,6 +443,9 @@ Future<void> _initializePositions() async {
         ? 'https://proyect.aftconta.mx/storage/${player!.user!.profileImage}'
         : null;
 
+    debugPrint(
+        'Renderizando slot - Position: $position, Player: ${player?.user?.name}');
+
     return Container(
       width: 85,
       margin: EdgeInsets.all(8),
@@ -478,20 +487,19 @@ Future<void> _initializePositions() async {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          Text(position, style: TextStyle(fontSize: 11, color: Colors.black)),
+          Text(position ?? 'Sin posición',
+              style: TextStyle(fontSize: 11, color: Colors.black)),
         ],
       ),
     );
   }
 
-Future<bool> _checkUserInTeam(List<MatchTeam> teams) async {
-  final currentUserId = await AuthService().getCurrentUserId();
-  if (currentUserId == null) return false;
-  return teams.any((team) =>
-      team.players.any((player) => player.user?.id.toString() == currentUserId.toString()));
-}
-
- 
+  Future<bool> _checkUserInTeam(List<MatchTeam> teams) async {
+    final currentUserId = await AuthService().getCurrentUserId();
+    if (currentUserId == null) return false;
+    return teams.any((team) => team.players.any(
+        (player) => player.user?.id.toString() == currentUserId.toString()));
+  }
 
   Widget _buildJoinButton(MatchTeam team, Color teamColor) {
     return FutureBuilder<List<MatchTeam>>(
@@ -666,327 +674,471 @@ Future<bool> _checkUserInTeam(List<MatchTeam> teams) async {
     }
   }
 
- void _showJoinTeamDialog(MatchTeam team) {
-  debugPrint('Game Type from match: ${widget.match.gameType}');
-  final availablePositions = PositionsConfig.getPositionsForFieldType(widget.match.gameType);
-  bool joinAsTeam = false;
-  bool showRules = false;
-  String? selectedPosition;
-  bool normas1 = false;
-  bool normas2 = false;
-  bool normas3 = false;
-  bool useWallet = false; // Nuevo estado para usar monedero
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) => StatefulBuilder(
-      builder: (context, setDialogState) => WillPopScope(
-        onWillPop: () async => !_isLoading,
-        child: Stack(
-          children: [
-            AlertDialog(
-              title: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(showRules ? 'Normas del evento' : 'Unirse al partido',
-                      style: TextStyle(color: Colors.black)),
-                  IconButton(
-                    icon: Icon(Icons.close),
-                    onPressed: _isLoading ? null : () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (!showRules) ...[
-                      Row(
-                        children: [
-                          Text('Unirse como: ',
-                              style: TextStyle(color: Colors.black)),
-                          DropdownButton<bool>(
-                            value: joinAsTeam,
-                            items: [
-                              DropdownMenuItem(
-                                  value: false,
-                                  child: Text('Individual',
-                                      style: TextStyle(color: Colors.black))),
-                              DropdownMenuItem(
-                                  value: true,
-                                  child: Text('Equipo',
-                                      style: TextStyle(color: Colors.black))),
-                            ],
-                            onChanged: (value) {
-                              setDialogState(() {
-                                joinAsTeam = value ?? false;
-                                if (!joinAsTeam)
-                                  _selectedPredefinedTeam = null;
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 16),
-                      if (joinAsTeam)
-                        FutureBuilder<List<Equipo>>(
-                          future: _predefinedTeamsFuture,
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState == ConnectionState.waiting) {
-                              return Center(child: CircularProgressIndicator());
-                            }
-                            if (snapshot.hasError) {
-                              debugPrint('Error en getPredefinedTeams: ${snapshot.error}');
-                              return Text('Error al cargar equipos');
-                            }
-                            final teams = _cachedTeams ?? [];
-                            if (teams.isEmpty) {
-                              return Column(
-                                children: [
-                                  Icon(Icons.sports_soccer, size: 48, color: Colors.grey),
-                                  SizedBox(height: 8),
-                                  Text('No tienes equipos disponibles',
-                                      style: TextStyle(fontSize: 16, color: Colors.grey[600])),
-                                  SizedBox(height: 8),
-                                  Text('Crea un equipo primero para poder inscribirlo',
-                                      style: TextStyle(fontSize: 14, color: Colors.grey)),
-                                ],
-                              );
-                            }
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Container(
-                                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                  decoration: BoxDecoration(
-                                      border: Border.all(color: Colors.grey[300]!),
-                                      borderRadius: BorderRadius.circular(8)),
-                                  child: DropdownButton<Equipo>(
-                                    hint: Text('Selecciona tu equipo'),
-                                    value: _selectedPredefinedTeam,
-                                    isExpanded: true,
-                                    underline: SizedBox(),
-                                    items: teams.map((e) => DropdownMenuItem(value: e, child: Text(e.nombre))).toList(),
-                                    onChanged: (value) {
-                                      setDialogState(() => _selectedPredefinedTeam = value);
-                                      setState(() => _selectedPredefinedTeam = value);
-                                      debugPrint('Equipo seleccionado: ${value?.nombre}');
-                                    },
-                                  ),
-                                ),
-                                if (_selectedPredefinedTeam != null)
-                                  Padding(
-                                    padding: EdgeInsets.only(top: 16),
-                                    child: ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.blue,
-                                        padding: EdgeInsets.symmetric(vertical: 12),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                      ),
-                                      onPressed: _isLoading ? null : () {
-                                        setDialogState(() => showRules = true);
-                                      },
-                                      child: Text('Inscribir Equipo',
-                                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                                    ),
-                                  ),
-                              ],
-                            );
-                          },
-                        )
-                      else ...[
-                        FutureBuilder<List<dynamic>>(
-                          future: MatchService().getUserBonos(),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState == ConnectionState.waiting) {
-                              return CircularProgressIndicator();
-                            }
-                            if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-                              return Padding(
-                                padding: EdgeInsets.only(bottom: 8),
-                                child: Text(
-                                  'Se usará un bono activo automáticamente (${snapshot.data!.length} disponibles)',
-                                  style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 17),
-                                ),
-                              );
-                            }
-                            return SizedBox();
-                          },
-                        ),
-                        // Opción para usar monedero, solo si el saldo es suficiente
-                        FutureBuilder<Wallet>(
-                          future: _walletFuture,
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState == ConnectionState.waiting) {
-                              return SizedBox(); // Ocultar mientras carga para evitar parpadeos
-                            }
-                            if (snapshot.hasError) {
-                              return Text('Error al cargar monedero');
-                            }
-                            final wallet = snapshot.data!;
-                            final matchPrice = widget.match.price;
-                            if (wallet.balance >= matchPrice) {
-                              // Mostrar el checkbox solo si el saldo es suficiente
-                              return CheckboxListTile(
-                                value: useWallet,
-                                onChanged: (value) {
-                                  setDialogState(() => useWallet = value ?? false);
-                                },
-                                title: Text(
-                                    'Usar monedero (\$${wallet.balance.toStringAsFixed(2)})',
-                                    style: TextStyle(color: Colors.black)),
-                                subtitle: Text(
-                                    'Costo: \$${matchPrice.toStringAsFixed(2)}',
-                                    style: TextStyle(color: Colors.grey[600])),
-                                controlAffinity: ListTileControlAffinity.leading,
-                              );
-                            } else {
-                              // Mostrar mensaje si el saldo es insuficiente
-                              return Padding(
-                                padding: EdgeInsets.only(bottom: 8),
-                                child: Text(
-                                  'Saldo insuficiente en el monedero (\$${wallet.balance.toStringAsFixed(2)}). Necesitas \$${matchPrice.toStringAsFixed(2)} para unirte o tambien puedes pagar con MercadoPago.',
-                                  style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 14),
-                                ),
-                              );
-                            }
-                          },
-                        ),
-                        SizedBox(height: 8),
-                        Text('Selecciona tu posición:',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
-                        SizedBox(height: 8),
-                        ...availablePositions.map((position) {
-                          bool isOccupied = team.players.any((player) => player.position == position['name']);
-                          return Container(
-                            margin: EdgeInsets.symmetric(vertical: 4),
-                            decoration: BoxDecoration(
-                              color: isOccupied ? Colors.grey.shade100 : Colors.white,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                  color: isOccupied ? Colors.grey.shade300 : Colors.blue.shade200, width: 1),
-                            ),
-                            child: ListTile(
-                              enabled: !isOccupied && !_isLoading,
-                              leading: Container(
-                                padding: EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                    color: isOccupied ? Colors.grey.shade200 : Colors.blue.shade50,
-                                    borderRadius: BorderRadius.circular(8)),
-                                child: Image.asset(position['icon'],
-                                    width: 24, height: 24, color: isOccupied || _isLoading ? Colors.grey.shade400 : Colors.blue.shade700),
-                              ),
-                              title: Text(position['name'],
-                                  style: TextStyle(
-                                      color: isOccupied || _isLoading ? Colors.grey.shade400 : Colors.black,
-                                      fontWeight: FontWeight.bold)),
-                              subtitle: isOccupied
-                                  ? Text('Posición ocupada', style: TextStyle(color: Colors.red.shade300, fontSize: 12))
-                                  : Text('Disponible', style: TextStyle(color: Colors.green.shade700, fontSize: 12)),
-                              onTap: (isOccupied || _isLoading)
-                                  ? null
-                                  : () {
-                                      setDialogState(() {
-                                        selectedPosition = position['name'];
-                                        showRules = true;
-                                      });
-                                    },
-                            ),
-                          );
-                        }).toList(),
-                        SizedBox(height: 16),
-                      ],
-                    ] else ...[
-                      ListTile(
-                        leading: Image.asset('assets/icons/estandar.png', width: 100, height: 100),
-                        title: Text('Normas del evento',
-                            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
-                      ),
-                      CheckboxListTile(
-                        value: normas1,
-                        onChanged: (value) => setDialogState(() => normas1 = value ?? false),
-                        title: Text('Estar 15 minutos antes del partido',
-                            style: TextStyle(color: Colors.black)),
-                        controlAffinity: ListTileControlAffinity.leading,
-                      ),
-                      CheckboxListTile(
-                        value: normas2,
-                        onChanged: (value) => setDialogState(() => normas2 = value ?? false),
-                        title: Text('Reembolso al monedero en caso de cancelación',
-                            style: TextStyle(color: Colors.black)),
-                        controlAffinity: ListTileControlAffinity.leading,
-                      ),
-                      CheckboxListTile(
-                        value: normas3,
-                        onChanged: (value) => setDialogState(() => normas3 = value ?? false),
-                        title: Text('Acepto las normas del evento',
-                            style: TextStyle(color: Colors.black)),
-                        controlAffinity: ListTileControlAffinity.leading,
-                      ),
-                      SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green, padding: EdgeInsets.symmetric(vertical: 12)),
-                          onPressed: (normas1 && normas2 && normas3)
-                              ? () async {
-                                  Navigator.pop(context);
-                                  if (mounted) {
-                                    final bonos = await MatchService().getUserBonos();
-                                    final useBono = bonos.isNotEmpty;
-                                    await _handleJoinTeam(
-                                      team,
-                                      selectedPosition,
-                                      joinAsTeam: joinAsTeam,
-                                      predefinedTeam: _selectedPredefinedTeam,
-                                      useBono: useBono,
-                                      useWallet: useWallet,
-                                    );
-                                  }
-                                }
-                              : null,
-                          child: _isLoading
-                              ? SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                              : Text('Confirmar', style: TextStyle(color: Colors.white)),
-                        ),
+  void _showJoinTeamDialog(MatchTeam team) {
+    debugPrint('Game Type from match: ${widget.match.gameType}');
+    final availablePositions =
+        PositionsConfig.getPositionsForFieldType(widget.match.gameType);
+    bool joinAsTeam = false;
+    bool showRules = false;
+    String? selectedPosition;
+    bool normas1 = false;
+    bool normas2 = false;
+    bool normas3 = false;
+    bool useWallet = false;
+
+    // Obtener los bonos antes de abrir el diálogo
+    Future<List<dynamic>> bonosFuture = MatchService().getUserBonos();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          // Seleccionar automáticamente el primer bono si no hay uno seleccionado
+          bonosFuture.then((bonos) {
+            if (bonos.isNotEmpty && selectedBonoId == null) {
+              setDialogState(() {
+                selectedBonoId = bonos.first['id'].toString();
+              });
+            }
+          });
+
+          return WillPopScope(
+            onWillPop: () async => !_isLoading,
+            child: Stack(
+              children: [
+                AlertDialog(
+                  title: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                          showRules ? 'Normas del evento' : 'Unirse al partido',
+                          style: TextStyle(color: Colors.black)),
+                      IconButton(
+                        icon: Icon(Icons.close),
+                        onPressed:
+                            _isLoading ? null : () => Navigator.pop(context),
                       ),
                     ],
-                  ],
-                ),
-              ),
-            ),
-            if (_isLoading)
-              Positioned.fill(
-                child: Container(
-                  color: Colors.black.withOpacity(0.3),
-                  child: Center(
-                    child: Card(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      child: Padding(
-                        padding: EdgeInsets.all(20),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            CircularProgressIndicator(),
+                  ),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (!showRules) ...[
+                          Row(
+                            children: [
+                              Text('Unirse como: ',
+                                  style: TextStyle(color: Colors.black)),
+                              DropdownButton<bool>(
+                                value: joinAsTeam,
+                                items: [
+                                  DropdownMenuItem(
+                                      value: false,
+                                      child: Text('Individual',
+                                          style:
+                                              TextStyle(color: Colors.black))),
+                                  DropdownMenuItem(
+                                      value: true,
+                                      child: Text('Equipo',
+                                          style:
+                                              TextStyle(color: Colors.black))),
+                                ],
+                                onChanged: (value) {
+                                  setDialogState(() {
+                                    joinAsTeam = value ?? false;
+                                    if (!joinAsTeam)
+                                      _selectedPredefinedTeam = null;
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 16),
+                          if (joinAsTeam)
+                            FutureBuilder<List<Equipo>>(
+                              future: _predefinedTeamsFuture,
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return Center(
+                                      child: CircularProgressIndicator());
+                                }
+                                if (snapshot.hasError) {
+                                  debugPrint(
+                                      'Error en getPredefinedTeams: ${snapshot.error}');
+                                  return Text('Error al cargar equipos');
+                                }
+                                final teams = _cachedTeams ?? [];
+                                if (teams.isEmpty) {
+                                  return Column(
+                                    children: [
+                                      Icon(Icons.sports_soccer,
+                                          size: 48, color: Colors.grey),
+                                      SizedBox(height: 8),
+                                      Text('No tienes equipos disponibles',
+                                          style: TextStyle(
+                                              fontSize: 16,
+                                              color: Colors.grey[600])),
+                                      SizedBox(height: 8),
+                                      Text(
+                                          'Crea un equipo primero para poder inscribirlo',
+                                          style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey)),
+                                    ],
+                                  );
+                                }
+                                return Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Container(
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 4),
+                                      decoration: BoxDecoration(
+                                          border: Border.all(
+                                              color: Colors.grey[300]!),
+                                          borderRadius:
+                                              BorderRadius.circular(8)),
+                                      child: DropdownButton<Equipo>(
+                                        hint: Text('Selecciona tu equipo'),
+                                        value: _selectedPredefinedTeam,
+                                        isExpanded: true,
+                                        underline: SizedBox(),
+                                        items: teams
+                                            .map((e) => DropdownMenuItem(
+                                                value: e,
+                                                child: Text(e.nombre)))
+                                            .toList(),
+                                        onChanged: (value) {
+                                          setDialogState(() =>
+                                              _selectedPredefinedTeam = value);
+                                          setState(() =>
+                                              _selectedPredefinedTeam = value);
+                                          debugPrint(
+                                              'Equipo seleccionado: ${value?.nombre}');
+                                        },
+                                      ),
+                                    ),
+                                    if (_selectedPredefinedTeam != null)
+                                      Padding(
+                                        padding: EdgeInsets.only(top: 16),
+                                        child: ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.blue,
+                                            padding: EdgeInsets.symmetric(
+                                                vertical: 12),
+                                            shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(8)),
+                                          ),
+                                          onPressed: _isLoading
+                                              ? null
+                                              : () {
+                                                  setDialogState(
+                                                      () => showRules = true);
+                                                },
+                                          child: Text('Inscribir Equipo',
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold)),
+                                        ),
+                                      ),
+                                  ],
+                                );
+                              },
+                            )
+                          else ...[
+                            // Mostrar bonos disponibles
+                            FutureBuilder<List<dynamic>>(
+                              future: bonosFuture,
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return CircularProgressIndicator();
+                                }
+                                if (snapshot.hasError) {
+                                  return Text('Error al cargar bonos',
+                                      style: TextStyle(color: Colors.red));
+                                }
+
+                                final bonos = snapshot.data ?? [];
+                                if (bonos.isEmpty) {
+                                  return Padding(
+                                    padding: EdgeInsets.only(bottom: 8),
+                                    child: Text(
+                                      'No tienes bonos disponibles',
+                                      style: TextStyle(
+                                          color: Colors.grey, fontSize: 14),
+                                    ),
+                                  );
+                                }
+
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Usar un bono:',
+                                      style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black87),
+                                    ),
+                                    SizedBox(height: 8),
+                                    Container(
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                            color: Colors.grey[300]!),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: DropdownButton<String>(
+                                        hint: Text('Selecciona un bono'),
+                                        value:
+                                            selectedBonoId, // Valor seleccionado
+                                        isExpanded: true,
+                                        underline: SizedBox(),
+                                        items: bonos.map((bono) {
+                                          return DropdownMenuItem<String>(
+                                            value: bono['id'].toString(),
+                                            child: Text(
+                                              '${bono['bono']['titulo']} (Usos: ${bono['usos_disponibles'] ?? 'Ilimitados'})',
+                                              style: TextStyle(
+                                                  color: Colors.black),
+                                            ),
+                                          );
+                                        }).toList(),
+                                        onChanged: (value) {
+                                          setDialogState(() {
+                                            selectedBonoId = value;
+                                          });
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
                             SizedBox(height: 16),
-                            Text('Procesando...', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            // Opción para usar monedero
+                            FutureBuilder<Wallet>(
+                              future: _walletFuture,
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return SizedBox();
+                                }
+                                if (snapshot.hasError) {
+                                  return Text('Error al cargar monedero');
+                                }
+                                final wallet = snapshot.data!;
+                                final matchPrice = widget.match.price;
+                                if (wallet.balance >= matchPrice) {
+                                  return CheckboxListTile(
+                                    value: useWallet,
+                                    onChanged: (value) {
+                                      setDialogState(
+                                          () => useWallet = value ?? false);
+                                    },
+                                    title: Text(
+                                        'Usar monedero (\$${wallet.balance.toStringAsFixed(2)})',
+                                        style: TextStyle(color: Colors.black)),
+                                    subtitle: Text(
+                                        'Costo: \$${matchPrice.toStringAsFixed(2)}',
+                                        style:
+                                            TextStyle(color: Colors.grey[600])),
+                                    controlAffinity:
+                                        ListTileControlAffinity.leading,
+                                  );
+                                } else {
+                                  return Padding(
+                                    padding: EdgeInsets.only(bottom: 8),
+                                    child: Text(
+                                      'Saldo insuficiente en el monedero (\$${wallet.balance.toStringAsFixed(2)}). Necesitas \$${matchPrice.toStringAsFixed(2)} para unirte o también puedes pagar con MercadoPago.',
+                                      style: TextStyle(
+                                          color: Colors.orange,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                            SizedBox(height: 8),
+                            Text('Selecciona tu posición:',
+                                style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87)),
+                            SizedBox(height: 8),
+                            ...availablePositions.map((position) {
+                              bool isOccupied = team.players.any((player) =>
+                                  player.position == position['name']);
+                              return Container(
+                                margin: EdgeInsets.symmetric(vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: isOccupied
+                                      ? Colors.grey.shade100
+                                      : Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                      color: isOccupied
+                                          ? Colors.grey.shade300
+                                          : Colors.blue.shade200,
+                                      width: 1),
+                                ),
+                                child: ListTile(
+                                  enabled: !isOccupied && !_isLoading,
+                                  leading: Container(
+                                    padding: EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                        color: isOccupied
+                                            ? Colors.grey.shade200
+                                            : Colors.blue.shade50,
+                                        borderRadius: BorderRadius.circular(8)),
+                                    child: Image.asset(position['icon'],
+                                        width: 24,
+                                        height: 24,
+                                        color: isOccupied || _isLoading
+                                            ? Colors.grey.shade400
+                                            : Colors.blue.shade700),
+                                  ),
+                                  title: Text(position['name'],
+                                      style: TextStyle(
+                                          color: isOccupied || _isLoading
+                                              ? Colors.grey.shade400
+                                              : Colors.black,
+                                          fontWeight: FontWeight.bold)),
+                                  subtitle: isOccupied
+                                      ? Text('Posición ocupada',
+                                          style: TextStyle(
+                                              color: Colors.red.shade300,
+                                              fontSize: 12))
+                                      : Text('Disponible',
+                                          style: TextStyle(
+                                              color: Colors.green.shade700,
+                                              fontSize: 12)),
+                                  onTap: (isOccupied || _isLoading)
+                                      ? null
+                                      : () {
+                                          setDialogState(() {
+                                            selectedPosition = position['name'];
+                                            showRules = true;
+                                          });
+                                        },
+                                ),
+                              );
+                            }).toList(),
+                            SizedBox(height: 16),
                           ],
+                        ] else ...[
+                          ListTile(
+                            leading: Image.asset('assets/icons/estandar.png',
+                                width: 100, height: 100),
+                            title: Text('Normas del evento',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black)),
+                          ),
+                          CheckboxListTile(
+                            value: normas1,
+                            onChanged: (value) =>
+                                setDialogState(() => normas1 = value ?? false),
+                            title: Text('Estar 15 minutos antes del partido',
+                                style: TextStyle(color: Colors.black)),
+                            controlAffinity: ListTileControlAffinity.leading,
+                          ),
+                          CheckboxListTile(
+                            value: normas2,
+                            onChanged: (value) =>
+                                setDialogState(() => normas2 = value ?? false),
+                            title: Text(
+                                'Reembolso al monedero en caso de cancelación',
+                                style: TextStyle(color: Colors.black)),
+                            controlAffinity: ListTileControlAffinity.leading,
+                          ),
+                          CheckboxListTile(
+                            value: normas3,
+                            onChanged: (value) =>
+                                setDialogState(() => normas3 = value ?? false),
+                            title: Text('Acepto las normas del evento',
+                                style: TextStyle(color: Colors.black)),
+                            controlAffinity: ListTileControlAffinity.leading,
+                          ),
+                          SizedBox(height: 16),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                  padding: EdgeInsets.symmetric(vertical: 12)),
+                              onPressed: (normas1 && normas2 && normas3)
+                                  ? () async {
+                                      Navigator.pop(context);
+                                      if (mounted) {
+                                        await _handleJoinTeam(
+                                          team,
+                                          selectedPosition,
+                                          joinAsTeam: joinAsTeam,
+                                          predefinedTeam:
+                                              _selectedPredefinedTeam,
+                                          useBonoId: selectedBonoId,
+                                          useWallet: useWallet,
+                                        );
+                                      }
+                                    }
+                                  : null,
+                              child: _isLoading
+                                  ? SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                          color: Colors.white, strokeWidth: 2))
+                                  : Text('Confirmar',
+                                      style: TextStyle(color: Colors.white)),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                if (_isLoading)
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.black.withOpacity(0.3),
+                      child: Center(
+                        child: Card(
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          child: Padding(
+                            padding: EdgeInsets.all(20),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CircularProgressIndicator(),
+                                SizedBox(height: 16),
+                                Text('Procesando...',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16)),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ),
-          ],
-        ),
+              ],
+            ),
+          );
+        },
       ),
-    ),
-  );
-}
+    );
+  }
 
   Future<void> _leaveTeamAsGroup(MatchTeam team) async {
     try {
@@ -1004,96 +1156,101 @@ Future<bool> _checkUserInTeam(List<MatchTeam> teams) async {
     }
   }
 
- 
-
-Future<bool> _isUserInTeam(MatchTeam team) async {
-  final currentUserId = await AuthService().getCurrentUserId();
-  if (currentUserId == null) return false;
-  return team.players.any((player) => player.user?.id.toString() == currentUserId.toString());
-}
-
-Future<void> _leaveTeam() async {
-  try {
-    setState(() => _isLoading = true);
-
+  Future<bool> _isUserInTeam(MatchTeam team) async {
     final currentUserId = await AuthService().getCurrentUserId();
-    if (currentUserId == null) {
-      throw Exception('No se pudo obtener el ID del usuario');
-    }
-
-    final teams = await MatchService().getTeamsForMatch(widget.match.id);
-    final userTeam = teams.firstWhere(
-      (team) => team.players.any((player) => player.user?.id.toString() == currentUserId.toString()),
-      orElse: () => throw Exception('No estás en ningún equipo de este partido'),
-    );
-
-    final teamId = userTeam.id;
-    debugPrint('Abandonando equipo con teamId: $teamId');
-
-    // Validación de las 5 horas en el frontend
-    final now = DateTime.now();
-    final matchStartTime = DateTime.parse(widget.match.scheduleDate.toString());
-    final hoursUntilStart = matchStartTime.difference(now).inHours;
-
-    if (hoursUntilStart < 5) {
-      setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Solo puedes abandonar el equipo con al menos 5 horas de antelación al inicio del partido'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-      return;
-    }
-
-    final response = await MatchService().leaveTeam(teamId);
-    final jsonResponse = response is Map<String, dynamic> ? response : jsonDecode(response);
-
-    if (mounted) {
-      setState(() {
-        _teamsFuture = MatchService().getTeamsForMatch(widget.match.id);
-        _isLoading = false;
-      });
-
-      String message = jsonResponse['refunded'] == true
-          ? 'Has abandonado el equipo y se te han reembolsado \$${jsonResponse['refunded_amount']} al monedero'
-          : 'Has abandonado el equipo exitosamente';
-
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-      ));
-    }
-  } catch (e) {
-    if (mounted) {
-      setState(() => _isLoading = false);
-      if (e is Exception && e.toString().contains('No estás en este equipo')) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('No estás registrado en este equipo'),
-          backgroundColor: Colors.red,
-        ));
-      } else if (e is Exception && e.toString().contains('Trailing data')) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Error del servidor: Intente nuevamente más tarde'),
-          backgroundColor: Colors.red,
-        ));
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Error al abandonar el equipo: $e'),
-          backgroundColor: Colors.red,
-        ));
-      }
-    }
-    throw e;
+    if (currentUserId == null) return false;
+    return team.players.any(
+        (player) => player.user?.id.toString() == currentUserId.toString());
   }
-}
+
+  Future<void> _leaveTeam() async {
+    try {
+      setState(() => _isLoading = true);
+
+      final currentUserId = await AuthService().getCurrentUserId();
+      if (currentUserId == null) {
+        throw Exception('No se pudo obtener el ID del usuario');
+      }
+
+      final teams = await MatchService().getTeamsForMatch(widget.match.id);
+      final userTeam = teams.firstWhere(
+        (team) => team.players.any(
+            (player) => player.user?.id.toString() == currentUserId.toString()),
+        orElse: () =>
+            throw Exception('No estás en ningún equipo de este partido'),
+      );
+
+      final teamId = userTeam.id;
+      debugPrint('Abandonando equipo con teamId: $teamId');
+
+      // Validación de las 5 horas en el frontend
+      final now = DateTime.now();
+      final matchStartTime =
+          DateTime.parse(widget.match.scheduleDate.toString());
+      final hoursUntilStart = matchStartTime.difference(now).inHours;
+
+      if (hoursUntilStart < 5) {
+        setState(() => _isLoading = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Solo puedes abandonar el equipo con al menos 5 horas de antelación al inicio del partido'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      final response = await MatchService().leaveTeam(teamId);
+      final jsonResponse =
+          response is Map<String, dynamic> ? response : jsonDecode(response);
+
+      if (mounted) {
+        setState(() {
+          _teamsFuture = MatchService().getTeamsForMatch(widget.match.id);
+          _isLoading = false;
+        });
+
+        String message = jsonResponse['refunded'] == true
+            ? 'Has abandonado el equipo y se te han reembolsado \$${jsonResponse['refunded_amount']} al monedero'
+            : 'Has abandonado el equipo exitosamente';
+
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.green,
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        if (e is Exception &&
+            e.toString().contains('No estás en este equipo')) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('No estás registrado en este equipo'),
+            backgroundColor: Colors.red,
+          ));
+        } else if (e is Exception && e.toString().contains('Trailing data')) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Error del servidor: Intente nuevamente más tarde'),
+            backgroundColor: Colors.red,
+          ));
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Error al abandonar el equipo: $e'),
+            backgroundColor: Colors.red,
+          ));
+        }
+      }
+      throw e;
+    }
+  }
 
   Future<void> _handleJoinTeam(MatchTeam team, String? position,
       {required bool joinAsTeam,
       Equipo? predefinedTeam,
-      bool useBono = false,
+      String? useBonoId,
       bool useWallet = false}) async {
     try {
       setState(() => _isLoading = true);
@@ -1117,120 +1274,94 @@ Future<void> _leaveTeam() async {
               registeredTeam, registeredTeam.players, predefinedTeam.id);
         }
       } else if (position != null) {
-        if (widget.match.price > 0 && !useBono) {
-          if (useWallet) {
-            // Pagar con monedero
-            final wallet = await _walletFuture;
-            if (wallet.balance >= widget.match.price) {
-              await MatchService().joinTeam(
-                team.id,
-                position,
-                widget.match.id,
-                useWallet: true,
-              );
-              if (mounted) {
+        if (widget.match.price > 0 && useBonoId == null && !useWallet) {
+          // Pago con MercadoPago cuando no hay bono ni monedero
+          if (mounted) {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => AlertDialog(
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Procesando pago...',
+                        style: TextStyle(color: Colors.black)),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          try {
+            final result = await MatchService().processTeamJoinPayment(team.id,
+                position, widget.match.price, widget.match.id, context);
+            if (mounted) {
+              Navigator.of(context).pop();
+              final status =
+                  result['status'] as PaymentStatus? ?? PaymentStatus.failure;
+              if (status == PaymentStatus.success ||
+                  status == PaymentStatus.approved) {
                 setState(() {
                   _joinStatus = JoinTeamStatus.success;
                   _loadTeams();
-                  _walletFuture = _walletService.getWallet(); // Actualizar monedero
                 });
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text(
-                      'Te has unido al equipo usando \$${widget.match.price} de tu monedero'),
+                  content: Text('Te has unido al equipo exitosamente'),
                   backgroundColor: Colors.green,
                 ));
-              }
-            } else {
-              if (mounted) {
+              } else if (status == PaymentStatus.pending) {
+                setState(() => _joinStatus = JoinTeamStatus.processing);
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text('Tu pago está siendo procesado'),
+                  backgroundColor: Colors.orange,
+                ));
+              } else {
                 setState(() => _joinStatus = JoinTeamStatus.error);
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text('Saldo insuficiente en el monedero'),
+                  content: Text('El pago no se completó'),
                   backgroundColor: Colors.red,
                 ));
               }
             }
-          } else {
-            // Pago con MercadoPago
+          } catch (e) {
+            debugPrint('Error al procesar el pago: $e');
             if (mounted) {
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) => AlertDialog(
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 16),
-                      Text('Procesando pago...',
-                          style: TextStyle(color: Colors.black)),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            try {
-              final result = await MatchService().processTeamJoinPayment(
-                  team.id, position, widget.match.price, widget.match.id, context);
-              if (mounted) {
-                Navigator.of(context).pop();
-              }
-              if (mounted) {
-                final status = result['status'] as PaymentStatus? ?? PaymentStatus.failure;
-                if (status == PaymentStatus.success ||
-                    status == PaymentStatus.approved) {
-                  setState(() {
-                    _joinStatus = JoinTeamStatus.success;
-                    _loadTeams();
-                  });
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text('Te has unido al equipo exitosamente'),
-                    backgroundColor: Colors.green,
-                  ));
-                } else if (status == PaymentStatus.pending) {
-                  setState(() => _joinStatus = JoinTeamStatus.processing);
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text('Tu pago está siendo procesado'),
-                    backgroundColor: Colors.orange,
-                  ));
-                } else {
-                  setState(() => _joinStatus = JoinTeamStatus.error);
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text('El pago no se completó'),
-                    backgroundColor: Colors.red,
-                  ));
-                }
-              }
-            } catch (e) {
-              debugPrint('Error al procesar el pago: $e');
-              if (mounted) {
-                Navigator.of(context).pop();
-                setState(() => _joinStatus = JoinTeamStatus.error);
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text('Error al procesar el pago: $e'),
-                  backgroundColor: Colors.red,
-                ));
-              }
+              Navigator.of(context).pop();
+              setState(() => _joinStatus = JoinTeamStatus.error);
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text('Error al procesar el pago: $e'),
+                backgroundColor: Colors.red,
+              ));
             }
           }
         } else {
-          // Unirse sin pago o con bono
+          // Unirse con bono, monedero o sin pago
           await MatchService().joinTeam(
             team.id,
             position,
             widget.match.id,
-            useWallet: false,
+            useWallet: useWallet,
+            useBonoId: useBonoId,
           );
           if (mounted) {
             setState(() {
               _joinStatus = JoinTeamStatus.success;
               _loadTeams();
+              if (useWallet)
+                _walletFuture =
+                    _walletService.getWallet(); // Actualizar monedero
             });
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(useBono
-                    ? 'Bono utilizado, te has unido al equipo exitosamente'
-                    : 'Te has unido al equipo exitosamente'),
+                content: Text(
+                  useBonoId != null
+                      ? 'Bono utilizado, te has unido al equipo exitosamente'
+                      : useWallet
+                          ? 'Te has unido al equipo usando \$${widget.match.price} de tu monedero'
+                          : 'Te has unido al equipo exitosamente',
+                ),
                 backgroundColor: Colors.green,
               ),
             );
@@ -1388,7 +1519,8 @@ Future<void> _leaveTeam() async {
                 if (selectedPositions.length != players.length) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Asigna una posición a todos los jugadores'),
+                      content:
+                          Text('Asigna una posición a todos los jugadores'),
                       backgroundColor: Colors.red,
                     ),
                   );
