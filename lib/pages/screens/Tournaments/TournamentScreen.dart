@@ -17,7 +17,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
   @override
   void initState() {
     super.initState();
-    _torneosFuture = _torneoService.getTorneos();
+ //   _torneosFuture = _torneoService.getTorneos();
   }
 
   @override
@@ -52,7 +52,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                   ElevatedButton(
                     onPressed: () {
                       setState(() {
-                        _torneosFuture = _torneoService.getTorneos();
+                     //   _torneosFuture = _torneoService.getTorneos();
                       });
                     },
                     child: Text('Reintentar'),
@@ -78,7 +78,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
           return RefreshIndicator(
             onRefresh: () async {
               setState(() {
-                _torneosFuture = _torneoService.getTorneos();
+          //      _torneosFuture = _torneoService.getTorneos();
               });
             },
             child: Padding(

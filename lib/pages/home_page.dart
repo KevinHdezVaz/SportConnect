@@ -43,7 +43,7 @@ class _HomePageState extends State<HomePage> {
     _cargarDatos();
     futureStories = StoriesService().getStories();
     _loadUserProfile();
-    _loadInvitaciones();
+     _loadInvitaciones();
     matchesToRateFuture = _matchService.getMatchesToRate();
     topMvpPlayersFuture = _matchService.getTopMvpPlayers();
     for (int i = 0; i < 7; i++) {
@@ -69,7 +69,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _cargarDatos() async {
     setState(() {
-      futureTorneos = TorneoService().getTorneos();
+    //  futureTorneos = TorneoService().getTorneos();
       _loadUserProfile();
       _loadInvitaciones();
     });
@@ -94,7 +94,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _handleRefresh() async {
     setState(() {
-      futureTorneos = TorneoService().getTorneos();
+   //   futureTorneos = TorneoService().getTorneos();
       matchesToRateFuture = _matchService.getMatchesToRate();
       futureStories = StoriesService().getStories();
       futureMatches = _matchService.getAvailableMatches(selectedDate);
@@ -206,48 +206,7 @@ class _HomePageState extends State<HomePage> {
                                       ],
                                     ),
                                   ),
-                                  Container(
-                                    decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: Colors.blue.withOpacity(0.1)),
-                                    child: Stack(
-                                      children: [
-                                        IconButton(
-                                          icon: Icon(Icons.notifications_none,
-                                              color: Colors.blue),
-                                          onPressed: () {
-                                            Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                        builder: (_) =>
-                                                            InvitacionesScreen()))
-                                                .then(
-                                                    (_) => _loadInvitaciones());
-                                          },
-                                        ),
-                                        if (_invitacionesPendientes > 0)
-                                          Positioned(
-                                            right: 8,
-                                            top: 8,
-                                            child: Container(
-                                              padding: EdgeInsets.all(4),
-                                              decoration: BoxDecoration(
-                                                  color: Colors.red,
-                                                  shape: BoxShape.circle),
-                                              child: Text(
-                                                _invitacionesPendientes
-                                                    .toString(),
-                                                style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 10,
-                                                    fontWeight:
-                                                        FontWeight.bold),
-                                              ),
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  ),
+                                
                                 ],
                               ),
                             ),

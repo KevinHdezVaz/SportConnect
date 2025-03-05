@@ -212,7 +212,7 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
                 child: Card(
                   margin: const EdgeInsets.only(bottom: 16),
                   elevation: 4,
-                  color: isFull ? Colors.grey[300] : Colors.white,
+                  color: isFull ? const Color.fromARGB(255, 221, 217, 217) : Colors.white,
                   child: Padding(
                     padding: const EdgeInsets.all(12),
                     child: Column(
@@ -309,7 +309,7 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: isFull ? Colors.grey : Theme.of(context).primaryColor,
-                              fontSize: 16,
+                              fontSize: 18,
                             ),
                           ),
                         ),

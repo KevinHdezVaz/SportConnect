@@ -8,6 +8,8 @@ import '../model/Torneo.dart';
 
 
   class TorneoService {
+
+/*
   void mostrarError(BuildContext context, String mensaje) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -25,6 +27,7 @@ import '../model/Torneo.dart';
     );
   }
 
+ 
  Future<List<Torneo>> getTorneos() async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/torneos'))
@@ -42,7 +45,7 @@ import '../model/Torneo.dart';
         throw Exception('Sin conexión');
     }
   }
-
+*/
   
 
   Future<Map<String, dynamic>> getTorneoDetails(int torneoId) async {
