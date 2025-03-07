@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:user_auth_crudd10/auth/auth_check.dart';
 import 'package:user_auth_crudd10/auth/auth_service.dart';
 import 'package:user_auth_crudd10/auth/login_page.dart';
+import 'package:user_auth_crudd10/services/storage_service.dart';
 
 class RegisterPage extends StatefulWidget {
   final VoidCallback showLoginPage;
@@ -36,14 +37,17 @@ class _RegisterPageState extends State<RegisterPage> {
           context: context,
           builder: (_) => Center(child: CircularProgressIndicator()));
 
-      final emailExists = await _authService.checkEmailExists(_emailController.text);
+      final emailExists =
+          await _authService.checkEmailExists(_emailController.text);
       if (emailExists) {
         Navigator.pop(context);
-        showErrorSnackBar("Este correo electrónico ya está registrado, agrega otro.");
+        showErrorSnackBar(
+            "Este correo electrónico ya está registrado, agrega otro.");
         _emailController.clear();
         return;
       }
-      final phoneExists = await _authService.checkPhoneExists(_phoneController.text);
+      final phoneExists =
+          await _authService.checkPhoneExists(_phoneController.text);
       if (phoneExists) {
         Navigator.pop(context);
         showErrorSnackBar("Este teléfono ya está registrado, agrega otro.");
@@ -58,12 +62,21 @@ class _RegisterPageState extends State<RegisterPage> {
         password: _passwordController.text,
         phone: _phoneController.text,
         profileImage: _profileImage,
-        referralCode: _referralController.text.isNotEmpty ? _referralController.text : null,
+        referralCode: _referralController.text.isNotEmpty
+            ? _referralController.text
+            : null,
       );
 
       Navigator.pop(context);
+
       if (success) {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => AuthCheckMain()));
+        print("Registration successful");
+        final token = await StorageService().getToken();
+        print("Token after registration: $token");
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (_) => AuthCheckMain()));
+      } else {
+        print("Registration failed");
       }
     } catch (e) {
       Navigator.pop(context);
@@ -137,7 +150,8 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Future<void> _pickImage() async {
-    final pickedFile = await _imagePicker.pickImage(source: ImageSource.gallery);
+    final pickedFile =
+        await _imagePicker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _profileImage = File(pickedFile.path);
@@ -151,7 +165,10 @@ class _RegisterPageState extends State<RegisterPage> {
 
     return WillPopScope(
       onWillPop: () async {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginPage(showLoginPage: () {})));
+        Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (context) => LoginPage(showLoginPage: () {})));
         return false;
       },
       child: Scaffold(
@@ -172,7 +189,8 @@ class _RegisterPageState extends State<RegisterPage> {
               Stack(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 10),
                     child: Container(
                       height: 700,
                       width: 350,
@@ -194,7 +212,8 @@ class _RegisterPageState extends State<RegisterPage> {
                             ),
                             const SizedBox(height: 30),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 20),
                               child: GestureDetector(
                                 onTap: _pickImage,
                                 child: Container(
@@ -205,13 +224,15 @@ class _RegisterPageState extends State<RegisterPage> {
                                   padding: EdgeInsets.all(8),
                                   child: Row(
                                     children: [
-                                      Icon(Icons.photo_camera, color: Colors.grey),
+                                      Icon(Icons.photo_camera,
+                                          color: Colors.grey),
                                       SizedBox(width: 8),
                                       Text("Foto de perfil"),
                                       Spacer(),
                                       if (_profileImage != null)
                                         ClipRRect(
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
                                           child: Image.file(
                                             _profileImage!,
                                             width: 50,
@@ -227,7 +248,8 @@ class _RegisterPageState extends State<RegisterPage> {
                             const SizedBox(height: 20),
                             customTextField(
                               labelText: "Nombre completo",
-                              prefixIcon: Icon(Icons.person, color: Colors.grey),
+                              prefixIcon:
+                                  Icon(Icons.person, color: Colors.grey),
                               controller: _nameController,
                               isObscure: false,
                             ),
@@ -253,7 +275,8 @@ class _RegisterPageState extends State<RegisterPage> {
                             const SizedBox(height: 20),
                             customTextField(
                               labelText: "Código Postal (C.P)",
-                              prefixIcon: Icon(Icons.add_location, color: Colors.grey),
+                              prefixIcon:
+                                  Icon(Icons.add_location, color: Colors.grey),
                               controller: _codigPostalController,
                               isObscure: false,
                               keyboardType: TextInputType.number,
@@ -279,7 +302,8 @@ class _RegisterPageState extends State<RegisterPage> {
                             const SizedBox(height: 20),
                             customTextField(
                               labelText: "Código de referido (opcional)",
-                              prefixIcon: Icon(Icons.person_add, color: Colors.grey),
+                              prefixIcon:
+                                  Icon(Icons.person_add, color: Colors.grey),
                               controller: _referralController,
                               isObscure: false,
                             ),

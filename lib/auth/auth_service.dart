@@ -228,8 +228,6 @@ class AuthService {
     }
   }
 
-  
-
   Future<void> saveUserId(int id) async {
     await storage.saveString('user_id', id.toString());
   }
@@ -239,7 +237,7 @@ class AuthService {
     return idStr != null ? int.parse(idStr) : null;
   }
 
-   Future<bool> register({
+  Future<bool> register({
     required String name,
     required String email,
     required String codigpostal,
@@ -248,33 +246,48 @@ class AuthService {
     File? profileImage,
     String? referralCode,
   }) async {
-    var request = http.MultipartRequest(
-      'POST',
-      Uri.parse('https://proyect.aftconta.mx/api/register'),
-    );
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('https://proyect.aftconta.mx/api/register'),
+      );
 
-    request.fields['name'] = name;
-    request.fields['email'] = email;
-    request.fields['codigo_postal'] = codigpostal;
-    request.fields['password'] = password;
-    request.fields['phone'] = phone;
-    if (referralCode != null) {
-      request.fields['referral_code'] = referralCode;
-    }
+      request.fields['name'] = name;
+      request.fields['email'] = email;
+      request.fields['codigo_postal'] = codigpostal;
+      request.fields['password'] = password;
+      request.fields['phone'] = phone;
+      if (referralCode != null) {
+        request.fields['referral_code'] = referralCode;
+      }
 
-    if (profileImage != null) {
-      request.files.add(await http.MultipartFile.fromPath('profile_image', profileImage.path));
-    }
+      if (profileImage != null) {
+        request.files.add(await http.MultipartFile.fromPath(
+          'profile_image',
+          profileImage.path,
+        ));
+      }
 
-    final response = await request.send();
-    final responseData = await response.stream.bytesToString();
-    final jsonResponse = jsonDecode(responseData);
+      final response = await request.send();
+      final responseData = await response.stream.bytesToString();
+      final jsonResponse = jsonDecode(responseData);
 
-    if (response.statusCode == 201) {
-      return true;
-    } else {
-      throw Exception(jsonResponse['message'] ?? 'Error al registrar usuario');
+      if (response.statusCode == 201) {
+        // Verifica si el token está en la respuesta
+        if (jsonResponse['token'] != null) {
+          // Almacena el token
+          await storage.saveToken(jsonResponse['token']);
+          return true;
+        } else {
+          throw Exception('No se recibió un token en la respuesta');
+        }
+      } else {
+        throw Exception(
+            jsonResponse['message'] ?? 'Error al registrar usuario');
+      }
+    } catch (e) {
+      print('Error en el registro: $e');
+      return false;
     }
   }
-    }
-  
+}

@@ -2,6 +2,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:photo_view/photo_view.dart';
 import 'package:user_auth_crudd10/auth/auth_service.dart';
 import 'package:user_auth_crudd10/model/MathPartido.dart';
 import 'package:user_auth_crudd10/model/Story.dart';
@@ -13,6 +14,7 @@ import 'package:user_auth_crudd10/pages/screens/PlayerProfilePage.dart';
 import 'package:user_auth_crudd10/pages/screens/Tournaments/TournamentDetails.dart';
 import 'package:user_auth_crudd10/pages/screens/Tournaments/TournamentScreen.dart';
 import 'package:user_auth_crudd10/pages/screens/stories/StoriesSection.dart';
+import 'package:user_auth_crudd10/services/BannerService.dart';
 import 'package:user_auth_crudd10/services/MatchService.dart';
 import 'package:user_auth_crudd10/services/StoriesService.dart';
 import 'package:user_auth_crudd10/services/equipo_service.dart';
@@ -33,7 +35,7 @@ class _HomePageState extends State<HomePage> {
   late Future<List<MathPartido>> futureMatches;
   late Future<List<MathPartido>> matchesToRateFuture;
   late Future<List<dynamic>> topMvpPlayersFuture;
-
+  late Future<List<String>> futureBanners; // Agrega Future para banners
   DateTime selectedDate = DateTime.now();
   List<DateTime> next7Days = [];
 
@@ -43,7 +45,8 @@ class _HomePageState extends State<HomePage> {
     _cargarDatos();
     futureStories = StoriesService().getStories();
     _loadUserProfile();
-     _loadInvitaciones();
+    _loadInvitaciones();
+    futureBanners = BannerService().getBanners(); // Inicializa los banners
     matchesToRateFuture = _matchService.getMatchesToRate();
     topMvpPlayersFuture = _matchService.getTopMvpPlayers();
     for (int i = 0; i < 7; i++) {
@@ -69,7 +72,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _cargarDatos() async {
     setState(() {
-    //  futureTorneos = TorneoService().getTorneos();
+      //  futureTorneos = TorneoService().getTorneos();
       _loadUserProfile();
       _loadInvitaciones();
     });
@@ -94,9 +97,10 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _handleRefresh() async {
     setState(() {
-   //   futureTorneos = TorneoService().getTorneos();
+      //   futureTorneos = TorneoService().getTorneos();
       matchesToRateFuture = _matchService.getMatchesToRate();
       futureStories = StoriesService().getStories();
+      futureBanners = BannerService().getBanners(); // Recarga los banners
       futureMatches = _matchService.getAvailableMatches(selectedDate);
       topMvpPlayersFuture =
           _matchService.getTopMvpPlayers(); // Recargar top MVP
@@ -104,6 +108,7 @@ class _HomePageState extends State<HomePage> {
     await Future.wait([
       futureTorneos,
       futureStories,
+      futureBanners, // Añade banners al refresh
       futureMatches,
       matchesToRateFuture,
       topMvpPlayersFuture
@@ -206,7 +211,6 @@ class _HomePageState extends State<HomePage> {
                                       ],
                                     ),
                                   ),
-                                
                                 ],
                               ),
                             ),
@@ -226,6 +230,79 @@ class _HomePageState extends State<HomePage> {
                                 ]);
                               },
                             ),
+
+                            // Sección de Banners con zoom
+                            FutureBuilder<List<String>>(
+                              future: futureBanners,
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return SizedBox(
+                                    height: 200,
+                                    child: Center(
+                                        child: CircularProgressIndicator()),
+                                  );
+                                }
+                                if (snapshot.hasError) {
+                                  return SizedBox(
+                                    height: 200,
+                                    child: Center(
+                                        child: Text('Error al cargar banners')),
+                                  );
+                                }
+                                final banners = snapshot.data ?? [];
+                                if (banners.isEmpty) {
+                                  return SizedBox.shrink();
+                                }
+                                return Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 16),
+                                  child: CarouselSlider(
+                                    options: CarouselOptions(
+                                      height: 150,
+                                      autoPlay: true,
+                                      autoPlayInterval: Duration(seconds: 3),
+                                      enlargeCenterPage: true,
+                                      viewportFraction: 0.9,
+                                    ),
+                                    items: banners.map((bannerUrl) {
+                                      return GestureDetector(
+                                        onTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  ZoomImageScreen(
+                                                      imageUrl: bannerUrl),
+                                            ),
+                                          );
+                                        },
+                                        child: Builder(
+                                          builder: (BuildContext context) {
+                                            return Container(
+                                              width: MediaQuery.of(context)
+                                                  .size
+                                                  .width,
+                                              margin: EdgeInsets.symmetric(
+                                                  horizontal: 5.0),
+                                              decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                image: DecorationImage(
+                                                  image:
+                                                      NetworkImage(bannerUrl),
+                                                  fit: BoxFit.cover,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                );
+                              },
+                            ),
+
                             FutureBuilder<List<dynamic>>(
                               future: topMvpPlayersFuture,
                               builder: (context, snapshot) {
@@ -275,9 +352,7 @@ class _HomePageState extends State<HomePage> {
                                                   null
                                               ? 'https://proyect.aftconta.mx/storage/${player['profile_image']}'
                                               : null;
-                                          final position = index +
-                                              1; // Posición (1, 2, 3, ...)
-
+                                          final position = index + 1;
                                           return GestureDetector(
                                             onTap: () => Navigator.push(
                                               context,
@@ -289,8 +364,7 @@ class _HomePageState extends State<HomePage> {
                                               ),
                                             ),
                                             child: Container(
-                                              width:
-                                                  90, // Ajustamos el ancho para el diseño compacto
+                                              width: 90,
                                               margin:
                                                   EdgeInsets.only(right: 16),
                                               child: Column(
@@ -312,24 +386,24 @@ class _HomePageState extends State<HomePage> {
                                                                 color:
                                                                     Colors.grey)
                                                             : null,
-                                                        backgroundColor: Colors
-                                                                .blue[
-                                                            100], // Fondo azul claro para el avatar
+                                                        backgroundColor:
+                                                            Colors.blue[100],
                                                       ),
-                                                      if (index <
-                                                          3) // Mostrar medalla solo para los 3 primeros
+                                                      if (index < 3)
                                                         Positioned(
                                                           top: 5,
                                                           left: 5,
                                                           child: Container(
-                                                            padding: EdgeInsets.all(
-                                                                6), // Aumentamos el padding para un círculo más grande
+                                                            padding:
+                                                                EdgeInsets.all(
+                                                                    6),
                                                             decoration:
                                                                 BoxDecoration(
                                                               shape: BoxShape
                                                                   .circle,
-                                                              color: _getPositionColor(
-                                                                  index), // Color según posición
+                                                              color:
+                                                                  _getPositionColor(
+                                                                      index),
                                                             ),
                                                             child: Text(
                                                               position
@@ -371,9 +445,7 @@ class _HomePageState extends State<HomePage> {
                                 );
                               },
                             ),
-                            Divider(
-                                color: Colors.grey[400],
-                                thickness: 1), // Línea divisoria
+                            Divider(color: Colors.grey[400], thickness: 1),
                             SizedBox(height: 24),
                             FutureBuilder<List<MathPartido>>(
                               future: matchesToRateFuture,
@@ -588,9 +660,7 @@ class _HomePageState extends State<HomePage> {
                                 );
                               },
                             ),
-                            Divider(
-                                color: Colors.grey[400],
-                                thickness: 1), // Línea divisoria
+                            Divider(color: Colors.grey[400], thickness: 1),
                             SizedBox(height: 24),
                             const Text('Partidos Disponibles',
                                 style: TextStyle(
@@ -691,6 +761,36 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// Nueva pantalla para el zoom
+class ZoomImageScreen extends StatelessWidget {
+  final String imageUrl;
+
+  const ZoomImageScreen({required this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Regresar'),
+        backgroundColor: Colors.blue,
+      ),
+      body: Container(
+        child: PhotoView(
+          imageProvider: NetworkImage(imageUrl),
+          minScale: PhotoViewComputedScale.contained * 0.8,
+          maxScale: PhotoViewComputedScale.covered * 3,
+          initialScale: PhotoViewComputedScale.contained,
+          backgroundDecoration: BoxDecoration(color: Colors.black),
+          errorBuilder: (context, error, stackTrace) => Center(
+            child: Text('Error al cargar la imagen',
+                style: TextStyle(color: Colors.white)),
+          ),
         ),
       ),
     );
