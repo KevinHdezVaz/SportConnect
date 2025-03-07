@@ -445,68 +445,10 @@ decoration: const BoxDecoration(
                         ),
                       ),
                     ),
-                    Container(
-                      margin: const EdgeInsets.all(16),
-                      child: Card(
-                        elevation: 10,
-                        child: Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Horario',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              SizedBox(height: 8),
-                              const Text(
-                                'La información de horarios la proporciona el propio establecimiento, si tienes alguna duda ponte en contacto con el establecimiento.',
-                                style: TextStyle(
-                                    fontSize: 16, color: Colors.black),
-                              ),
-                              SizedBox(height: 18),
-                              Table(
-                                border: TableBorder.all(color: Colors.grey),
-                                children: currentField.available_hours.entries
-                                    .map((entry) {
-                                  return TableRow(
-                                    children: [
-                                      Padding(
-                                        padding: EdgeInsets.all(8),
-                                        child: Text(
-                                          _getDayInSpanish(entry.key),
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.blue),
-                                        ),
-                                      ),
-                                      Padding(
-                                        padding: EdgeInsets.all(8),
-                                        child: Text(
-                                          _formatSchedule(entry.value),
-                                          style: TextStyle(
-                                              height: 1.5,
-                                              color: Colors.green,
-                                              fontWeight: FontWeight.bold),
-                                        ),
-                                      ),
-                                    ],
-                                  );
-                                }).toList(),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
+                   
                   ],
                 ),
-              ),
-              // Segunda pestaña: Torneos activos
+              ), 
 // Reemplaza el contenido de la segunda pestaña con:
               SingleChildScrollView(
                 child: Padding(
@@ -738,33 +680,4 @@ class AmenityTile extends StatelessWidget {
   }
 }
 
-class ActiveGameTile extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Partido Amistoso',
-                  style: TextStyle(fontWeight: FontWeight.w500)),
-              Text('Hoy • 18:00',
-                  style: TextStyle(color: Colors.grey, fontSize: 12)),
-            ],
-          ),
-          TextButton(
-            onPressed: () {},
-            child: Text('Unirse', style: TextStyle(color: Colors.green)),
-          ),
-        ],
-      ),
-    );
-  }
-}
+ 
