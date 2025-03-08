@@ -149,7 +149,7 @@ class _LoginPageState extends State<LoginPage> {
                           Padding(
                             padding: const EdgeInsets.fromLTRB(0, 30, 0, 0),
                             child: Image.asset(
-                              'assets/icons/logoapp.png',
+                              'assets/icons/logoapp.webp',
                               width: 80,
                               height: 80,
                               fit: BoxFit.contain,

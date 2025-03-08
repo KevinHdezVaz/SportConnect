@@ -30,7 +30,7 @@ class _CommentsTabState extends State<CommentsTab> {
         ? DateFormat('dd/MM/yyyy, HH:mm').format(widget.matchCreatedAt!.toUtc())
         : '27/02/2025, 10:02'; // Fallback por defecto, asumiendo UTC
     return {
-      "user": {"name": "FutPlay", "profileImage": "assets/icons/logoapp.png"},
+      "user": {"name": "FutPlay", "profileImage": "assets/icons/logoapp.webp"},
       "text": "👋 ¡Hola! Te esperamos con camiseta roja 🔴 y azul 🔵.\n"
           "⏰ Llega 10 min antes.\n"
           "🔄 Cada jugador recibirá un número para rotar al portero cada 7-8 min.\n"

@@ -29,7 +29,7 @@ class FieldService {
 
  Future<List<Field>> getNearbyFields() async {
   final response = await http.get(
-    Uri.parse('$baseUrl/fields'), // Ahora usa el endpoint general
+    Uri.parse('$baseUrl/fields'),  
     headers: await _authService.getHeaders(),
   );
 

@@ -515,28 +515,7 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
                 future: _isUserInTeam(team),
                 builder: (context, isInThisTeamSnapshot) {
                   if (isInThisTeamSnapshot.data == true) {
-                    return Container(
-                      width: 80,
-                      margin: EdgeInsets.all(8),
-                      child: Column(
-                        children: [
-                          InkWell(
-                            onTap: () => _showLeaveTeamDialog(team),
-                            child: Container(
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border:
-                                      Border.all(color: Colors.red, width: 2)),
-                              child: Icon(Icons.exit_to_app, color: Colors.red),
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          Text('Salir', style: TextStyle(color: Colors.red)),
-                        ],
-                      ),
-                    );
+                   
                   }
                   return SizedBox();
                 },
@@ -572,6 +551,8 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
     );
   }
 
+
+/*
   void _showLeaveTeamDialog(MatchTeam team) async {
     final bool isTeamCaptain = await MatchService().isUserTeamCaptain(team.id);
     final bool isPredefTeam =
@@ -673,6 +654,10 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
       }
     }
   }
+
+  */
+
+
 void _showJoinTeamDialog(MatchTeam team) {
   debugPrint('Game Type from match: ${widget.match.gameType}');
   final availablePositions =
@@ -1128,6 +1113,7 @@ void _showJoinTeamDialog(MatchTeam team) {
     );
   }
 
+/*
   Future<void> _leaveTeamAsGroup(MatchTeam team) async {
     try {
       setState(() => _isLoading = true);
@@ -1143,6 +1129,7 @@ void _showJoinTeamDialog(MatchTeam team) {
           backgroundColor: Colors.red));
     }
   }
+  */
 
   Future<bool> _isUserInTeam(MatchTeam team) async {
     final currentUserId = await AuthService().getCurrentUserId();
@@ -1151,6 +1138,7 @@ void _showJoinTeamDialog(MatchTeam team) {
         (player) => player.user?.id.toString() == currentUserId.toString());
   }
 
+/*
   Future<void> _leaveTeam() async {
     try {
       setState(() => _isLoading = true);
@@ -1234,6 +1222,10 @@ void _showJoinTeamDialog(MatchTeam team) {
       throw e;
     }
   }
+
+  */
+
+  
   Future<void> _handleJoinTeam(MatchTeam team, String? position,
     {required bool joinAsTeam,
     Equipo? predefinedTeam,

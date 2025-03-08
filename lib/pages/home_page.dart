@@ -232,6 +232,18 @@ class _HomePageState extends State<HomePage> {
                             ),
 
                             // Sección de Banners con zoom
+                            Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 20),
+                                      child: Text(
+"Banners",
+                                        style: GoogleFonts.inter(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black87),
+                                      ),
+                                    ),
+
                             FutureBuilder<List<String>>(
                               future: futureBanners,
                               builder: (context, snapshot) {
