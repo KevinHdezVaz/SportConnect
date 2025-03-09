@@ -1,14 +1,19 @@
+import 'dart:convert';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:photo_view/photo_view.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:user_auth_crudd10/auth/auth_service.dart';
 import 'package:user_auth_crudd10/model/MathPartido.dart';
+import 'package:user_auth_crudd10/model/Notificacion.dart';
 import 'package:user_auth_crudd10/model/Story.dart';
 import 'package:user_auth_crudd10/model/Torneo.dart';
 import 'package:user_auth_crudd10/pages/PartidosDisponibles/AvailableMatchesScreen.dart';
-import 'package:user_auth_crudd10/pages/screens/Equipos/invitaciones.screen.dart';
+import 'package:user_auth_crudd10/pages/screens/Equipos/NotificationHistoryScreen.dart';
 import 'package:user_auth_crudd10/pages/screens/MatchRating/MatchRatingScreen.dart';
 import 'package:user_auth_crudd10/pages/screens/PlayerProfilePage.dart';
 import 'package:user_auth_crudd10/pages/screens/Tournaments/TournamentDetails.dart';
@@ -16,9 +21,13 @@ import 'package:user_auth_crudd10/pages/screens/Tournaments/TournamentScreen.dar
 import 'package:user_auth_crudd10/pages/screens/stories/StoriesSection.dart';
 import 'package:user_auth_crudd10/services/BannerService.dart';
 import 'package:user_auth_crudd10/services/MatchService.dart';
+import 'package:user_auth_crudd10/services/NotificationServiceExtension.dart';
 import 'package:user_auth_crudd10/services/StoriesService.dart';
 import 'package:user_auth_crudd10/services/equipo_service.dart';
+import 'package:user_auth_crudd10/services/storage_service.dart';
 import 'package:user_auth_crudd10/services/torneo_service.dart';
+import 'package:user_auth_crudd10/utils/constantes.dart';
+import 'package:http/http.dart' as http;
 
 class HomePage extends StatefulWidget {
   @override
@@ -38,6 +47,14 @@ class _HomePageState extends State<HomePage> {
   late Future<List<String>> futureBanners; // Agrega Future para banners
   DateTime selectedDate = DateTime.now();
   List<DateTime> next7Days = [];
+  bool _hasUnreadNotifications = false;
+  final _notificationService = NotificationServiceExtension();
+  bool _isLoading = true;
+  List<Notificacion> _notifications = [];
+  bool _showTournaments = true; // New flag for tournaments
+  final StorageService _storageService = StorageService();
+
+  bool _isLoadingSettings = true;
 
   @override
   void initState() {
@@ -52,12 +69,53 @@ class _HomePageState extends State<HomePage> {
     for (int i = 0; i < 7; i++) {
       next7Days.add(DateTime.now().add(Duration(days: i)));
     }
+    _checkUnreadNotifications();
+    _markAllNotificationsAsRead();
     _loadMatches();
+    _loadNotifications();
+    fetchSettings();
   }
 
   final _authService = AuthService();
   Map<String, dynamic>? userData;
   String? imageUrl;
+
+  Future<void> fetchSettings() async {
+    final token = await _storageService.getToken();
+
+    try {
+      final url = Uri.parse('$baseUrl/settings/show_tournaments');
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        setState(() {
+          _showTournaments = data['show_tournaments'] == 'true';
+          _isLoadingSettings = false;
+        });
+      } else {
+        throw Exception(
+            'Error al cargar configuraciones: Código de estado ${response.statusCode}');
+      }
+    } catch (e) {
+      setState(() {
+        _isLoadingSettings = false;
+        _showTournaments = true; // Valor por defecto si falla la solicitud
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al cargar configuraciones: $e')),
+      );
+    }
+  }
 
   Future<void> _loadInvitaciones() async {
     try {
@@ -72,10 +130,24 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _cargarDatos() async {
     setState(() {
-      //  futureTorneos = TorneoService().getTorneos();
+      futureTorneos = TorneoService().getTorneos();
       _loadUserProfile();
       _loadInvitaciones();
     });
+  }
+
+  Future<void> _loadNotifications() async {
+    try {
+      setState(() => _isLoading = true); // Muestra el indicador de carga
+      final notifications = await _notificationService.getNotifications();
+      setState(() {
+        _notifications = notifications;
+        _isLoading = false; // Oculta el indicador de carga
+      });
+    } catch (e) {
+      setState(() => _isLoading =
+          false); // Asegura que el loading se detenga incluso en error
+    }
   }
 
   Future<void> _loadUserProfile() async {
@@ -89,15 +161,54 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Widget _buildBannerShimmer() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Container(
+        height: 180,
+        margin: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
+  }
+
   void _loadMatches() {
     setState(() {
       futureMatches = _matchService.getAvailableMatches(selectedDate);
     });
   }
 
+  Future<void> _checkUnreadNotifications() async {
+    try {
+      final notifications = await _notificationService.getNotifications();
+      _hasUnreadNotifications =
+          notifications.any((notification) => !notification.read);
+      setState(() {});
+    } catch (e) {
+      print('Error al verificar notificaciones no leídas: $e');
+    }
+  }
+
+  Future<void> _markAllNotificationsAsRead() async {
+    try {
+      await _notificationService.markAllNotificationsAsRead();
+      // Después de marcar como leídas, recarga las notificaciones para reflejar el cambio localmente
+      await _loadNotifications();
+    } catch (e) {
+      print('Error al marcar notificaciones como leídas: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al marcar notificaciones como leídas')),
+      );
+    }
+  }
+
   Future<void> _handleRefresh() async {
     setState(() {
-      //   futureTorneos = TorneoService().getTorneos();
+      futureTorneos = TorneoService().getTorneos();
       matchesToRateFuture = _matchService.getMatchesToRate();
       futureStories = StoriesService().getStories();
       futureBanners = BannerService().getBanners(); // Recarga los banners
@@ -166,14 +277,16 @@ class _HomePageState extends State<HomePage> {
                               ),
                               child: Row(
                                 children: [
+                                  // Contenedor de la imagen de perfil
                                   Container(
                                     width: 40,
                                     height: 40,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
                                       border: Border.all(
-                                          color: Colors.blue.withOpacity(0.5),
-                                          width: 2),
+                                        color: Colors.blue.withOpacity(0.5),
+                                        width: 2,
+                                      ),
                                     ),
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(20),
@@ -191,25 +304,82 @@ class _HomePageState extends State<HomePage> {
                                     ),
                                   ),
                                   SizedBox(width: 12),
+                                  // Columna con el saludo y el nombre del usuario
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        const Text('Hola,',
-                                            style: TextStyle(
-                                                color: Color.fromARGB(
-                                                    255, 87, 84, 84),
-                                                fontSize: 13)),
+                                        const Text(
+                                          'Hola,',
+                                          style: TextStyle(
+                                            color:
+                                                Color.fromARGB(255, 87, 84, 84),
+                                            fontSize: 13,
+                                          ),
+                                        ),
                                         Text(
                                           userData!['name'] ?? '',
                                           style: GoogleFonts.inter(
-                                              color: Colors.black,
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.w600),
+                                            color: Colors.black,
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
                                       ],
                                     ),
+                                  ),
+                                  // Ícono de notificaciones con punto rojo
+                                  Stack(
+                                    children: [
+                                      // En _HomePageState de HomePage
+                                      IconButton(
+                                        icon: Icon(Icons.notifications,
+                                            color: Colors.blue),
+                                        onPressed: () async {
+                                          try {
+                                            await _notificationService
+                                                .markAllNotificationsAsRead();
+                                            setState(() {
+                                              _hasUnreadNotifications =
+                                                  false; // Quita el punto rojo inmediatamente
+                                              print(
+                                                  'Punto rojo desactivado: $_hasUnreadNotifications');
+                                            });
+                                          } catch (e) {
+                                            print(
+                                                'Error al marcar notificaciones como leídas: $e');
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                  content: Text(
+                                                      'Error al marcar notificaciones como leídas')),
+                                            );
+                                          }
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  NotificationHistoryScreen(),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      // Punto rojo para notificaciones no leídas
+                                      if (_hasUnreadNotifications)
+                                        Positioned(
+                                          right: 0,
+                                          top: 0,
+                                          child: Container(
+                                            width: 10,
+                                            height: 10,
+                                            decoration: BoxDecoration(
+                                              color: Colors.red,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -231,52 +401,115 @@ class _HomePageState extends State<HomePage> {
                               },
                             ),
 
-                            // Sección de Banners con zoom
-                            Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 16, vertical: 20),
-                                      child: Text(
-"Banners",
-                                        style: GoogleFonts.inter(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.black87),
+                            if (_showTournaments) // Usar un if dentro de la lista de children
+                              Column(
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 8),
+                                    child: Text(
+                                      "Torneos",
+                                      style: GoogleFonts.inter(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
                                       ),
                                     ),
+                                  ),
+                                  FutureBuilder<List<Torneo>>(
+                                    future: futureTorneos,
+                                    builder: (context, snapshot) {
+                                      if (snapshot.connectionState ==
+                                          ConnectionState.waiting) {
+                                        return const Center(
+                                          child: CircularProgressIndicator(),
+                                        );
+                                      }
+                                      if (snapshot.hasError) {
+                                        return Text('Error: ${snapshot.error}');
+                                      }
+                                      final torneos = snapshot.data ?? [];
+                                      if (torneos.isEmpty) {
+                                        return const Text(
+                                            'No hay torneos disponibles');
+                                      }
+                                      return SizedBox(
+                                        height: 200,
+                                        child: ListView.builder(
+                                          scrollDirection: Axis.horizontal,
+                                          itemCount: torneos.length,
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 16),
+                                          itemBuilder: (context, index) {
+                                            return _buildTorneoCard(
+                                                context, torneos[index]);
+                                          },
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+
+                            // Sección de Banners con zoom
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 20),
+                              child: Text(
+                                "Banners",
+                                style: GoogleFonts.inter(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87),
+                              ),
+                            ),
 
                             FutureBuilder<List<String>>(
                               future: futureBanners,
                               builder: (context, snapshot) {
                                 if (snapshot.connectionState ==
                                     ConnectionState.waiting) {
-                                  return SizedBox(
-                                    height: 200,
-                                    child: Center(
-                                        child: CircularProgressIndicator()),
-                                  );
+                                  return _buildBannerShimmer();
                                 }
+
                                 if (snapshot.hasError) {
+                                  print(
+                                      'Error cargando banners: ${snapshot.error}');
                                   return SizedBox(
                                     height: 200,
                                     child: Center(
-                                        child: Text('Error al cargar banners')),
+                                      child: Text(
+                                        'Error al cargar banners: ${snapshot.error}',
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
                                   );
                                 }
-                                final banners = snapshot.data ?? [];
-                                if (banners.isEmpty) {
-                                  return SizedBox.shrink();
+
+                                final banners = snapshot.data;
+                                if (banners == null || banners.isEmpty) {
+                                  print('No hay banners disponibles');
+                                  return SizedBox(
+                                    height: 200,
+                                    child: Center(
+                                      child: Text('No hay banners disponibles'),
+                                    ),
+                                  );
                                 }
+
+                                print('Banners cargados: ${banners.length}');
                                 return Padding(
                                   padding: EdgeInsets.symmetric(vertical: 16),
                                   child: CarouselSlider(
                                     options: CarouselOptions(
-                                      height: 150,
+                                      height: 180,
                                       autoPlay: true,
                                       autoPlayInterval: Duration(seconds: 3),
                                       enlargeCenterPage: true,
                                       viewportFraction: 0.9,
                                     ),
                                     items: banners.map((bannerUrl) {
+                                      print('Cargando banner: $bannerUrl');
                                       return GestureDetector(
                                         onTap: () {
                                           Navigator.push(
@@ -288,25 +521,19 @@ class _HomePageState extends State<HomePage> {
                                             ),
                                           );
                                         },
-                                        child: Builder(
-                                          builder: (BuildContext context) {
-                                            return Container(
-                                              width: MediaQuery.of(context)
-                                                  .size
-                                                  .width,
-                                              margin: EdgeInsets.symmetric(
-                                                  horizontal: 5.0),
-                                              decoration: BoxDecoration(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                                image: DecorationImage(
-                                                  image:
-                                                      NetworkImage(bannerUrl),
-                                                  fit: BoxFit.cover,
-                                                ),
-                                              ),
-                                            );
-                                          },
+                                        child: CachedNetworkImage(
+                                          imageUrl: bannerUrl,
+                                          fit: BoxFit.cover,
+                                          width:
+                                              MediaQuery.of(context).size.width,
+                                          height: 180,
+                                          placeholder: (context, url) =>
+                                              _buildBannerShimmer(),
+                                          errorWidget: (context, url, error) =>
+                                              Center(
+                                            child: Icon(Icons.error,
+                                                color: Colors.red),
+                                          ),
                                         ),
                                       );
                                     }).toList(),
@@ -342,12 +569,27 @@ class _HomePageState extends State<HomePage> {
                                     Padding(
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 16, vertical: 28),
-                                      child: Text(
-                                        'Top Jugadores MVP ⚽',
-                                        style: GoogleFonts.inter(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.black87),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Top Jugadores MVP ⚽',
+                                            style: GoogleFonts.inter(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.black87),
+                                          ),
+                                          SizedBox(height: 8),
+                                          Text(
+                                            'Mes: ${DateFormat('MMMM y', 'es').format(DateTime.now())}',
+                                            style: TextStyle(
+                                                fontSize: 14,
+                                                color: const Color.fromARGB(
+                                                    255, 0, 0, 0),
+                                                fontWeight: FontWeight.w500),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                     SizedBox(
@@ -457,8 +699,6 @@ class _HomePageState extends State<HomePage> {
                                 );
                               },
                             ),
-                            Divider(color: Colors.grey[400], thickness: 1),
-                            SizedBox(height: 24),
                             FutureBuilder<List<MathPartido>>(
                               future: matchesToRateFuture,
                               builder: (context, snapshot) {
@@ -467,10 +707,11 @@ class _HomePageState extends State<HomePage> {
                                 if (snapshot.connectionState ==
                                     ConnectionState.waiting) {
                                   return Center(
-                                      child: CircularProgressIndicator(
-                                          valueColor:
-                                              AlwaysStoppedAnimation<Color>(
-                                                  Colors.blue)));
+                                    child: CircularProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.blue),
+                                    ),
+                                  );
                                 }
                                 if (snapshot.hasError) {
                                   debugPrint(
@@ -483,11 +724,11 @@ class _HomePageState extends State<HomePage> {
                                             color: Colors.red, size: 40),
                                         SizedBox(height: 8),
                                         Text(
-                                            'Error al cargar partidos: ${snapshot.error}',
-                                            style: TextStyle(
-                                                color: Colors.red,
-                                                fontSize: 16),
-                                            textAlign: TextAlign.center),
+                                          'Error al cargar partidos: ${snapshot.error}',
+                                          style: TextStyle(
+                                              color: Colors.red, fontSize: 16),
+                                          textAlign: TextAlign.center,
+                                        ),
                                       ],
                                     ),
                                   );
@@ -498,187 +739,190 @@ class _HomePageState extends State<HomePage> {
                                     'Partidos encontrados: ${matches.length}');
 
                                 return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Padding(
-                                      padding: EdgeInsets.symmetric(
-                                          horizontal: 16, vertical: 8),
-                                      child: Text(
-                                        'Califica tus partidos terminados',
-                                        style: TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.black87),
-                                      ),
-                                    ),
-                                    if (matches.isEmpty)
-                                      Container(
-                                        padding: EdgeInsets.all(20),
-                                        width: double.infinity,
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(Icons.sports_soccer_outlined,
-                                                size: 50,
-                                                color: Colors.grey[400]),
-                                            SizedBox(height: 16),
-                                            Text(
-                                              '¡No tienes partidos pendientes por calificar!',
+                                    Visibility(
+                                      visible: matches.isNotEmpty,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Divider(
+                                              color: Colors.grey[400],
+                                              thickness: 1),
+                                          SizedBox(height: 24),
+                                          Padding(
+                                            padding: EdgeInsets.symmetric(
+                                                horizontal: 16, vertical: 8),
+                                            child: Text(
+                                              'Califica tus partidos terminados',
                                               style: TextStyle(
-                                                  fontSize: 16,
-                                                  color: Colors.grey[600],
-                                                  fontWeight: FontWeight.w500),
-                                              textAlign: TextAlign.center,
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.black87,
+                                              ),
                                             ),
-                                            SizedBox(height: 8),
-                                            Text(
-                                              'Cuando termines un partido, podrás calificarlo aquí.',
-                                              style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: Colors.grey[500]),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                          ],
-                                        ),
-                                      )
-                                    else
-                                      SizedBox(
-                                        height: 180,
-                                        child: ListView.builder(
-                                          scrollDirection: Axis.horizontal,
-                                          itemCount: matches.length,
-                                          padding: EdgeInsets.symmetric(
-                                              horizontal: 16),
-                                          itemBuilder: (context, index) {
-                                            final match = matches[index];
-                                            return Container(
-                                              width: 280,
-                                              margin:
-                                                  EdgeInsets.only(right: 16),
-                                              child: Card(
-                                                elevation: 2,
-                                                shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            12)),
-                                                child: Padding(
-                                                  padding: EdgeInsets.all(12),
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      Row(
+                                          ),
+                                          SizedBox(
+                                            height: 180,
+                                            child: ListView.builder(
+                                              scrollDirection: Axis.horizontal,
+                                              itemCount: matches.length,
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal: 16),
+                                              itemBuilder: (context, index) {
+                                                final match = matches[index];
+                                                return Container(
+                                                  width: 280,
+                                                  margin: EdgeInsets.only(
+                                                      right: 16),
+                                                  child: Card(
+                                                    elevation: 2,
+                                                    shape:
+                                                        RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              12),
+                                                    ),
+                                                    child: Padding(
+                                                      padding:
+                                                          EdgeInsets.all(12),
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
                                                         children: [
-                                                          CircleAvatar(
-                                                            backgroundColor:
-                                                                Colors.blue
-                                                                    .withOpacity(
-                                                                        0.1),
-                                                            child: Icon(
-                                                                Icons
-                                                                    .sports_soccer,
-                                                                color: Colors
-                                                                    .blue),
+                                                          Row(
+                                                            children: [
+                                                              CircleAvatar(
+                                                                backgroundColor:
+                                                                    Colors.blue
+                                                                        .withOpacity(
+                                                                            0.1),
+                                                                child: Icon(
+                                                                    Icons
+                                                                        .sports_soccer,
+                                                                    color: Colors
+                                                                        .blue),
+                                                              ),
+                                                              SizedBox(
+                                                                  width: 8),
+                                                              Expanded(
+                                                                child: Text(
+                                                                  match.name,
+                                                                  style:
+                                                                      TextStyle(
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold,
+                                                                    fontSize:
+                                                                        16,
+                                                                    color: Colors
+                                                                        .black87,
+                                                                  ),
+                                                                  overflow:
+                                                                      TextOverflow
+                                                                          .ellipsis,
+                                                                ),
+                                                              ),
+                                                            ],
                                                           ),
-                                                          SizedBox(width: 8),
-                                                          Expanded(
-                                                            child: Text(
-                                                              match.name,
+                                                          SizedBox(height: 8),
+                                                          Text(
+                                                            'Horario: ${match.formattedStartTime} - ${match.formattedEndTime}',
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .green,
+                                                                fontSize: 14),
+                                                          ),
+                                                          if (match.field !=
+                                                              null)
+                                                            Text(
+                                                              'Cancha: ${match.field!.name}',
                                                               style: TextStyle(
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .bold,
-                                                                  fontSize: 16,
                                                                   color: Colors
-                                                                      .black87),
-                                                              overflow:
-                                                                  TextOverflow
-                                                                      .ellipsis,
+                                                                      .black,
+                                                                  fontSize: 14),
+                                                            ),
+                                                          Spacer(),
+                                                          Align(
+                                                            alignment: Alignment
+                                                                .bottomRight,
+                                                            child:
+                                                                ElevatedButton(
+                                                              onPressed:
+                                                                  () async {
+                                                                final result =
+                                                                    await Navigator.of(
+                                                                            context)
+                                                                        .push(
+                                                                  MaterialPageRoute(
+                                                                    builder: (context) =>
+                                                                        MatchRatingScreen(
+                                                                            matchId:
+                                                                                match.id),
+                                                                  ),
+                                                                );
+                                                                if (result ==
+                                                                    true) {
+                                                                  _reloadMatchesToRate(); // Recargar partidos por calificar
+                                                                  _reloadTopMvpPlayers(); // Recargar top MVP después de calificar
+                                                                }
+                                                              },
+                                                              style:
+                                                                  ElevatedButton
+                                                                      .styleFrom(
+                                                                backgroundColor:
+                                                                    Colors.blue,
+                                                                shape: RoundedRectangleBorder(
+                                                                    borderRadius:
+                                                                        BorderRadius.circular(
+                                                                            8)),
+                                                                padding: EdgeInsets
+                                                                    .symmetric(
+                                                                        horizontal:
+                                                                            16),
+                                                              ),
+                                                              child: Text(
+                                                                'Calificar',
+                                                                style: TextStyle(
+                                                                    color: Colors
+                                                                        .white,
+                                                                    fontSize:
+                                                                        14),
+                                                              ),
                                                             ),
                                                           ),
                                                         ],
                                                       ),
-                                                      SizedBox(height: 8),
-                                                      Text(
-                                                        'Horario: ${match.formattedStartTime} - ${match.formattedEndTime}',
-                                                        style: TextStyle(
-                                                            color: Colors.green,
-                                                            fontSize: 14),
-                                                      ),
-                                                      if (match.field != null)
-                                                        Text(
-                                                          'Cancha: ${match.field!.name}',
-                                                          style: TextStyle(
-                                                              color:
-                                                                  Colors.black,
-                                                              fontSize: 14),
-                                                        ),
-                                                      Spacer(),
-                                                      Align(
-                                                        alignment: Alignment
-                                                            .bottomRight,
-                                                        child: ElevatedButton(
-                                                          onPressed: () async {
-                                                            final result =
-                                                                await Navigator.of(
-                                                                        context)
-                                                                    .push(
-                                                              MaterialPageRoute(
-                                                                builder: (context) =>
-                                                                    MatchRatingScreen(
-                                                                        matchId:
-                                                                            match.id),
-                                                              ),
-                                                            );
-                                                            if (result ==
-                                                                true) {
-                                                              _reloadMatchesToRate(); // Recargar partidos por calificar
-                                                              _reloadTopMvpPlayers(); // Recargar top MVP después de calificar
-                                                            }
-                                                          },
-                                                          style: ElevatedButton
-                                                              .styleFrom(
-                                                            backgroundColor:
-                                                                Colors.blue,
-                                                            shape: RoundedRectangleBorder(
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            8)),
-                                                            padding: EdgeInsets
-                                                                .symmetric(
-                                                                    horizontal:
-                                                                        16),
-                                                          ),
-                                                          child: Text(
-                                                            'Calificar',
-                                                            style: TextStyle(
-                                                                color: Colors
-                                                                    .white,
-                                                                fontSize: 14),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
+                                                    ),
                                                   ),
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                        ),
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                          SizedBox(height: 24), // Espacio abajo
+                                          Divider(
+                                              color: Colors.grey[400],
+                                              thickness: 1), // Divider abajo
+                                        ],
                                       ),
+                                    ),
                                   ],
                                 );
                               },
                             ),
-                            Divider(color: Colors.grey[400], thickness: 1),
                             SizedBox(height: 24),
-                            const Text('Partidos Disponibles',
-                                style: TextStyle(
-                                    color: Colors.black,
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              child: Text(
+                                'Partidos disponibles',
+                                style: GoogleFonts.inter(
                                     fontSize: 20,
-                                    fontWeight: FontWeight.bold)),
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87),
+                              ),
+                            ),
                             SizedBox(height: 24),
                             AvailableMatchesScreen(),
                           ],
@@ -692,7 +936,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Función para obtener el color según la posición (opcional: para los 3 primeros)
   Color _getPositionColor(int index) {
     switch (index) {
       case 0: // 1er lugar
@@ -702,84 +945,105 @@ class _HomePageState extends State<HomePage> {
       case 2: // 3er lugar
         return Colors.brown;
       default:
-        return Colors.grey; // Color por defecto para otros lugares
+        return Colors.grey;
     }
   }
 
   Widget _buildTorneoCard(BuildContext context, Torneo torneo) {
-    return Card(
+    return Container(
+      width: 200, // Ancho fijo para cada tarjeta en el ListView horizontal
       margin: EdgeInsets.all(8),
-      child: InkWell(
-        onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (_) => TournamentDetails(torneo: torneo))),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-                  child: Image.network(
-                    torneo.imagenesTorneo!.isNotEmpty
-                        ? torneo.imagenesTorneo![0]
-                        : 'https://via.placeholder.com/150',
-                    height: 100,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                        color: Colors.green,
-                        borderRadius: BorderRadius.circular(12)),
-                    child: Text('Inscripciones Abiertas',
-                        style: TextStyle(color: Colors.white, fontSize: 12)),
-                  ),
-                ),
-              ],
-            ),
-            Padding(
-              padding: EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: InkWell(
+          onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => TournamentDetails(torneo: torneo))),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Stack(
                 children: [
-                  Text(torneo.nombre,
-                      style: TextStyle(
-                          color: Colors.orange,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold)),
-                  SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(Icons.people, size: 12, color: Colors.grey),
-                      SizedBox(width: 4),
-                      Text('${torneo.minimoEquipos} equipos inscritos',
-                          style: TextStyle(color: Colors.black, fontSize: 12)),
-                      Spacer(),
-                      Text('\$${torneo.cuotaInscripcion}',
-                          style: TextStyle(
-                              color: Colors.green,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12)),
-                    ],
+                  ClipRRect(
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(12)),
+                    child: SizedBox(
+                      height: 100, // Altura fija para la imagen
+                      width: double
+                          .infinity, // Esto ahora es seguro porque está dentro de un Container con ancho fijo
+                      child: Image.network(
+                        torneo.imagenesTorneo!.isNotEmpty
+                            ? torneo.imagenesTorneo![0]
+                            : 'https://via.placeholder.com/150',
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            Icon(Icons.error),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(12)),
+                      child: Text(
+                        'Inscripciones Abiertas',
+                        style: TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                    ),
                   ),
                 ],
               ),
-            ),
-          ],
+              Padding(
+                padding: EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      torneo.nombre,
+                      style: TextStyle(
+                          color: Colors.orange,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(Icons.people, size: 12, color: Colors.grey),
+                        SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            '${torneo.minimoEquipos} equipos inscritos',
+                            style: TextStyle(color: Colors.black, fontSize: 12),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Text(
+                          '\$${torneo.cuotaInscripcion}',
+                          style: TextStyle(
+                              color: Colors.green,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// Nueva pantalla para el zoom
 class ZoomImageScreen extends StatelessWidget {
   final String imageUrl;
 

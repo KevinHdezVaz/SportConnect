@@ -299,7 +299,6 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
                 Text(label,
                     style:
                         GoogleFonts.inter(fontSize: 16, color: Colors.black)),
-                Icon(Icons.info_outline, size: 16, color: Colors.grey),
               ],
             ),
           ),

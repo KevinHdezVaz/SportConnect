@@ -6,13 +6,13 @@ import 'package:user_auth_crudd10/auth/auth_check.dart';
 import 'package:user_auth_crudd10/auth/auth_service.dart';
 import 'package:user_auth_crudd10/pages/WalletScreen.dart';
 import 'package:user_auth_crudd10/pages/others/StatsTab.dart';
+import 'package:user_auth_crudd10/pages/screens/Equipos/NotificationHistoryScreen.dart';
 import 'package:user_auth_crudd10/pages/screens/Equipos/detalle_equipo.screen.dart';
-import 'package:user_auth_crudd10/pages/screens/Equipos/invitaciones.screen.dart';
 import 'package:user_auth_crudd10/pages/screens/Equipos/lista_equipos_screen.dart';
 import 'package:user_auth_crudd10/pages/screens/UpdateProfileScreen.dart';
 import 'package:user_auth_crudd10/pages/screens/bookin/booking_screen.dart';
 import 'package:user_auth_crudd10/services/equipo_service.dart';
- 
+
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
@@ -46,10 +46,13 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> navegarEquipos(BuildContext context) async {
     setState(() => _isLoadingEquipos = true);
     try {
-      if (userData == null || userData!['id'] == null) throw Exception('No hay datos del usuario');
+      if (userData == null || userData!['id'] == null)
+        throw Exception('No hay datos del usuario');
       final userId = userData!['id'];
       final equipos = await _equipoService.getEquipos();
-      final miEquipo = equipos.where((e) => e.miembros.any((m) => m.id == userId)).firstOrNull;
+      final miEquipo = equipos
+          .where((e) => e.miembros.any((m) => m.id == userId))
+          .firstOrNull;
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -59,7 +62,8 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al cargar equipos: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error al cargar equipos: $e')));
     } finally {
       setState(() => _isLoadingEquipos = false);
     }
@@ -69,7 +73,8 @@ class _ProfilePageState extends State<ProfilePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Mi Código para unirme a equipos', style: TextStyle(color: Colors.black)),
+        title: Text('Mi Código para unirme a equipos',
+            style: TextStyle(color: Colors.black)),
         content: Container(
           width: double.maxFinite,
           child: Column(
@@ -89,14 +94,20 @@ class _ProfilePageState extends State<ProfilePage> {
                   children: [
                     Text(
                       userData!['invite_code'] ?? '',
-                      style: TextStyle(fontSize: 24, color: Colors.black, fontWeight: FontWeight.bold, letterSpacing: 2),
+                      style: TextStyle(
+                          fontSize: 24,
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 2),
                     ),
                     SizedBox(width: 10),
                     IconButton(
                       icon: Icon(Icons.copy),
                       onPressed: () {
-                        Clipboard.setData(ClipboardData(text: userData!['invite_code'] ?? ''));
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Código copiado!')));
+                        Clipboard.setData(ClipboardData(
+                            text: userData!['invite_code'] ?? ''));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Código copiado!')));
                       },
                     ),
                   ],
@@ -106,7 +117,9 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text('Cerrar', style: TextStyle(color: Colors.black))),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cerrar', style: TextStyle(color: Colors.black))),
         ],
       ),
     );
@@ -123,10 +136,15 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _logout() async {
     try {
-      showDialog(context: context, builder: (context) => const Center(child: CircularProgressIndicator()));
+      showDialog(
+          context: context,
+          builder: (context) =>
+              const Center(child: CircularProgressIndicator()));
       await _authService.logout();
       Navigator.of(context, rootNavigator: true).pop();
-      Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) => AuthCheckMain()), (route) => false);
+      Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => AuthCheckMain()),
+          (route) => false);
     } catch (e) {
       Navigator.of(context, rootNavigator: true).pop();
       print('Error cerrando sesión: $e');
@@ -149,39 +167,50 @@ class _ProfilePageState extends State<ProfilePage> {
                     padding: const EdgeInsets.all(12.0),
                     child: Card(
                       elevation: 10,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(32)),
                       child: Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
                           gradient: const LinearGradient(
-                            colors: [Color.fromARGB(255, 127, 205, 234), Color.fromARGB(255, 104, 151, 193)],
+                            colors: [
+                              Color.fromARGB(255, 127, 205, 234),
+                              Color.fromARGB(255, 104, 151, 193)
+                            ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                         ),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 10),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 50, vertical: 10),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.person, color: Colors.blueGrey, size: 24),
+                                  const Icon(Icons.person,
+                                      color: Colors.blueGrey, size: 24),
                                   const SizedBox(width: 20),
                                   Text(
                                     userData!['name'] ?? '',
-                                    style: GoogleFonts.inter(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600),
+                                    style: GoogleFonts.inter(
+                                        color: Colors.white,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w600),
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 16),
                               Row(
                                 children: [
-                                  const Icon(Icons.email, color: Colors.blueGrey, size: 24),
+                                  const Icon(Icons.email,
+                                      color: Colors.blueGrey, size: 24),
                                   const SizedBox(width: 20),
                                   Text(
                                     userData!['email'] ?? '',
-                                    style: GoogleFonts.inter(fontSize: 13, color: Colors.white),
+                                    style: GoogleFonts.inter(
+                                        fontSize: 13, color: Colors.white),
                                   ),
                                 ],
                               ),
@@ -193,8 +222,14 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   TabBar(
                     tabs: [
-                      Tab(child: Text('OPCIONES', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600))),
-                      Tab(child: Text('ESTADÍSTICAS', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600))),
+                      Tab(
+                          child: Text('OPCIONES',
+                              style: GoogleFonts.inter(
+                                  fontSize: 16, fontWeight: FontWeight.w600))),
+                      Tab(
+                          child: Text('ESTADÍSTICAS',
+                              style: GoogleFonts.inter(
+                                  fontSize: 16, fontWeight: FontWeight.w600))),
                     ],
                     indicatorColor: Colors.green,
                     labelColor: Colors.green,
@@ -212,36 +247,50 @@ class _ProfilePageState extends State<ProfilePage> {
                                   icon: Icons.person,
                                   title: 'Editar Perfil',
                                   subtitle: 'Datos de usuario',
-                                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => UpdateProfileScreen())),
+                                  onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                              UpdateProfileScreen())),
                                 ),
                                 _buildMenuItem(
                                   icon: Icons.notifications,
                                   title: 'Invitaciones',
                                   subtitle: 'Ver invitaciones',
                                   count: _invitacionesPendientes,
-                                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => InvitacionesScreen())),
+                                  onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                              NotificationHistoryScreen())),
                                 ),
                                 _buildMenuItem(
                                   icon: Icons.monetization_on,
                                   title: 'Monedero',
                                   subtitle: 'Ver mi Monedero',
                                   count: _invitacionesPendientes,
-                                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => WalletScreen())),
+                                  onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                              WalletScreen())),
                                 ),
-
                                 _buildMenuItem(
                                   icon: Icons.qr_code,
                                   title: 'Mi Código',
                                   subtitle: 'Para unirme a equipos',
                                   onTap: _mostrarCodigo,
-                                ), 
-                                   _buildMenuItem(
+                                ),
+                                _buildMenuItem(
                                   icon: Icons.sports_soccer,
                                   title: 'Mis Reservaciones',
                                   subtitle: 'Ver Reservaciones',
-                                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => BookingScreen())),
+                                  onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                              BookingScreen())),
                                 ),
-                            
                                 _buildMenuItem(
                                   icon: Icons.group,
                                   title: 'Mi Equipo',
@@ -262,7 +311,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ],
                     ),
                   ),
-                ], 
+                ],
               ),
       ),
     );
@@ -281,7 +330,13 @@ class _ProfilePageState extends State<ProfilePage> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(8),
-          boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.2), spreadRadius: 1, blurRadius: 2, offset: const Offset(0, 1))],
+          boxShadow: [
+            BoxShadow(
+                color: Colors.grey.withOpacity(0.2),
+                spreadRadius: 1,
+                blurRadius: 2,
+                offset: const Offset(0, 1))
+          ],
         ),
         child: Stack(
           clipBehavior: Clip.none,
@@ -293,25 +348,32 @@ class _ProfilePageState extends State<ProfilePage> {
                 top: -8,
                 child: Container(
                   padding: EdgeInsets.all(4),
-                  decoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                  decoration:
+                      BoxDecoration(color: Colors.red, shape: BoxShape.circle),
                   constraints: BoxConstraints(minWidth: 16, minHeight: 16),
                   child: Center(
-                    child: Text(count.toString(), style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                    child: Text(count.toString(),
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold)),
                   ),
                 ),
               ),
           ],
         ),
       ),
-      title: Text(title, style: GoogleFonts.inter(color: Colors.blue, fontSize: 16, fontWeight: FontWeight.w500)),
-      subtitle: Text(subtitle, style: GoogleFonts.inter(fontSize: 14, color: Colors.grey)),
+      title: Text(title,
+          style: GoogleFonts.inter(
+              color: Colors.blue, fontSize: 16, fontWeight: FontWeight.w500)),
+      subtitle: Text(subtitle,
+          style: GoogleFonts.inter(fontSize: 14, color: Colors.grey)),
       trailing: const Icon(Icons.chevron_right, color: Colors.green),
       onTap: onTap,
     );
   }
 }
 
-// Mantén ProfilePic y otras clases aquí si no las mueves a otro archivo
 class ProfilePic extends StatelessWidget {
   final Map<String, dynamic>? userData;
   const ProfilePic({Key? key, required this.userData}) : super(key: key);
@@ -330,25 +392,12 @@ class ProfilePic extends StatelessWidget {
           clipBehavior: Clip.none,
           children: [
             CircleAvatar(
-              backgroundImage: imageUrl != null ? NetworkImage(imageUrl) : const AssetImage('assets/icons/jugadore.png') as ImageProvider,
-              onBackgroundImageError: (exception, stackTrace) => print('Error loading image: $exception'),
-            ),
-            Positioned(
-              right: -16,
-              bottom: 0,
-              child: SizedBox(
-                height: 46,
-                width: 46,
-                child: TextButton(
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
-                    backgroundColor: const Color.fromARGB(255, 100, 148, 220),
-                  ),
-                  onPressed: () {},
-                  child: Icon(Icons.camera_alt, color: Colors.white),
-                ),
-              ),
+              backgroundImage: imageUrl != null
+                  ? NetworkImage(imageUrl)
+                  : const AssetImage('assets/icons/jugadore.png')
+                      as ImageProvider,
+              onBackgroundImageError: (exception, stackTrace) =>
+                  print('Error loading image: $exception'),
             ),
           ],
         ),

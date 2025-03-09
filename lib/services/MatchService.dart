@@ -74,26 +74,34 @@ class MatchService {
   }
 
   Future<List<dynamic>> getTopMvpPlayers() async {
-    try {
-      final token = await storage.getToken();
-      final response = await http.get(
-        Uri.parse('$baseUrl/top-mvp-players'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
+    final token = await storage.getToken();
 
-      if (response.statusCode != 200) {
-        throw Exception(
-            'Error al obtener top MVP players: ${response.statusCode}');
-      }
+    final url = Uri.parse('$baseUrl/top-mvp-players');
 
-      final data = json.decode(response.body);
-      return data['data']; // Devuelve la lista de jugadores
-    } catch (e) {
-      print('Error en getTopMvpPlayers: $e');
-      throw e;
+    print('mvp - Enviando solicitud GET a: $url');
+
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    print('mvp - Código de estado: ${response.statusCode}');
+    print(
+        'mvp - Respuesta completa: ${response.body}'); // 🔴 Muestra el JSON recibido
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      print(
+          'mvp - JSON decodificado: $data'); // 🔴 Muestra cómo se está interpretando el JSON
+
+      return data['data'] ?? []; // Evita errores si 'data' es null
+    } else {
+      throw Exception(
+          'Failed to load top MVP players. Status: ${response.statusCode}');
     }
   }
 

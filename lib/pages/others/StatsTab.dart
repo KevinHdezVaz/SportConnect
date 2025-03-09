@@ -278,7 +278,6 @@ class _StatsTabState extends State<StatsTab> {
                 Text(label,
                     style:
                         GoogleFonts.inter(fontSize: 14, color: Colors.black87)),
-                Icon(Icons.info_outline, size: 16, color: Colors.grey),
               ],
             ),
           ),

@@ -13,7 +13,7 @@ class ListaEquiposScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           'Mis Equipos',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
         ),
         elevation: 0,
         actions: [
@@ -58,33 +58,37 @@ class ListaEquiposScreen extends StatelessWidget {
 
           final equipos = snapshot.data ?? [];
 
-        if (equipos.isEmpty) {
-  return Center(
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(Icons.group_off, size: 80, color: Colors.grey),
-        SizedBox(height: 16),
-        Text(
-          'No perteneces a ningún equipo',
-          style: TextStyle(fontSize: 20, color: Colors.grey[600]),
-        ),
-        SizedBox(height: 24),
-        ElevatedButton.icon(
-          icon: Icon(Icons.add),
-          label: Text('Crear mi primer equipo'),
-          style: ElevatedButton.styleFrom(
-            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          ),
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => CrearEquipoScreen()),
-          ),
-        ),
-      ],
-    ),
-  );
-}
+          if (equipos.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.group_off, size: 80, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    'No perteneces a ningún equipo',
+                    style: TextStyle(fontSize: 20, color: Colors.grey[600]),
+                  ),
+                  SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    icon: Icon(Icons.add),
+                    label: Text(
+                      'Crear mi primer equipo',
+                      style: TextStyle(color: Colors.black),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    ),
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => CrearEquipoScreen()),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
 
           return Padding(
             padding: EdgeInsets.all(16.0),
@@ -102,15 +106,16 @@ class ListaEquiposScreen extends StatelessWidget {
                     child: InkWell(
                       borderRadius: BorderRadius.circular(15),
                       onTap: () {
-Navigator.push(
-  context,
-  MaterialPageRoute(
-    builder: (_) => DetalleEquipoScreen(
-      equipo: equipo,
-      userId: equipo.id,  
-    ),
-  ),
-);                      },
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => DetalleEquipoScreen(
+                              equipo: equipo,
+                              userId: equipo.id,
+                            ),
+                          ),
+                        );
+                      },
                       child: Padding(
                         padding: EdgeInsets.all(16),
                         child: Row(

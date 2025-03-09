@@ -20,6 +20,7 @@ import 'package:user_auth_crudd10/model/field.dart';
 import 'package:user_auth_crudd10/pages/PartidosDisponibles/CommentsTab.dart'; // Nueva importación
 import 'package:user_auth_crudd10/pages/PartidosDisponibles/MatchInfoTab.dart';
 import 'package:user_auth_crudd10/pages/PartidosDisponibles/PositionConfig.dart';
+import 'package:user_auth_crudd10/pages/screens/PlayerProfilePage.dart';
 import 'package:user_auth_crudd10/services/MatchService.dart';
 import 'package:user_auth_crudd10/services/WalletService.dart';
 import 'package:user_auth_crudd10/services/storage_service.dart';
@@ -224,39 +225,52 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.blue,
-        title:
-            Text('Detalles del Partido', style: TextStyle(color: Colors.white)),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.share, color: Colors.white),
-            onPressed: () => _shareToWhatsApp(),
+    return WillPopScope(
+      onWillPop: () async {
+        // Devuelve `true` para indicar que la vista anterior debe recargarse
+        Navigator.pop(context, true);
+        return false; // Evita que el sistema maneje el retroceso automáticamente
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.blue,
+          title: Text('Detalles del Partido',
+              style: TextStyle(color: Colors.white)),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.share, color: Colors.white),
+              onPressed: () => _shareToWhatsApp(),
+            ),
+          ],
+          bottom: TabBar(
+            indicatorColor: Colors.blue,
+            labelColor: Colors.white,
+            unselectedLabelColor: Color.fromARGB(255, 182, 190, 204),
+            controller: _tabController,
+            tabs: [
+              Tab(text: 'INFORMACIÓN'),
+              Tab(text: 'PARTICIPANTES'),
+              Tab(text: 'COMENTARIOS'), // Nueva pestaña
+            ],
           ),
-        ],
-        bottom: TabBar(
-          indicatorColor: Colors.blue,
-          labelColor: Colors.white,
-          unselectedLabelColor: Color.fromARGB(255, 182, 190, 204),
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () {
+              Navigator.pop(context, true);
+            },
+          ),
+        ),
+        body: TabBarView(
           controller: _tabController,
-          tabs: [
-            Tab(text: 'INFORMACIÓN'),
-            Tab(text: 'PARTICIPANTES'),
-            Tab(text: 'COMENTARIOS'), // Nueva pestaña
+          children: [
+            MatchInfoTab(fieldFuture: _fieldFuture, match: widget.match),
+            _buildTeamsTab(),
+            CommentsTab(
+                matchId: widget.match.id,
+                matchCreatedAt:
+                    widget.match.createdAt), // Pasar created_at del partido
           ],
         ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          MatchInfoTab(fieldFuture: _fieldFuture, match: widget.match),
-          _buildTeamsTab(),
-          CommentsTab(
-              matchId: widget.match.id,
-              matchCreatedAt:
-                  widget.match.createdAt), // Pasar created_at del partido
-        ],
       ),
     );
   }
@@ -446,50 +460,68 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
     debugPrint(
         'Renderizando slot - Position: $position, Player: ${player?.user?.name}');
 
-    return Container(
-      width: 85,
-      margin: EdgeInsets.all(8),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                      color: isAvailable ? Colors.grey.shade300 : teamColor,
-                      width: 2),
-                  color: isAvailable ? Colors.grey.shade100 : Colors.white,
+    return GestureDetector(
+      // Agregar GestureDetector para detectar el clic
+      onTap: player != null && player.user?.id != null
+          ? () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => PlayerProfilePage(
+                    userId: player.user!.id,
+                  ),
                 ),
-                child: CircleAvatar(
-                  radius: 30,
-                  backgroundColor:
-                      isAvailable ? Colors.grey.shade200 : Colors.grey[200],
-                  backgroundImage:
-                      imageUrl != null ? NetworkImage(imageUrl) : null,
-                  child: isAvailable && icon != null
-                      ? Image.asset(icon,
-                          width: 24, height: 24, color: Colors.grey.shade400)
-                      : null,
+              ).then((_) {
+                // Opcional: Si necesitas recargar algo al volver
+                // setState(() => _loadTeams());
+              });
+            }
+          : null, // No hacer nada si no hay jugador
+      child: Container(
+        width: 85,
+        margin: EdgeInsets.all(8),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                        color: isAvailable ? Colors.grey.shade300 : teamColor,
+                        width: 2),
+                    color: isAvailable ? Colors.grey.shade100 : Colors.white,
+                  ),
+                  child: CircleAvatar(
+                    radius: 30,
+                    backgroundColor:
+                        isAvailable ? Colors.grey.shade200 : Colors.grey[200],
+                    backgroundImage:
+                        imageUrl != null ? NetworkImage(imageUrl) : null,
+                    child: isAvailable && icon != null
+                        ? Image.asset(icon,
+                            width: 24, height: 24, color: Colors.grey.shade400)
+                        : null,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          SizedBox(height: 8),
-          Text(
-            player?.user?.name ?? 'Disponible',
-            style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: isAvailable ? Colors.grey.shade400 : Colors.black),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          Text(position ?? 'Sin posición',
-              style: TextStyle(fontSize: 11, color: Colors.black)),
-        ],
+              ],
+            ),
+            SizedBox(height: 8),
+            Text(
+              player?.user?.name ?? 'Disponible',
+              style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: isAvailable ? Colors.grey.shade400 : Colors.black),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            Text(position ?? 'Sin posición',
+                style: TextStyle(fontSize: 11, color: Colors.black)),
+          ],
+        ),
       ),
     );
   }
@@ -514,9 +546,7 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
               return FutureBuilder<bool>(
                 future: _isUserInTeam(team),
                 builder: (context, isInThisTeamSnapshot) {
-                  if (isInThisTeamSnapshot.data == true) {
-                   
-                  }
+                  if (isInThisTeamSnapshot.data == true) {}
                   return SizedBox();
                 },
               );
@@ -550,7 +580,6 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
       },
     );
   }
-
 
 /*
   void _showLeaveTeamDialog(MatchTeam team) async {
@@ -657,456 +686,464 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen>
 
   */
 
+  void _showJoinTeamDialog(MatchTeam team) {
+    debugPrint('Game Type from match: ${widget.match.gameType}');
+    final availablePositions =
+        PositionsConfig.getPositionsForFieldType(widget.match.gameType);
+    bool joinAsTeam = false;
+    bool showRules = false;
+    String? selectedPosition;
+    bool normas1 = false;
+    bool normas2 = false;
+    bool normas3 = false;
+    bool useWallet = false;
 
-void _showJoinTeamDialog(MatchTeam team) {
-  debugPrint('Game Type from match: ${widget.match.gameType}');
-  final availablePositions =
-      PositionsConfig.getPositionsForFieldType(widget.match.gameType);
-  bool joinAsTeam = false;
-  bool showRules = false;
-  String? selectedPosition;
-  bool normas1 = false;
-  bool normas2 = false;
-  bool normas3 = false;
-  bool useWallet = false;
+    // Obtener los bonos antes de abrir el diálogo
+    Future<List<dynamic>> bonosFuture = MatchService().getUserBonos();
 
-  // Obtener los bonos antes de abrir el diálogo
-  Future<List<dynamic>> bonosFuture = MatchService().getUserBonos();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          // Seleccionar automáticamente el primer bono si no hay uno seleccionado
+          bonosFuture.then((bonos) {
+            if (bonos.isNotEmpty && selectedBonoId == null) {
+              setDialogState(() {
+                selectedBonoId = bonos.first['id'].toString();
+              });
+            }
+          });
 
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) => StatefulBuilder(
-      builder: (context, setDialogState) {
-        // Seleccionar automáticamente el primer bono si no hay uno seleccionado
-        bonosFuture.then((bonos) {
-          if (bonos.isNotEmpty && selectedBonoId == null) {
-            setDialogState(() {
-              selectedBonoId = bonos.first['id'].toString();
-            });
-          }
-        });
-
-        return WillPopScope(
-          onWillPop: () async => !_isLoading,
-          child: Stack(
-            children: [
-              AlertDialog(
-                title: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                        showRules ? 'Normas del evento' : 'Unirse al partido',
-                        style: TextStyle(color: Colors.black)),
-                    IconButton(
-                      icon: Icon(Icons.close),
-                      onPressed:
-                          _isLoading ? null : () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                content: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+          return WillPopScope(
+            onWillPop: () async => !_isLoading,
+            child: Stack(
+              children: [
+                AlertDialog(
+                  title: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      if (!showRules) ...[
-                        Row(
-                          children: [
-                            Text('Unirse como: ',
-                                style: TextStyle(color: Colors.black)),
-                            DropdownButton<bool>(
-                              value: joinAsTeam,
-                              items: [
-                                DropdownMenuItem(
-                                    value: false,
-                                    child: Text('Individual',
-                                        style: TextStyle(color: Colors.black))),
-                                DropdownMenuItem(
-                                    value: true,
-                                    child: Text('Equipo',
-                                        style: TextStyle(color: Colors.black))),
-                              ],
-                              onChanged: (value) {
-                                setDialogState(() {
-                                  joinAsTeam = value ?? false;
-                                  if (!joinAsTeam)
-                                    _selectedPredefinedTeam = null;
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 16),
-                        if (joinAsTeam)
-                          FutureBuilder<List<Equipo>>(
-                            future: _predefinedTeamsFuture,
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return Center(child: CircularProgressIndicator());
-                              }
-                              if (snapshot.hasError) {
-                                debugPrint(
-                                    'Error en getPredefinedTeams: ${snapshot.error}');
-                                return Text('Error al cargar equipos');
-                              }
-                              final teams = _cachedTeams ?? [];
-                              if (teams.isEmpty) {
-                                return Column(
-                                  children: [
-                                    Icon(Icons.sports_soccer,
-                                        size: 48, color: Colors.grey),
-                                    SizedBox(height: 8),
-                                    Text('No tienes equipos disponibles',
-                                        style: TextStyle(
-                                            fontSize: 16,
-                                            color: Colors.grey[600])),
-                                    SizedBox(height: 8),
-                                    Text(
-                                        'Crea un equipo primero para poder inscribirlo',
-                                        style: TextStyle(
-                                            fontSize: 14, color: Colors.grey)),
-                                  ],
-                                );
-                              }
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Container(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 4),
-                                    decoration: BoxDecoration(
-                                        border: Border.all(
-                                            color: Colors.grey[300]!),
-                                        borderRadius: BorderRadius.circular(8)),
-                                    child: DropdownButton<Equipo>(
-                                      hint: Text('Selecciona tu equipo'),
-                                      value: _selectedPredefinedTeam,
-                                      isExpanded: true,
-                                      underline: SizedBox(),
-                                      items: teams
-                                          .map((e) => DropdownMenuItem(
-                                              value: e, child: Text(e.nombre)))
-                                          .toList(),
-                                      onChanged: (value) {
-                                        setDialogState(
-                                            () => _selectedPredefinedTeam = value);
-                                        setState(
-                                            () => _selectedPredefinedTeam = value);
-                                        debugPrint(
-                                            'Equipo seleccionado: ${value?.nombre}');
-                                      },
-                                    ),
-                                  ),
-                                  if (_selectedPredefinedTeam != null)
-                                    Padding(
-                                      padding: EdgeInsets.only(top: 16),
-                                      child: ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.blue,
-                                          padding:
-                                              EdgeInsets.symmetric(vertical: 12),
-                                          shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(8)),
-                                        ),
-                                        onPressed: _isLoading
-                                            ? null
-                                            : () {
-                                                setDialogState(
-                                                    () => showRules = true);
-                                              },
-                                        child: Text('Inscribir Equipo',
-                                            style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold)),
-                                      ),
-                                    ),
+                      Text(
+                          showRules ? 'Normas del evento' : 'Unirse al partido',
+                          style: TextStyle(color: Colors.black)),
+                      IconButton(
+                        icon: Icon(Icons.close),
+                        onPressed:
+                            _isLoading ? null : () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (!showRules) ...[
+                          Row(
+                            children: [
+                              Text('Unirse como: ',
+                                  style: TextStyle(color: Colors.black)),
+                              DropdownButton<bool>(
+                                value: joinAsTeam,
+                                items: [
+                                  DropdownMenuItem(
+                                      value: false,
+                                      child: Text('Individual',
+                                          style:
+                                              TextStyle(color: Colors.black))),
+                                  DropdownMenuItem(
+                                      value: true,
+                                      child: Text('Equipo',
+                                          style:
+                                              TextStyle(color: Colors.black))),
                                 ],
-                              );
-                            },
-                          )
-                        else ...[
-                          // Mostrar bonos disponibles
-                          FutureBuilder<List<dynamic>>(
-                            future: bonosFuture,
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return CircularProgressIndicator();
-                              }
-                              if (snapshot.hasError) {
-                                return Text('Error al cargar bonos',
-                                    style: TextStyle(color: Colors.red));
-                              }
-
-                              final bonos = snapshot.data ?? [];
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (bonos.isNotEmpty) ...[
-                                    Text(
-                                      'Usar un bono:',
-                                      style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black87),
-                                    ),
-                                    SizedBox(height: 8),
+                                onChanged: (value) {
+                                  setDialogState(() {
+                                    joinAsTeam = value ?? false;
+                                    if (!joinAsTeam)
+                                      _selectedPredefinedTeam = null;
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 16),
+                          if (joinAsTeam)
+                            FutureBuilder<List<Equipo>>(
+                              future: _predefinedTeamsFuture,
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return Center(
+                                      child: CircularProgressIndicator());
+                                }
+                                if (snapshot.hasError) {
+                                  debugPrint(
+                                      'Error en getPredefinedTeams: ${snapshot.error}');
+                                  return Text('Error al cargar equipos');
+                                }
+                                final teams = _cachedTeams ?? [];
+                                if (teams.isEmpty) {
+                                  return Column(
+                                    children: [
+                                      Icon(Icons.sports_soccer,
+                                          size: 48, color: Colors.grey),
+                                      SizedBox(height: 8),
+                                      Text('No tienes equipos disponibles',
+                                          style: TextStyle(
+                                              fontSize: 16,
+                                              color: Colors.grey[600])),
+                                      SizedBox(height: 8),
+                                      Text(
+                                          'Crea un equipo primero para poder inscribirlo',
+                                          style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey)),
+                                    ],
+                                  );
+                                }
+                                return Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
                                     Container(
                                       padding: EdgeInsets.symmetric(
                                           horizontal: 12, vertical: 4),
                                       decoration: BoxDecoration(
-                                        border: Border.all(
-                                            color: Colors.grey[300]!),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: DropdownButton<String>(
-                                        hint: Text('Selecciona un bono'),
-                                        value: selectedBonoId,
+                                          border: Border.all(
+                                              color: Colors.grey[300]!),
+                                          borderRadius:
+                                              BorderRadius.circular(8)),
+                                      child: DropdownButton<Equipo>(
+                                        hint: Text('Selecciona tu equipo'),
+                                        value: _selectedPredefinedTeam,
                                         isExpanded: true,
                                         underline: SizedBox(),
-                                        items: bonos.map((bono) {
-                                          return DropdownMenuItem<String>(
-                                            value: bono['id'].toString(),
-                                            child: Text(
-                                              '${bono['bono']['titulo']} (Usos: ${bono['usos_disponibles'] ?? 'Ilimitados'})',
-                                              style:
-                                                  TextStyle(color: Colors.black),
-                                            ),
-                                          );
-                                        }).toList(),
+                                        items: teams
+                                            .map((e) => DropdownMenuItem(
+                                                value: e,
+                                                child: Text(e.nombre)))
+                                            .toList(),
                                         onChanged: (value) {
-                                          setDialogState(() {
-                                            selectedBonoId = value;
-                                          });
+                                          setDialogState(() =>
+                                              _selectedPredefinedTeam = value);
+                                          setState(() =>
+                                              _selectedPredefinedTeam = value);
+                                          debugPrint(
+                                              'Equipo seleccionado: ${value?.nombre}');
                                         },
                                       ),
                                     ),
+                                    if (_selectedPredefinedTeam != null)
+                                      Padding(
+                                        padding: EdgeInsets.only(top: 16),
+                                        child: ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.blue,
+                                            padding: EdgeInsets.symmetric(
+                                                vertical: 12),
+                                            shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(8)),
+                                          ),
+                                          onPressed: _isLoading
+                                              ? null
+                                              : () {
+                                                  setDialogState(
+                                                      () => showRules = true);
+                                                },
+                                          child: Text('Inscribir Equipo',
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold)),
+                                        ),
+                                      ),
                                   ],
-                                ],
-                              );
-                            },
-                          ),
-                          SizedBox(height: 16),
-                          // Opción para usar monedero
-                          FutureBuilder<Wallet>(
-                            future: _walletFuture,
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return SizedBox();
-                              }
-                              if (snapshot.hasError) {
-                                return Text('Error al cargar monedero');
-                              }
-                              final wallet = snapshot.data!;
-                              final matchPrice = widget.match.price;
-
-                              if (wallet.balance == 0) {
-                                return SizedBox(); // No mostrar nada si el saldo es 0
-                              }
-
-                              if (wallet.balance >= matchPrice) {
-                                return CheckboxListTile(
-                                  value: useWallet,
-                                  onChanged: (value) {
-                                    setDialogState(
-                                        () => useWallet = value ?? false);
-                                  },
-                                  title: Text(
-                                      'Usar monedero (\$${wallet.balance.toStringAsFixed(2)})',
-                                      style: TextStyle(color: Colors.black)),
-                                  subtitle: Text(
-                                      'Costo: \$${matchPrice.toStringAsFixed(2)}',
-                                      style:
-                                          TextStyle(color: Colors.grey[600])),
-                                  controlAffinity:
-                                      ListTileControlAffinity.leading,
                                 );
-                              } else if (wallet.balance > 1) {
-                                // Mostrar mensaje solo si el saldo es mayor a 1 y menor al precio
-                                return Padding(
-                                  padding: EdgeInsets.only(bottom: 8),
-                                  child: Text(
-                                    'Saldo insuficiente en el monedero (\$${wallet.balance.toStringAsFixed(2)}). Necesitas \$${matchPrice.toStringAsFixed(2)} para unirte o también puedes pagar con MercadoPago.',
-                                    style: TextStyle(
-                                        color: Colors.orange,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14),
-                                  ),
+                              },
+                            )
+                          else ...[
+                            // Mostrar bonos disponibles
+                            FutureBuilder<List<dynamic>>(
+                              future: bonosFuture,
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return CircularProgressIndicator();
+                                }
+                                if (snapshot.hasError) {
+                                  return Text('Error al cargar bonos',
+                                      style: TextStyle(color: Colors.red));
+                                }
+
+                                final bonos = snapshot.data ?? [];
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (bonos.isNotEmpty) ...[
+                                      Text(
+                                        'Usar un bono:',
+                                        style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black87),
+                                      ),
+                                      SizedBox(height: 8),
+                                      Container(
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          border: Border.all(
+                                              color: Colors.grey[300]!),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: DropdownButton<String>(
+                                          hint: Text('Selecciona un bono'),
+                                          value: selectedBonoId,
+                                          isExpanded: true,
+                                          underline: SizedBox(),
+                                          items: bonos.map((bono) {
+                                            return DropdownMenuItem<String>(
+                                              value: bono['id'].toString(),
+                                              child: Text(
+                                                '${bono['bono']['titulo']} (Usos: ${bono['usos_disponibles'] ?? 'Ilimitados'})',
+                                                style: TextStyle(
+                                                    color: Colors.black),
+                                              ),
+                                            );
+                                          }).toList(),
+                                          onChanged: (value) {
+                                            setDialogState(() {
+                                              selectedBonoId = value;
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 );
-                              }
-                              return SizedBox(); // No mostrar nada si el saldo es menor o igual a 1 pero mayor a 0
-                            },
-                          ),
-                          SizedBox(height: 8),
-                          Text('Selecciona tu posición:',
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87)),
-                          SizedBox(height: 8),
-                          ...availablePositions.map((position) {
-                            bool isOccupied = team.players.any((player) =>
-                                player.position == position['name']);
-                            return Container(
-                              margin: EdgeInsets.symmetric(vertical: 4),
-                              decoration: BoxDecoration(
-                                color: isOccupied
-                                    ? Colors.grey.shade100
-                                    : Colors.white,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                    color: isOccupied
-                                        ? Colors.grey.shade300
-                                        : Colors.blue.shade200,
-                                    width: 1),
-                              ),
-                              child: ListTile(
-                                enabled: !isOccupied && !_isLoading,
-                                leading: Container(
-                                  padding: EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
+                              },
+                            ),
+                            SizedBox(height: 16),
+                            // Opción para usar monedero
+                            FutureBuilder<Wallet>(
+                              future: _walletFuture,
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return SizedBox();
+                                }
+                                if (snapshot.hasError) {
+                                  return Text('Error al cargar monedero');
+                                }
+                                final wallet = snapshot.data!;
+                                final matchPrice = widget.match.price;
+
+                                if (wallet.balance == 0) {
+                                  return SizedBox(); // No mostrar nada si el saldo es 0
+                                }
+
+                                if (wallet.balance >= matchPrice) {
+                                  return CheckboxListTile(
+                                    value: useWallet,
+                                    onChanged: (value) {
+                                      setDialogState(
+                                          () => useWallet = value ?? false);
+                                    },
+                                    title: Text(
+                                        'Usar monedero (\$${wallet.balance.toStringAsFixed(2)})',
+                                        style: TextStyle(color: Colors.black)),
+                                    subtitle: Text(
+                                        'Costo: \$${matchPrice.toStringAsFixed(2)}',
+                                        style:
+                                            TextStyle(color: Colors.grey[600])),
+                                    controlAffinity:
+                                        ListTileControlAffinity.leading,
+                                  );
+                                } else if (wallet.balance > 1) {
+                                  // Mostrar mensaje solo si el saldo es mayor a 1 y menor al precio
+                                  return Padding(
+                                    padding: EdgeInsets.only(bottom: 8),
+                                    child: Text(
+                                      'Saldo insuficiente en el monedero (\$${wallet.balance.toStringAsFixed(2)}). Necesitas \$${matchPrice.toStringAsFixed(2)} para unirte o también puedes pagar con MercadoPago.',
+                                      style: TextStyle(
+                                          color: Colors.orange,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14),
+                                    ),
+                                  );
+                                }
+                                return SizedBox(); // No mostrar nada si el saldo es menor o igual a 1 pero mayor a 0
+                              },
+                            ),
+                            SizedBox(height: 8),
+                            Text('Selecciona tu posición:',
+                                style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87)),
+                            SizedBox(height: 8),
+                            ...availablePositions.map((position) {
+                              bool isOccupied = team.players.any((player) =>
+                                  player.position == position['name']);
+                              return Container(
+                                margin: EdgeInsets.symmetric(vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: isOccupied
+                                      ? Colors.grey.shade100
+                                      : Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
                                       color: isOccupied
-                                          ? Colors.grey.shade200
-                                          : Colors.blue.shade50,
-                                      borderRadius: BorderRadius.circular(8)),
-                                  child: Image.asset(position['icon'],
-                                      width: 24,
-                                      height: 24,
-                                      color: isOccupied || _isLoading
-                                          ? Colors.grey.shade400
-                                          : Colors.blue.shade700),
+                                          ? Colors.grey.shade300
+                                          : Colors.blue.shade200,
+                                      width: 1),
                                 ),
-                                title: Text(position['name'],
-                                    style: TextStyle(
+                                child: ListTile(
+                                  enabled: !isOccupied && !_isLoading,
+                                  leading: Container(
+                                    padding: EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                        color: isOccupied
+                                            ? Colors.grey.shade200
+                                            : Colors.blue.shade50,
+                                        borderRadius: BorderRadius.circular(8)),
+                                    child: Image.asset(position['icon'],
+                                        width: 24,
+                                        height: 24,
                                         color: isOccupied || _isLoading
                                             ? Colors.grey.shade400
-                                            : Colors.black,
-                                        fontWeight: FontWeight.bold)),
-                                subtitle: isOccupied
-                                    ? Text('Posición ocupada',
-                                        style: TextStyle(
-                                            color: Colors.red.shade300,
-                                            fontSize: 12))
-                                    : Text('Disponible',
-                                        style: TextStyle(
-                                            color: Colors.green.shade700,
-                                            fontSize: 12)),
-                                onTap: (isOccupied || _isLoading)
-                                    ? null
-                                    : () {
-                                        setDialogState(() {
-                                          selectedPosition = position['name'];
-                                          showRules = true;
-                                        });
-                                      },
-                              ),
-                            );
-                          }).toList(),
-                          SizedBox(height: 16),
-                        ],
-                      ] else ...[
-                        ListTile(
-                          leading: Image.asset('assets/icons/estandar.png',
-                              width: 100, height: 100),
-                          title: Text('Normas del evento',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black)),
-                        ),
-                        CheckboxListTile(
-                          value: normas1,
-                          onChanged: (value) =>
-                              setDialogState(() => normas1 = value ?? false),
-                          title: Text('Estar 15 minutos antes del partido',
-                              style: TextStyle(color: Colors.black)),
-                          controlAffinity: ListTileControlAffinity.leading,
-                        ),
-                        CheckboxListTile(
-                          value: normas2,
-                          onChanged: (value) =>
-                              setDialogState(() => normas2 = value ?? false),
-                          title: Text(
-                              'Reembolso al monedero en caso de cancelación',
-                              style: TextStyle(color: Colors.black)),
-                          controlAffinity: ListTileControlAffinity.leading,
-                        ),
-                        CheckboxListTile(
-                          value: normas3,
-                          onChanged: (value) =>
-                              setDialogState(() => normas3 = value ?? false),
-                          title: Text('Acepto las normas del evento',
-                              style: TextStyle(color: Colors.black)),
-                          controlAffinity: ListTileControlAffinity.leading,
-                        ),
-                        SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                padding: EdgeInsets.symmetric(vertical: 12)),
-                            onPressed: (normas1 && normas2 && normas3)
-                                ? () async {
-                                    Navigator.pop(context);
-                                    if (mounted) {
-                                      await _handleJoinTeam(
-                                        team,
-                                        selectedPosition,
-                                        joinAsTeam: joinAsTeam,
-                                        predefinedTeam: _selectedPredefinedTeam,
-                                        useBonoId: selectedBonoId,
-                                        useWallet: useWallet,
-                                      );
-                                    }
-                                  }
-                                : null,
-                            child: _isLoading
-                                ? SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                        color: Colors.white, strokeWidth: 2))
-                                : Text('Confirmar',
-                                    style: TextStyle(color: Colors.white)),
+                                            : Colors.blue.shade700),
+                                  ),
+                                  title: Text(position['name'],
+                                      style: TextStyle(
+                                          color: isOccupied || _isLoading
+                                              ? Colors.grey.shade400
+                                              : Colors.black,
+                                          fontWeight: FontWeight.bold)),
+                                  subtitle: isOccupied
+                                      ? Text('Posición ocupada',
+                                          style: TextStyle(
+                                              color: Colors.red.shade300,
+                                              fontSize: 12))
+                                      : Text('Disponible',
+                                          style: TextStyle(
+                                              color: Colors.green.shade700,
+                                              fontSize: 12)),
+                                  onTap: (isOccupied || _isLoading)
+                                      ? null
+                                      : () {
+                                          setDialogState(() {
+                                            selectedPosition = position['name'];
+                                            showRules = true;
+                                          });
+                                        },
+                                ),
+                              );
+                            }).toList(),
+                            SizedBox(height: 16),
+                          ],
+                        ] else ...[
+                          ListTile(
+                            leading: Image.asset('assets/icons/estandar.png',
+                                width: 100, height: 100),
+                            title: Text('Normas del evento',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black)),
                           ),
-                        ),
+                          CheckboxListTile(
+                            value: normas1,
+                            onChanged: (value) =>
+                                setDialogState(() => normas1 = value ?? false),
+                            title: Text('Estar 15 minutos antes del partido',
+                                style: TextStyle(color: Colors.black)),
+                            controlAffinity: ListTileControlAffinity.leading,
+                          ),
+                          CheckboxListTile(
+                            value: normas2,
+                            onChanged: (value) =>
+                                setDialogState(() => normas2 = value ?? false),
+                            title: Text(
+                                'Reembolso al monedero en caso de cancelación',
+                                style: TextStyle(color: Colors.black)),
+                            controlAffinity: ListTileControlAffinity.leading,
+                          ),
+                          CheckboxListTile(
+                            value: normas3,
+                            onChanged: (value) =>
+                                setDialogState(() => normas3 = value ?? false),
+                            title: Text('Acepto las normas del evento',
+                                style: TextStyle(color: Colors.black)),
+                            controlAffinity: ListTileControlAffinity.leading,
+                          ),
+                          SizedBox(height: 16),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                  padding: EdgeInsets.symmetric(vertical: 12)),
+                              onPressed: (normas1 && normas2 && normas3)
+                                  ? () async {
+                                      Navigator.pop(context);
+                                      if (mounted) {
+                                        await _handleJoinTeam(
+                                          team,
+                                          selectedPosition,
+                                          joinAsTeam: joinAsTeam,
+                                          predefinedTeam:
+                                              _selectedPredefinedTeam,
+                                          useBonoId: selectedBonoId,
+                                          useWallet: useWallet,
+                                        );
+                                      }
+                                    }
+                                  : null,
+                              child: _isLoading
+                                  ? SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                          color: Colors.white, strokeWidth: 2))
+                                  : Text('Confirmar',
+                                      style: TextStyle(color: Colors.white)),
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
-              ),
-              if (_isLoading)
-                Positioned.fill(
-                  child: Container(
-                    color: Colors.black.withOpacity(0.3),
-                    child: Center(
-                      child: Card(
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        child: Padding(
-                          padding: EdgeInsets.all(20),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              CircularProgressIndicator(),
-                              SizedBox(height: 16),
-                              Text('Procesando...',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16)),
-                            ],
+                if (_isLoading)
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.black.withOpacity(0.3),
+                      child: Center(
+                        child: Card(
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          child: Padding(
+                            padding: EdgeInsets.all(20),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CircularProgressIndicator(),
+                                SizedBox(height: 16),
+                                Text('Procesando...',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16)),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-            ],
-          ),
+              ],
+            ),
           );
         },
       ),
@@ -1225,56 +1262,57 @@ void _showJoinTeamDialog(MatchTeam team) {
 
   */
 
-  
   Future<void> _handleJoinTeam(MatchTeam team, String? position,
-    {required bool joinAsTeam,
-    Equipo? predefinedTeam,
-    String? useBonoId,
-    bool useWallet = false}) async {
-  try {
-    setState(() => _isLoading = true);
+      {required bool joinAsTeam,
+      Equipo? predefinedTeam,
+      String? useBonoId,
+      bool useWallet = false}) async {
+    try {
+      setState(() => _isLoading = true);
 
-    if (joinAsTeam && predefinedTeam != null) {
-      // Registrar el equipo predefinido primero
-      final response = await MatchService().registerPredefinedTeamForMatch(
-          widget.match.id, predefinedTeam.id, team.id);
-      debugPrint('Equipo inscrito: ${response['match_team_id']}');
-      final registeredTeamId = int.parse(response['match_team_id'].toString());
+      if (joinAsTeam && predefinedTeam != null) {
+        // Registrar el equipo predefinido primero
+        final response = await MatchService().registerPredefinedTeamForMatch(
+            widget.match.id, predefinedTeam.id, team.id);
+        debugPrint('Equipo inscrito: ${response['match_team_id']}');
+        final registeredTeamId =
+            int.parse(response['match_team_id'].toString());
 
-      // Obtener los jugadores del MatchTeam recién registrado
-      final teams = await MatchService().getTeamsForMatch(widget.match.id);
-      final registeredTeam = teams.firstWhere((t) => t.id == registeredTeamId);
+        // Obtener los jugadores del MatchTeam recién registrado
+        final teams = await MatchService().getTeamsForMatch(widget.match.id);
+        final registeredTeam =
+            teams.firstWhere((t) => t.id == registeredTeamId);
 
-      if (mounted) {
-        // Pasar los jugadores del MatchTeam registrado al diálogo
-        await _showAssignPositionsDialog(
-            registeredTeam, registeredTeam.players, predefinedTeam.id);
-      }
-    } else if (position != null) {
-      if (widget.match.price > 0 && useBonoId == null && !useWallet) {
-        // Pago con MercadoPago cuando no hay bono ni monedero
         if (mounted) {
-          // Mostrar el diálogo de progreso
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (dialogContext) => WillPopScope(
-              onWillPop: () async => false, // Evitar cierre con botón atrás
-              child: AlertDialog(
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('Procesando pago...',
-                        style: TextStyle(color: Colors.black)),
-                  ],
+          // Pasar los jugadores del MatchTeam registrado al diálogo
+          await _showAssignPositionsDialog(
+              registeredTeam, registeredTeam.players, predefinedTeam.id);
+        }
+      } else if (position != null) {
+        if (widget.match.price > 0 && useBonoId == null && !useWallet) {
+          // Pago con MercadoPago cuando no hay bono ni monedero
+          if (mounted) {
+            // Mostrar el diálogo de progreso
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (dialogContext) => WillPopScope(
+                onWillPop: () async => false, // Evitar cierre con botón atrás
+                child: AlertDialog(
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text('Procesando pago...',
+                          style: TextStyle(color: Colors.black)),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        }
-     try {
+            );
+          }
+          try {
             final result = await MatchService().processTeamJoinPayment(team.id,
                 position, widget.match.price, widget.match.id, context);
             if (mounted) {

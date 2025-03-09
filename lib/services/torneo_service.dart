@@ -4,12 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:user_auth_crudd10/utils/constantes.dart';
 import '../model/Torneo.dart';
 
- 
-
-
-  class TorneoService {
-
-/*
+class TorneoService {
   void mostrarError(BuildContext context, String mensaje) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -27,26 +22,24 @@ import '../model/Torneo.dart';
     );
   }
 
- 
- Future<List<Torneo>> getTorneos() async {
+  Future<List<Torneo>> getTorneos() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/torneos'))
+      final response = await http
+          .get(Uri.parse('$baseUrl/torneos'))
           .timeout(const Duration(seconds: 10));
-      
+
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
-        final List<dynamic> data = responseData.containsKey('data') 
-            ? responseData['data'] 
+        final List<dynamic> data = responseData.containsKey('data')
+            ? responseData['data']
             : json.decode(response.body);
         return data.map((json) => Torneo.fromJson(json)).toList();
       }
       throw Exception('Error del servidor');
     } catch (e) {
-        throw Exception('Sin conexión');
+      throw Exception('Sin conexión');
     }
   }
-*/
-  
 
   Future<Map<String, dynamic>> getTorneoDetails(int torneoId) async {
     try {

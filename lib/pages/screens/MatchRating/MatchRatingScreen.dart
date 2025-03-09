@@ -233,10 +233,8 @@ class _MatchRatingScreenState extends State<MatchRatingScreen>
     final userId = player['user']['id'] as int? ?? 0;
     final userName = player['user']['name'] as String? ?? 'Jugador';
     final profileImage = player['user']['profile_image'] as String?;
-    final attitudeRating =
-        _attitudeRatings[userId] ?? 0; // Calificación de actitud
-    final participationRating =
-        _participationRatings[userId] ?? 0; // Calificación de participación
+    final attitudeRating = _attitudeRatings[userId] ?? 0;
+    final participationRating = _participationRatings[userId] ?? 0;
 
     return AnimatedBuilder(
       animation: _animationController,
@@ -267,8 +265,7 @@ class _MatchRatingScreenState extends State<MatchRatingScreen>
                     const SizedBox(height: 16),
                     _buildRatingSection('Actitud', userId, _attitudeRatings),
                     const SizedBox(height: 8),
-                    _buildRatingSection(
-                        'Nivel', userId, _participationRatings),
+                    _buildRatingSection('Nivel', userId, _participationRatings),
                     const SizedBox(height: 16),
                     _buildCommentField(userId),
                   ],
@@ -343,23 +340,22 @@ class _MatchRatingScreenState extends State<MatchRatingScreen>
   }
 
   Widget _buildCommentField(int userId) {
-  return TextField(
-  maxLines: 2,
-  style: TextStyle(color: Colors.black),  
-  decoration: InputDecoration(
-    hintText: 'Escribe un comentario (opcional)',
-    hintStyle: TextStyle(color: Colors.black54),  
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: Colors.grey[300]!),
-    ),
-    filled: true,
-    fillColor: Colors.grey[50],
-    contentPadding: const EdgeInsets.all(12),
-  ),
-  onChanged: (value) => _comments[userId] = value,
-);
-
+    return TextField(
+      maxLines: 2,
+      style: TextStyle(color: Colors.black),
+      decoration: InputDecoration(
+        hintText: 'Escribe un comentario (opcional)',
+        hintStyle: TextStyle(color: Colors.black54),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!),
+        ),
+        filled: true,
+        fillColor: Colors.grey[50],
+        contentPadding: const EdgeInsets.all(12),
+      ),
+      onChanged: (value) => _comments[userId] = value,
+    );
   }
 
   Widget _buildMvpSelection() {

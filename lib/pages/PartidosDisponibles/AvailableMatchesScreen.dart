@@ -69,24 +69,22 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
 
   List<MathPartido> _getMatchesForDate(DateTime date) {
     final now = DateTime.now();
-    return matches
-        .where((match) {
-          final isSameDay = DateUtils.isSameDay(match.scheduleDate, date);
-          if (!isSameDay) return false;
-          if (DateUtils.isSameDay(date, now)) {
-            final matchTime = match.startTime.split(':');
-            final matchDateTime = DateTime(
-              match.scheduleDate.year,
-              match.scheduleDate.month,
-              match.scheduleDate.day,
-              int.parse(matchTime[0]),
-              int.parse(matchTime[1]),
-            );
-            return matchDateTime.isAfter(now);
-          }
-          return true;
-        })
-        .toList()
+    return matches.where((match) {
+      final isSameDay = DateUtils.isSameDay(match.scheduleDate, date);
+      if (!isSameDay) return false;
+      if (DateUtils.isSameDay(date, now)) {
+        final matchTime = match.startTime.split(':');
+        final matchDateTime = DateTime(
+          match.scheduleDate.year,
+          match.scheduleDate.month,
+          match.scheduleDate.day,
+          int.parse(matchTime[0]),
+          int.parse(matchTime[1]),
+        );
+        return matchDateTime.isAfter(now);
+      }
+      return true;
+    }).toList()
       ..sort((a, b) {
         if (a.status == 'open' && b.status != 'open') return -1;
         if (a.status != 'open' && b.status == 'open') return 1;
@@ -196,23 +194,35 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
             itemCount: matchesForSelectedDate.length,
             itemBuilder: (context, index) {
               final match = matchesForSelectedDate[index];
-              final isFull = match.status == 'full';
-              final team1 = match.teams?.isNotEmpty == true ? match.teams![0] : null;
+              // Considerar tanto 'full' como 'cancelled' como deshabilitados
+              final isDisabled =
+                  match.status == 'full' || match.status == 'cancelled';
+              final team1 =
+                  match.teams?.isNotEmpty == true ? match.teams![0] : null;
               final team2 = match.teams?.length == 2 ? match.teams![1] : null;
 
               return InkWell(
-                onTap: isFull
-                    ? null
-                    : () => Navigator.push(
+                onTap: isDisabled
+                    ? null // Deshabilitar onTap si está lleno o cancelado
+                    : () async {
+                        final shouldReload = await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => MatchDetailsScreen(match: match),
+                            builder: (context) =>
+                                MatchDetailsScreen(match: match),
                           ),
-                        ),
+                        );
+                        if (shouldReload == true) {
+                          _loadMatches(); // Recargar partidos si es necesario
+                        }
+                      },
                 child: Card(
                   margin: const EdgeInsets.only(bottom: 16),
                   elevation: 4,
-                  color: isFull ? const Color.fromARGB(255, 221, 217, 217) : Colors.white,
+                  color: isDisabled
+                      ? const Color.fromARGB(
+                          255, 221, 217, 217) // Gris para deshabilitado
+                      : Colors.white,
                   child: Padding(
                     padding: const EdgeInsets.all(12),
                     child: Column(
@@ -226,22 +236,30 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
-                                color: isFull ? Colors.grey[700] : Colors.black,
+                                color: isDisabled
+                                    ? Colors.grey[700]
+                                    : Colors.black,
                               ),
                             ),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: isFull
-                                    ? Colors.grey
-                                    : (match.status == 'open' ? Colors.green : Colors.grey),
+                                color: isDisabled
+                                    ? Colors.grey // Gris para lleno o cancelado
+                                    : (match.status == 'open'
+                                        ? Colors.green
+                                        : Colors.grey),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                isFull
-                                    ? 'Completo'
-                                    : (match.status == 'open' ? 'Disponible' : 'Completo'),
-                                style: const TextStyle(color: Colors.white, fontSize: 12),
+                                match.status == 'cancelled'
+                                    ? 'Cancelado'
+                                    : (match.status == 'full'
+                                        ? 'Completo'
+                                        : 'Disponible'),
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 12),
                               ),
                             ),
                           ],
@@ -250,12 +268,13 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
                         Row(
                           children: [
                             Icon(Icons.access_time,
-                                size: 14, color: isFull ? Colors.grey : Colors.black),
+                                size: 14,
+                                color: isDisabled ? Colors.grey : Colors.black),
                             const SizedBox(width: 4),
                             Text(
                               '${match.formattedStartTime} - ${match.formattedEndTime}',
                               style: TextStyle(
-                                color: isFull ? Colors.grey : Colors.green,
+                                color: isDisabled ? Colors.grey : Colors.green,
                                 fontSize: 14,
                               ),
                             ),
@@ -265,12 +284,13 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
                         Row(
                           children: [
                             Icon(Icons.people,
-                                size: 14, color: isFull ? Colors.grey : Colors.black),
+                                size: 14,
+                                color: isDisabled ? Colors.grey : Colors.black),
                             const SizedBox(width: 4),
                             Text(
                               match.gameTypeDisplay,
                               style: TextStyle(
-                                color: isFull ? Colors.grey : Colors.black,
+                                color: isDisabled ? Colors.grey : Colors.black,
                                 fontSize: 14,
                               ),
                             ),
@@ -281,7 +301,7 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              _buildTeamWidget(team1, isFull),
+                              _buildTeamWidget(team1, isDisabled),
                               const Padding(
                                 padding: EdgeInsets.symmetric(horizontal: 12),
                                 child: Text(
@@ -293,7 +313,7 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
                                   ),
                                 ),
                               ),
-                              _buildTeamWidget(team2, isFull),
+                              _buildTeamWidget(team2, isDisabled),
                             ],
                           )
                         else
@@ -305,10 +325,12 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
                         Align(
                           alignment: Alignment.centerRight,
                           child: Text(
-                           "Precio: " '\$${match.price}',
+                            "Precio: " '\$${match.price}',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: isFull ? Colors.grey : Theme.of(context).primaryColor,
+                              color: isDisabled
+                                  ? Colors.grey
+                                  : Theme.of(context).primaryColor,
                               fontSize: 18,
                             ),
                           ),
@@ -324,9 +346,10 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
     );
   }
 
-  Widget _buildTeamWidget(MatchTeam team, bool isFull) {
+  Widget _buildTeamWidget(MatchTeam team, bool isDisabled) {
     final players = team.players ?? [];
-    final extraPlayers = team.playerCount - (players.length > 3 ? 3 : players.length);
+    final extraPlayers =
+        team.playerCount - (players.length > 3 ? 3 : players.length);
 
     return Expanded(
       child: Column(
@@ -337,7 +360,7 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 14,
-              color: isFull ? Colors.grey : Colors.black,
+              color: isDisabled ? Colors.grey : Colors.black,
             ),
             textAlign: TextAlign.center,
           ),
@@ -372,7 +395,8 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
                   backgroundColor: Colors.grey[300],
                   child: Text(
                     '+$extraPlayers',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.bold),
                   ),
                 ),
             ],
@@ -381,7 +405,7 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
           Text(
             '${team.playerCount}/${team.maxPlayers}',
             style: TextStyle(
-              color: isFull ? Colors.grey : Colors.black,
+              color: isDisabled ? Colors.grey : Colors.black,
               fontSize: 12,
             ),
           ),
