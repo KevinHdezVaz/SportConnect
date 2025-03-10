@@ -40,6 +40,7 @@ class _BookingDialogState extends State<BookingDialog> {
   bool isLoadingHours = false;
   Wallet? wallet;
   bool useWallet = false;
+  Timer? _debounceTimer; // Para evitar múltiples solicitudes rápidas
 
   @override
   void initState() {
@@ -53,6 +54,12 @@ class _BookingDialogState extends State<BookingDialog> {
     });
   }
 
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
+
   Future<void> _loadWallet() async {
     try {
       final loadedWallet = await _walletService.getWallet();
@@ -64,32 +71,43 @@ class _BookingDialogState extends State<BookingDialog> {
 
   Future<void> _refreshAvailableHours() async {
     if (!mounted) return;
+
+    // Cancelar cualquier solicitud pendiente
+    _debounceTimer?.cancel();
+
     setState(() => isLoadingHours = true);
 
-    try {
-      final formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
-      debugPrint(
-          'Fecha enviada: $formattedDate, Día: ${DateFormat('EEEE', 'en').format(selectedDate)}');
-      final hours = await _bookingService.getAvailableHours(
-        widget.field.id,
-        formattedDate,
-      );
-      debugPrint('Horarios devueltos: $hours');
-      if (mounted) {
-        setState(() {
-          availableHours = hours;
-          if (!hours.contains(selectedTime)) selectedTime = null;
-          isLoadingHours = false;
-        });
+    // Agregar un pequeño retraso para evitar múltiples solicitudes rápidas
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
+      try {
+        final formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
+        debugPrint(
+            'Fecha enviada: $formattedDate, Día: ${DateFormat('EEEE', 'en').format(selectedDate)}');
+        final hours = await _bookingService.getAvailableHours(
+          widget.field.id,
+          formattedDate,
+        );
+        debugPrint('Horarios devueltos: $hours');
+        if (mounted) {
+          setState(() {
+            availableHours = hours;
+            if (!hours.contains(selectedTime)) selectedTime = null;
+            isLoadingHours = false;
+          });
+        }
+      } catch (e) {
+        debugPrint('Error refreshing hours: $e');
+        if (mounted) {
+          setState(() {
+            availableHours = [];
+            selectedTime = null;
+            isLoadingHours = false;
+          });
+          Fluttertoast.showToast(
+              msg: 'Error al cargar horarios: $e', backgroundColor: Colors.red);
+        }
       }
-    } catch (e) {
-      debugPrint('Error refreshing hours: $e');
-      if (mounted) {
-        setState(() => isLoadingHours = false);
-        Fluttertoast.showToast(
-            msg: 'Error al cargar horarios: $e', backgroundColor: Colors.red);
-      }
-    }
+    });
   }
 
   Future<void> _selectDate() async {
@@ -113,7 +131,8 @@ class _BookingDialogState extends State<BookingDialog> {
     if (picked != null && picked != selectedDate && mounted) {
       setState(() {
         selectedDate = picked;
-        selectedTime = null;
+        selectedTime =
+            null; // Reiniciar la hora seleccionada al cambiar de fecha
       });
       await _refreshAvailableHours();
     }
@@ -220,7 +239,6 @@ class _BookingDialogState extends State<BookingDialog> {
       widget.onBookingComplete?.call();
       Navigator.pop(context, true);
 
-      // Usar el mensaje personalizado que ahora devuelve el servicio
       String successMessage =
           bookingResult['message'] ?? 'Reserva procesada exitosamente';
       Fluttertoast.showToast(
@@ -253,20 +271,17 @@ class _BookingDialogState extends State<BookingDialog> {
         return;
       }
 
-      // Ahora manejamos el Map<String, dynamic> que devuelve
       final result = await _bookingService.cancelReservation(widget.bookingId!);
 
       if (result['success'] == true) {
         await _loadWallet();
 
-        // Mostrar mensaje principal
         Fluttertoast.showToast(
           msg: result['message'] ??
               'Reserva cancelada. Dinero reembolsado al monedero.',
           backgroundColor: Colors.green,
         );
 
-        // Si hay información sobre el monto reembolsado, mostrarla
         if (result['refunded_amount'] != null) {
           Fluttertoast.showToast(
             msg: 'Monto reembolsado: \$${result['refunded_amount']}',
@@ -431,7 +446,7 @@ class _BookingDialogState extends State<BookingDialog> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'No hay horarios disponibles para este día',
+                        'No hay horarios disponibles para este día. Prueba con otra fecha.',
                         style: TextStyle(color: Colors.orange[700]),
                       ),
                     ),

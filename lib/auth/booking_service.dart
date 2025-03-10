@@ -26,10 +26,11 @@ class BookingService {
         final data = json.decode(response.body);
         return Field.fromJson(data);
       } else {
-        throw Exception('Error al obtener los detalles del campo');
+        throw Exception(
+            'Error al obtener los detalles del campo: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error getting field details: $e');
+      debugPrint('Error getting field details: $e');
       rethrow;
     }
   }
@@ -62,7 +63,6 @@ class BookingService {
           };
         } else if (response.statusCode == 400 &&
             responseData['message'] == 'La reserva ya está cancelada') {
-          // Manejar específicamente el caso donde la reserva ya está cancelada
           return {'success': false, 'message': responseData['message']};
         } else {
           return {
@@ -115,75 +115,18 @@ class BookingService {
             debugPrint('Error: available_hours no es una lista');
             return [];
           }
-        } else if (decodedData is List) {
-          // Compatibilidad con formato antiguo, si aplica
-          return decodedData.map((hour) => hour.toString()).toList();
         } else {
           debugPrint('Error: la respuesta no tiene el formato esperado');
           return [];
         }
       } else {
         debugPrint('Error: código de estado ${response.statusCode}');
-        return [];
+        throw Exception(
+            'Error al obtener horarios disponibles: ${response.statusCode}');
       }
     } catch (e) {
       debugPrint('Error getting available hours: $e');
-      return [];
-    }
-  }
-
-// Método para obtener el día de la semana en inglés
-  String _getDayOfWeek(DateTime date) {
-    switch (date.weekday) {
-      case DateTime.monday:
-        return 'monday';
-      case DateTime.tuesday:
-        return 'tuesday';
-      case DateTime.wednesday:
-        return 'wednesday';
-      case DateTime.thursday:
-        return 'thursday';
-      case DateTime.friday:
-        return 'friday';
-      case DateTime.saturday:
-        return 'saturday';
-      case DateTime.sunday:
-        return 'sunday';
-      default:
-        throw Exception('Día de la semana no válido');
-    }
-  }
-
-  Future<List<Booking>> getActiveReservations() async {
-    try {
-      final token = await storage.getToken();
-      final response = await http.get(
-        Uri.parse('$baseUrl/active-reservations'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      print('Active Reservations - Código de estado: ${response.statusCode}');
-      print('Active Reservations - Cuerpo de respuesta: ${response.body}');
-
-      if (response.statusCode == 200) {
-        List<dynamic> data = json.decode(response.body);
-        print('Active Reservations - Datos recibidos: $data');
-
-        final activeBookings =
-            data.map((item) => Booking.fromJson(item)).toList();
-
-        print('Active Reservations - Reservas activas: $activeBookings');
-        return activeBookings;
-      } else {
-        throw Exception(
-            'No se pudieron cargar las reservas activas. Código de estado: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error al obtener reservas activas: $e');
-      rethrow;
+      throw Exception('Error al obtener horarios disponibles: $e');
     }
   }
 
@@ -207,7 +150,6 @@ class BookingService {
         'use_wallet': useWallet,
       };
 
-      // Agregar payment_id y order_id solo si no son nulos
       if (paymentId != null) {
         requestData['payment_id'] = paymentId;
       }
@@ -228,7 +170,6 @@ class BookingService {
       debugPrint('Booking Status Code: ${response.statusCode}');
       debugPrint('Booking Response: ${response.body}');
 
-      // Aceptar tanto 201 (creado) como 200 (encontrado existente)
       if (response.statusCode == 201 || response.statusCode == 200) {
         return {
           'success': true,
@@ -239,12 +180,8 @@ class BookingService {
         };
       } else if (response.statusCode == 422) {
         final responseData = json.decode(response.body);
-
-        // Si el error es por horario no disponible pero tenemos un payment_id,
-        // verificar si ya existe una reserva con ese payment_id
         if (paymentId != null &&
             responseData['message'] == 'Horario no disponible') {
-          // Intentar verificar si la reserva ya existe con ese paymentId
           final verifyResponse = await http.get(
             Uri.parse('$baseUrl/bookings/check-payment/$paymentId'),
             headers: {
@@ -285,6 +222,40 @@ class BookingService {
     }
   }
 
+  Future<List<Booking>> getActiveReservations() async {
+    try {
+      final token = await storage.getToken();
+      final response = await http.get(
+        Uri.parse('$baseUrl/active-reservations'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      debugPrint(
+          'Active Reservations - Código de estado: ${response.statusCode}');
+      debugPrint('Active Reservations - Cuerpo de respuesta: ${response.body}');
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = json.decode(response.body);
+        debugPrint('Active Reservations - Datos recibidos: $data');
+
+        final activeBookings =
+            data.map((item) => Booking.fromJson(item)).toList();
+
+        debugPrint('Active Reservations - Reservas activas: $activeBookings');
+        return activeBookings;
+      } else {
+        throw Exception(
+            'No se pudieron cargar las reservas activas. Código de estado: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error al obtener reservas activas: $e');
+      rethrow;
+    }
+  }
+
   Future<List<Booking>> getReservationHistory() async {
     try {
       final token = await storage.getToken();
@@ -296,30 +267,28 @@ class BookingService {
         },
       );
 
-      print('Código de estado: ${response.statusCode}');
-      print('Cuerpo de respuesta: ${response.body}');
+      debugPrint('Código de estado: ${response.statusCode}');
+      debugPrint('Cuerpo de respuesta: ${response.body}');
 
       if (response.statusCode == 200) {
         List<dynamic> data = json.decode(response.body);
-        print('Datos de historial recibidos: $data');
+        debugPrint('Datos de historial recibidos: $data');
 
-        // Mapea directamente sin filtro adicional
         final historicalBookings =
             data.map((item) => Booking.fromJson(item)).toList();
 
-        print('Reservas históricas: $historicalBookings');
+        debugPrint('Reservas históricas: $historicalBookings');
         return historicalBookings;
       } else {
         throw Exception(
             'No se pudo cargar el historial de reservas. Código de estado: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error al obtener historial de reservas: $e');
+      debugPrint('Error al obtener historial de reservas: $e');
       rethrow;
     }
   }
 
-  // Método para obtener todas las reservas
   Future<List<Booking>> getAllReservations() async {
     try {
       final token = await storage.getToken();
@@ -339,7 +308,7 @@ class BookingService {
             'No se pudieron cargar las reservas. Código de estado: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error al obtener todas las reservas: $e');
+      debugPrint('Error al obtener todas las reservas: $e');
       rethrow;
     }
   }
