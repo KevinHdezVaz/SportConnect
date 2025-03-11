@@ -194,7 +194,6 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
             itemCount: matchesForSelectedDate.length,
             itemBuilder: (context, index) {
               final match = matchesForSelectedDate[index];
-              // Considerar tanto 'full' como 'cancelled' como deshabilitados
               final isDisabled =
                   match.status == 'full' || match.status == 'cancelled';
               final team1 =
@@ -203,7 +202,7 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
 
               return InkWell(
                 onTap: isDisabled
-                    ? null // Deshabilitar onTap si está lleno o cancelado
+                    ? null
                     : () async {
                         final shouldReload = await Navigator.push(
                           context,
@@ -213,15 +212,14 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
                           ),
                         );
                         if (shouldReload == true) {
-                          _loadMatches(); // Recargar partidos si es necesario
+                          _loadMatches();
                         }
                       },
                 child: Card(
                   margin: const EdgeInsets.only(bottom: 16),
                   elevation: 4,
                   color: isDisabled
-                      ? const Color.fromARGB(
-                          255, 221, 217, 217) // Gris para deshabilitado
+                      ? const Color.fromARGB(255, 221, 217, 217)
                       : Colors.white,
                   child: Padding(
                     padding: const EdgeInsets.all(12),
@@ -246,7 +244,7 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
                                   horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
                                 color: isDisabled
-                                    ? Colors.grey // Gris para lleno o cancelado
+                                    ? Colors.grey
                                     : (match.status == 'open'
                                         ? Colors.green
                                         : Colors.grey),
@@ -289,6 +287,23 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
                             const SizedBox(width: 4),
                             Text(
                               match.gameTypeDisplay,
+                              style: TextStyle(
+                                color: isDisabled ? Colors.grey : Colors.black,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                        // Nueva sección: Nombre de la cancha
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(Icons.gps_fixed,
+                                size: 14,
+                                color: isDisabled ? Colors.grey : Colors.black),
+                            const SizedBox(width: 4),
+                            Text(
+                              match.field?.name ?? 'Cancha no especificada',
                               style: TextStyle(
                                 color: isDisabled ? Colors.grey : Colors.black,
                                 fontSize: 14,

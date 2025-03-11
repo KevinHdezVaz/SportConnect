@@ -53,7 +53,7 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
               ? const Center(child: Text('No se pudieron cargar los datos'))
               : Stack(
                   children: [
-                    // Fondo con la foto de perfil del usuario
+            
                     Container(
                       width: double.infinity,
                       height: 200,
@@ -90,18 +90,30 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
                                             'assets/no-profile-image.jpg')
                                         as ImageProvider,
                               ),
-                              SizedBox(height: 8),
-                              Text(
-                                playerData!['stats']['name'] ??
-                                    'Jugador desconocido',
-                                style: GoogleFonts.inter(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black),
-                              ),
-                              SizedBox(height: 16),
-                              // Botones flotantes para estadísticas
-                              Row(
+                          SizedBox(height: 8),
+Row(
+  mainAxisAlignment: MainAxisAlignment.center,  
+  children: [
+     
+    Text(
+      playerData!['stats']['name'] ?? 'Jugador desconocido',
+      style: GoogleFonts.inter(
+        fontSize: 24,
+        fontWeight: FontWeight.bold,
+        color: Colors.black,
+      ),
+    ),SizedBox(width: 10),
+
+     if (playerData!['stats']['is_verified'] != true)
+                                     const Icon(
+                                      Icons.verified,
+                                      color: Colors.blue,
+                                      size: 30,
+                                    ),
+  ],
+),
+SizedBox(height: 16),
+                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceEvenly,
                                 children: [

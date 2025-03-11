@@ -10,6 +10,7 @@ import 'package:user_auth_crudd10/model/WalletTransaction.dart';
 import 'package:user_auth_crudd10/model/field.dart';
 import 'package:user_auth_crudd10/model/Wallet.dart';
 import 'package:user_auth_crudd10/pages/Mercadopago/payment_service.dart';
+import 'package:user_auth_crudd10/pages/screens/bookin/booking_screen.dart';
 import 'package:user_auth_crudd10/services/WalletService.dart';
 
 class BookingDialog extends StatefulWidget {
@@ -34,17 +35,20 @@ class _BookingDialogState extends State<BookingDialog> {
   late PaymentService _paymentService;
   late WalletService _walletService;
   DateTime selectedDate = DateTime.now();
+  late DateTime firstDate; // Fecha mínima (hoy)
+  late DateTime lastDate; // Fecha máxima (hoy + 7 días)
   String? selectedTime;
   int? playersNeeded;
   bool isLoading = false;
   bool isLoadingHours = false;
   Wallet? wallet;
   bool useWallet = false;
-  Timer? _debounceTimer; // Para evitar múltiples solicitudes rápidas
+  Timer? _debounceTimer;
 
   @override
   void initState() {
     super.initState();
+    _initializeDateRange(); // Inicializar el rango de fechas
     _bookingService = BookingService();
     _paymentService = PaymentService();
     _walletService = WalletService();
@@ -52,6 +56,15 @@ class _BookingDialogState extends State<BookingDialog> {
       _refreshAvailableHours();
       _loadWallet();
     });
+  }
+
+  // Inicializar el rango de fechas (hoy hasta hoy + 7 días)
+  void _initializeDateRange() {
+    final now = DateTime.now();
+    firstDate = DateTime(now.year, now.month, now.day); // Hoy
+    lastDate =
+        firstDate.add(const Duration(days: 6)); // Hoy + 6 días (total 7 días)
+    selectedDate = firstDate; // Asegurar que la fecha inicial sea hoy
   }
 
   @override
@@ -72,26 +85,27 @@ class _BookingDialogState extends State<BookingDialog> {
   Future<void> _refreshAvailableHours() async {
     if (!mounted) return;
 
-    // Cancelar cualquier solicitud pendiente
     _debounceTimer?.cancel();
-
     setState(() => isLoadingHours = true);
 
-    // Agregar un pequeño retraso para evitar múltiples solicitudes rápidas
     _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
       try {
         final formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
         debugPrint(
-            'Fecha enviada: $formattedDate, Día: ${DateFormat('EEEE', 'en').format(selectedDate)}');
-        final hours = await _bookingService.getAvailableHours(
+            'Fetching available hours for field ${widget.field.id}, date: $formattedDate');
+        final rawHours = await _bookingService.getAvailableHours(
           widget.field.id,
           formattedDate,
         );
-        debugPrint('Horarios devueltos: $hours');
+        // Formatear los horarios para eliminar los segundos
+        final formattedHours = rawHours
+            .map((hour) => hour.split(':')[0] + ':' + hour.split(':')[1])
+            .toList();
+        debugPrint('Formatted available hours: $formattedHours');
         if (mounted) {
           setState(() {
-            availableHours = hours;
-            if (!hours.contains(selectedTime)) selectedTime = null;
+            availableHours = formattedHours;
+            if (!formattedHours.contains(selectedTime)) selectedTime = null;
             isLoadingHours = false;
           });
         }
@@ -114,8 +128,8 @@ class _BookingDialogState extends State<BookingDialog> {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: selectedDate,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 30)),
+      firstDate: firstDate, // Limitar a hoy
+      lastDate: lastDate, // Limitar a hoy + 7 días
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.light(
@@ -131,8 +145,7 @@ class _BookingDialogState extends State<BookingDialog> {
     if (picked != null && picked != selectedDate && mounted) {
       setState(() {
         selectedDate = picked;
-        selectedTime =
-            null; // Reiniciar la hora seleccionada al cambiar de fecha
+        selectedTime = null; // Resetear el horario al cambiar de fecha
       });
       await _refreshAvailableHours();
     }
@@ -142,114 +155,139 @@ class _BookingDialogState extends State<BookingDialog> {
     setState(() => selectedTime = time);
   }
 
-  Future<void> _createBooking() async {
-    debugPrint("Método _createBooking ejecutado");
 
-    DateTime today = DateTime.now();
-    DateTime selectedOnlyDate =
-        DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
-    DateTime todayOnlyDate = DateTime(today.year, today.month, today.day);
 
-    if (selectedOnlyDate.isBefore(todayOnlyDate)) {
-      Fluttertoast.showToast(
-          msg: 'Por favor selecciona una fecha válida',
-          backgroundColor: Colors.red);
-      return;
+Future<void> _createBooking() async {
+  debugPrint("Executing _createBooking method");
+
+  DateTime today = DateTime.now();
+  DateTime selectedOnlyDate = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+  DateTime todayOnlyDate = DateTime(today.year, today.month, today.day);
+
+  if (selectedOnlyDate.isBefore(todayOnlyDate)) {
+    Fluttertoast.showToast(
+        msg: 'Por favor selecciona una fecha válida',
+        backgroundColor: Colors.red);
+    return;
+  }
+
+  if (selectedTime == null || selectedTime!.isEmpty) {
+    Fluttertoast.showToast(
+        msg: 'Por favor selecciona un horario', backgroundColor: Colors.red);
+    return;
+  }
+
+  setState(() => isLoading = true);
+  double total = widget.field.price_per_match.toDouble();
+  double amountToPay = total;
+  String? paymentId;
+  String? orderId;
+
+  if (useWallet && wallet != null && wallet!.balance > 0) {
+    if (wallet!.balance >= total) {
+      amountToPay = 0;
+    } else {
+      amountToPay -= wallet!.balance;
     }
+  }
 
-    if (selectedTime == null || selectedTime!.isEmpty) {
-      Fluttertoast.showToast(
-          msg: 'Por favor selecciona un horario', backgroundColor: Colors.red);
-      return;
-    }
+  if (amountToPay > 0) {
+    try {
+      final paymentResult = await _paymentService.procesarPago(
+        context,
+        [
+          OrderItem(
+              title: widget.field.name,
+              quantity: 1,
+              unitPrice: amountToPay)
+        ],
+        additionalData: {
+          'reference_id': widget.field.id,
+          'date': DateFormat('yyyy-MM-dd').format(selectedDate),
+          'start_time': selectedTime!,
+          'players_needed': playersNeeded,
+          'customer': {'name': 'Usuario', 'email': 'usuario@ejemplo.com'},
+        },
+        type: 'booking',
+      );
 
-    setState(() => isLoading = true);
-    double total = widget.field.price_per_match.toDouble();
-    double amountToPay = total;
-    String? paymentId;
-    String? orderId;
-
-    if (useWallet && wallet != null && wallet!.balance > 0) {
-      if (wallet!.balance >= total) {
-        amountToPay = 0;
+      if (paymentResult['status'] == PaymentStatus.success) {
+        paymentId = paymentResult['paymentId'];
+        orderId = paymentResult['orderId'];
       } else {
-        amountToPay -= wallet!.balance;
-      }
-    }
-
-    if (amountToPay > 0) {
-      try {
-        final paymentResult = await _paymentService.procesarPago(
-          context,
-          [
-            OrderItem(
-                title: widget.field.name, quantity: 1, unitPrice: amountToPay)
-          ],
-          additionalData: {
-            'reference_id': widget.field.id,
-            'date': DateFormat('yyyy-MM-dd').format(selectedDate),
-            'start_time': selectedTime,
-            'players_needed': playersNeeded,
-            'customer': {'name': 'Usuario', 'email': 'usuario@ejemplo.com'},
-          },
-          type: 'booking',
-        );
-
-        if (paymentResult['status'] == PaymentStatus.success) {
-          paymentId = paymentResult['paymentId'];
-          orderId = paymentResult['orderId'];
-        } else {
-          Fluttertoast.showToast(
-              msg: 'Pago fallido: ${paymentResult['status']}',
-              backgroundColor: Colors.orange);
-          setState(() => isLoading = false);
-          return;
-        }
-      } catch (e) {
         Fluttertoast.showToast(
-            msg: 'Error al procesar pago: $e', backgroundColor: Colors.red);
+            msg: 'Pago fallido: ${paymentResult['status']}',
+            backgroundColor: Colors.orange);
         setState(() => isLoading = false);
         return;
       }
+    } catch (e) {
+      Fluttertoast.showToast(
+          msg: 'Error al procesar pago: $e', backgroundColor: Colors.red);
+      setState(() => isLoading = false);
+      return;
     }
+  }
 
-    final bookingResult = await _bookingService.createBooking(
-      fieldId: widget.field.id,
-      date: DateFormat('yyyy-MM-dd').format(selectedDate),
-      startTime: selectedTime!,
-      playersNeeded: playersNeeded,
-      useWallet: useWallet,
-      paymentId: paymentId,
-      orderId: orderId,
-    );
-
-    if (bookingResult['success']) {
-      if (useWallet && wallet != null) {
-        double usedFromWallet = total - amountToPay;
-        if (usedFromWallet > 0) {
-          wallet!.balance -= usedFromWallet;
-          wallet!.transactions.add(WalletTransaction(
-            type: 'withdrawal',
-            amount: usedFromWallet,
-            description: 'Pago de reserva',
-            date: DateTime.now(),
-          ));
-        }
-      }
+  // Verificar si la reserva ya existe con el payment_id
+  if (paymentId != null) {
+    final existingBooking = await _bookingService.checkPaymentExists(paymentId);
+    if (existingBooking['exists'] == true) {
+      debugPrint('Reserva ya existe con payment_id: $paymentId, booking_id: ${existingBooking['booking_id']}');
+      Fluttertoast.showToast(
+          msg: 'Reserva ya procesada anteriormente', backgroundColor: Colors.green);
       widget.onBookingComplete?.call();
       Navigator.pop(context, true);
-
-      String successMessage =
-          bookingResult['message'] ?? 'Reserva procesada exitosamente';
-      Fluttertoast.showToast(
-          msg: successMessage, backgroundColor: Colors.green);
-    } else {
-      Fluttertoast.showToast(
-          msg: bookingResult['message'], backgroundColor: Colors.red);
+      // Opcional: Navegar a BookingScreen para mostrar la reserva existente
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const BookingScreen()),
+      );
+      return;
     }
-
-    if (mounted) setState(() => isLoading = false);
   }
+
+  // Crear la reserva si no existe
+  debugPrint('Creando nueva reserva con payment_id: $paymentId');
+  final bookingResult = await _bookingService.createBooking(
+    fieldId: widget.field.id,
+    date: DateFormat('yyyy-MM-dd').format(selectedDate),
+    startTime: selectedTime!,
+    playersNeeded: playersNeeded,
+    useWallet: useWallet,
+    paymentId: paymentId,
+    orderId: orderId,
+  );
+
+  if (bookingResult['success']) {
+    if (useWallet && wallet != null) {
+      double usedFromWallet = total - amountToPay;
+      if (usedFromWallet > 0) {
+        wallet!.balance -= usedFromWallet;
+        wallet!.transactions.add(WalletTransaction(
+          type: 'withdrawal',
+          amount: usedFromWallet,
+          description: 'Pago de reserva',
+          date: DateTime.now(),
+        ));
+      }
+    }
+    widget.onBookingComplete?.call();
+    Navigator.pop(context, true);
+    // Navegar a BookingScreen para mostrar la nueva reserva
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => const BookingScreen()),
+    );
+
+    String successMessage = bookingResult['message'] ?? 'Reserva procesada exitosamente';
+    Fluttertoast.showToast(msg: successMessage, backgroundColor: Colors.green);
+  } else {
+    Fluttertoast.showToast(
+        msg: bookingResult['message'] ?? 'Error al crear la reserva',
+        backgroundColor: Colors.red);
+  }
+
+  if (mounted) setState(() => isLoading = false);
+}
 
   Future<void> _cancelBooking() async {
     if (widget.bookingId == null) return;
@@ -460,7 +498,7 @@ class _BookingDialogState extends State<BookingDialog> {
                 children: availableHours.map((time) {
                   bool isSelected = time == selectedTime;
                   return FilterChip(
-                    label: Text(time),
+                    label: Text(time), // Ya está formateado como HH:mm
                     selected: isSelected,
                     onSelected: (_) => _selectTime(time),
                     backgroundColor:

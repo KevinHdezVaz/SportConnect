@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:user_auth_crudd10/auth/auth_check.dart';
 import 'package:user_auth_crudd10/auth/auth_service.dart';
+import 'package:user_auth_crudd10/pages/InvitationsScreen.dart';
+import 'package:user_auth_crudd10/pages/VerifyProfilePage.dart';
 import 'package:user_auth_crudd10/pages/WalletScreen.dart';
 import 'package:user_auth_crudd10/pages/others/StatsTab.dart';
 import 'package:user_auth_crudd10/pages/screens/Equipos/NotificationHistoryScreen.dart';
@@ -168,7 +170,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     child: Card(
                       elevation: 10,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(32)),
+                        borderRadius: BorderRadius.circular(32),
+                      ),
                       child: Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
@@ -195,10 +198,19 @@ class _ProfilePageState extends State<ProfilePage> {
                                   Text(
                                     userData!['name'] ?? '',
                                     style: GoogleFonts.inter(
-                                        color: Colors.white,
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w600),
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
+                                  if (userData!['is_verified'] == true)  
+                                    const SizedBox(width: 8),
+                                  if (userData!['is_verified'] == true)
+                                    const Icon(
+                                      Icons.verified,
+                                      color: Colors.white,
+                                      size: 30,
+                                    ),
                                 ],
                               ),
                               const SizedBox(height: 16),
@@ -214,6 +226,39 @@ class _ProfilePageState extends State<ProfilePage> {
                                   ),
                                 ],
                               ),
+                              const SizedBox(height: 16),
+                           Center(
+  child: userData!['is_verified'] == true
+      ? SizedBox.shrink() // Oculta el botón si está verificado
+      : ElevatedButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => VerifyProfilePage(),
+              ),
+            ).then((_) {
+              // Recargar el perfil después de verificar
+              _loadUserProfile();
+            });
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blueGrey,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 12),
+          ),
+          child: Text(
+            'Verificar Perfil',
+            style: GoogleFonts.inter(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+),
                             ],
                           ),
                         ),
@@ -262,7 +307,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                       context,
                                       MaterialPageRoute(
                                           builder: (context) =>
-                                              NotificationHistoryScreen())),
+                                              InvitationsScreen())),
                                 ),
                                 _buildMenuItem(
                                   icon: Icons.monetization_on,

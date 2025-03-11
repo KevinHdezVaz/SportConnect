@@ -80,8 +80,9 @@ class _StatsTabState extends State<StatsTab> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Botones flotantes para estadísticas
-                  Row(
+                   SizedBox(height: 16),
+                           
+                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       _buildStatButton(

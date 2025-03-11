@@ -34,7 +34,7 @@ class _CommentsTabState extends State<CommentsTab> {
     return {
       "user": {"name": "FutPlay", "profileImage": "assets/icons/logoapp.webp"},
       "text": "👋 ¡Hola!, Tenemos petos para todos\n"
-          "⏰ Llega 10 min antes.\n"
+          "⏰ Llega 15 min antes.\n"
           "🔄 Cada jugador recibirá un número para rotar al portero cada 7-8 min.\n"
           "🏆 Vota al MVP al final\n"
           "👥 Pregunta por agregar amigos.\n"

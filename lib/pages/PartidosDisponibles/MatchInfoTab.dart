@@ -276,7 +276,7 @@ class _MatchInfoTabState extends State<MatchInfoTab> {
                           _buildRuleItem(
                               '⏰ Llega 15 minutos antes de tu horario.'),
                           _buildRuleItem(
-                              '👕 Usa vestimenta adecuada (tenis y ropa deportiva).'),
+                              '👕 Usa vestimenta adecuada (zapatos y ropa deportiva).'),
                           _buildRuleItem(
                               '🚫 Respeta el tiempo de juego y no lo excedas.'),
                           _buildRuleItem(
