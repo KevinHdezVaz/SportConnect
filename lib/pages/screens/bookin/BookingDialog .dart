@@ -155,139 +155,210 @@ class _BookingDialogState extends State<BookingDialog> {
     setState(() => selectedTime = time);
   }
 
+  Future<bool> _checkMatchAvailability() async {
+    try {
+      final formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
+      debugPrint(
+          'Verificando partido para field_id: ${widget.field.id}, date: $formattedDate, start_time: $selectedTime');
+      final response = await _bookingService.getDailyMatch(
+        fieldId: widget.field.id,
+        date: formattedDate,
+        startTime: selectedTime!,
+      );
 
+      if (response != null) {
+        debugPrint(
+            'Respuesta del servidor: id: ${response['id']}, name: ${response['name']}, status: ${response['status']}, player_count: ${response['player_count']}');
 
-Future<void> _createBooking() async {
-  debugPrint("Executing _createBooking method");
+        if (response['status'] == 'open') {
+          // Parsear player_count y max_players como enteros
+          final playerCount =
+              int.tryParse(response['player_count'].toString()) ?? 0;
+          final maxPlayers =
+              int.tryParse(response['max_players'].toString()) ?? 7;
 
-  DateTime today = DateTime.now();
-  DateTime selectedOnlyDate = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
-  DateTime todayOnlyDate = DateTime(today.year, today.month, today.day);
+          if (playerCount > 0) {
+            Fluttertoast.showToast(
+              msg:
+                  'No se puede reservar este partido porque tiene jugador(es) registrado(s). Intenta en otro horario.',
+              backgroundColor: Colors.red,
+              toastLength: Toast.LENGTH_LONG,
+            );
+            debugPrint('Partido no reservable: tiene $playerCount jugadores');
+            return false;
+          }
+          debugPrint('Partido disponible: 0/$maxPlayers jugadores');
+          return true;
+        } else {
+          Fluttertoast.showToast(
+            msg:
+                'El horario seleccionado ya no está disponible (estado: ${response['status']})',
+            backgroundColor: Colors.red,
+            toastLength: Toast.LENGTH_LONG,
+          );
+          await _refreshAvailableHours();
+          return false;
+        }
 
-  if (selectedOnlyDate.isBefore(todayOnlyDate)) {
-    Fluttertoast.showToast(
-        msg: 'Por favor selecciona una fecha válida',
-        backgroundColor: Colors.red);
-    return;
-  }
+        //jueves a las 19:00
 
-  if (selectedTime == null || selectedTime!.isEmpty) {
-    Fluttertoast.showToast(
-        msg: 'Por favor selecciona un horario', backgroundColor: Colors.red);
-    return;
-  }
-
-  setState(() => isLoading = true);
-  double total = widget.field.price_per_match.toDouble();
-  double amountToPay = total;
-  String? paymentId;
-  String? orderId;
-
-  if (useWallet && wallet != null && wallet!.balance > 0) {
-    if (wallet!.balance >= total) {
-      amountToPay = 0;
-    } else {
-      amountToPay -= wallet!.balance;
+        //indor
+      } else {
+        Fluttertoast.showToast(
+          msg: 'No se encontró un partido para este horario',
+          backgroundColor: Colors.orange,
+          toastLength: Toast.LENGTH_LONG,
+        );
+        await _refreshAvailableHours();
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Error verificando partido: $e');
+      Fluttertoast.showToast(
+        msg: 'Error al verificar disponibilidad: $e',
+        backgroundColor: Colors.red,
+        toastLength: Toast.LENGTH_LONG,
+      );
+      return false;
     }
   }
 
-  if (amountToPay > 0) {
-    try {
-      final paymentResult = await _paymentService.procesarPago(
-        context,
-        [
-          OrderItem(
-              title: widget.field.name,
-              quantity: 1,
-              unitPrice: amountToPay)
-        ],
-        additionalData: {
-          'reference_id': widget.field.id,
-          'date': DateFormat('yyyy-MM-dd').format(selectedDate),
-          'start_time': selectedTime!,
-          'players_needed': playersNeeded,
-          'customer': {'name': 'Usuario', 'email': 'usuario@ejemplo.com'},
-        },
-        type: 'booking',
-      );
+  Future<void> _createBooking() async {
+    debugPrint("Executing _createBooking method");
 
-      if (paymentResult['status'] == PaymentStatus.success) {
-        paymentId = paymentResult['paymentId'];
-        orderId = paymentResult['orderId'];
-      } else {
-        Fluttertoast.showToast(
-            msg: 'Pago fallido: ${paymentResult['status']}',
-            backgroundColor: Colors.orange);
-        setState(() => isLoading = false);
-        return;
-      }
-    } catch (e) {
+    DateTime today = DateTime.now();
+    DateTime selectedOnlyDate =
+        DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+    DateTime todayOnlyDate = DateTime(today.year, today.month, today.day);
+
+    if (selectedOnlyDate.isBefore(todayOnlyDate)) {
       Fluttertoast.showToast(
-          msg: 'Error al procesar pago: $e', backgroundColor: Colors.red);
+          msg: 'Por favor selecciona una fecha válida',
+          backgroundColor: Colors.red);
+      return;
+    }
+
+    if (selectedTime == null || selectedTime!.isEmpty) {
+      Fluttertoast.showToast(
+          msg: 'Por favor selecciona un horario', backgroundColor: Colors.red);
+      return;
+    }
+
+    // Verificar si el partido está disponible y no tiene jugadores
+    setState(() => isLoading = true);
+    final isMatchAvailable = await _checkMatchAvailability();
+    if (!isMatchAvailable) {
       setState(() => isLoading = false);
       return;
     }
-  }
 
-  // Verificar si la reserva ya existe con el payment_id
-  if (paymentId != null) {
-    final existingBooking = await _bookingService.checkPaymentExists(paymentId);
-    if (existingBooking['exists'] == true) {
-      debugPrint('Reserva ya existe con payment_id: $paymentId, booking_id: ${existingBooking['booking_id']}');
-      Fluttertoast.showToast(
-          msg: 'Reserva ya procesada anteriormente', backgroundColor: Colors.green);
-      widget.onBookingComplete?.call();
-      Navigator.pop(context, true);
-      // Opcional: Navegar a BookingScreen para mostrar la reserva existente
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const BookingScreen()),
-      );
-      return;
-    }
-  }
+    double total = widget.field.price_per_match.toDouble();
+    double amountToPay = total;
+    String? paymentId;
+    String? orderId;
 
-  // Crear la reserva si no existe
-  debugPrint('Creando nueva reserva con payment_id: $paymentId');
-  final bookingResult = await _bookingService.createBooking(
-    fieldId: widget.field.id,
-    date: DateFormat('yyyy-MM-dd').format(selectedDate),
-    startTime: selectedTime!,
-    playersNeeded: playersNeeded,
-    useWallet: useWallet,
-    paymentId: paymentId,
-    orderId: orderId,
-  );
-
-  if (bookingResult['success']) {
-    if (useWallet && wallet != null) {
-      double usedFromWallet = total - amountToPay;
-      if (usedFromWallet > 0) {
-        wallet!.balance -= usedFromWallet;
-        wallet!.transactions.add(WalletTransaction(
-          type: 'withdrawal',
-          amount: usedFromWallet,
-          description: 'Pago de reserva',
-          date: DateTime.now(),
-        ));
+    if (useWallet && wallet != null && wallet!.balance > 0) {
+      if (wallet!.balance >= total) {
+        amountToPay = 0;
+      } else {
+        amountToPay -= wallet!.balance;
       }
     }
-    widget.onBookingComplete?.call();
-    Navigator.pop(context, true);
-    // Navegar a BookingScreen para mostrar la nueva reserva
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const BookingScreen()),
+
+    if (amountToPay > 0) {
+      try {
+        final paymentResult = await _paymentService.procesarPago(
+          context,
+          [
+            OrderItem(
+                title: widget.field.name, quantity: 1, unitPrice: amountToPay)
+          ],
+          additionalData: {
+            'reference_id': widget.field.id,
+            'date': DateFormat('yyyy-MM-dd').format(selectedDate),
+            'start_time': selectedTime!,
+            'players_needed': playersNeeded,
+            'customer': {'name': 'Usuario', 'email': 'usuario@ejemplo.com'},
+          },
+          type: 'booking',
+        );
+
+        if (paymentResult['status'] == PaymentStatus.success) {
+          paymentId = paymentResult['paymentId'];
+          orderId = paymentResult['orderId'];
+        } else {
+          Fluttertoast.showToast(
+              msg: 'Pago fallido: ${paymentResult['status']}',
+              backgroundColor: Colors.orange);
+          setState(() => isLoading = false);
+          return;
+        }
+      } catch (e) {
+        Fluttertoast.showToast(
+            msg: 'Error al procesar pago: $e', backgroundColor: Colors.red);
+        setState(() => isLoading = false);
+        return;
+      }
+    }
+
+    // Verificar si la reserva ya existe con el payment_id
+    if (paymentId != null) {
+      final existingBooking =
+          await _bookingService.checkPaymentExists(paymentId);
+      if (existingBooking['exists'] == true) {
+        debugPrint(
+            'Reserva ya existe con payment_id: $paymentId, booking_id: ${existingBooking['booking_id']}');
+        Fluttertoast.showToast(
+            msg: 'Reserva ya procesada anteriormente',
+            backgroundColor: Colors.green);
+        widget.onBookingComplete?.call();
+        Navigator.pop(context,
+            true); // Solo cerrar el diálogo, dejar que el deep link navegue
+        setState(() => isLoading = false);
+        return;
+      }
+    }
+
+    // Crear la reserva si no existe
+    debugPrint('Creando nueva reserva con payment_id: $paymentId');
+    final bookingResult = await _bookingService.createBooking(
+      fieldId: widget.field.id,
+      date: DateFormat('yyyy-MM-dd').format(selectedDate),
+      startTime: selectedTime!,
+      playersNeeded: playersNeeded,
+      useWallet: useWallet,
+      paymentId: paymentId,
+      orderId: orderId,
     );
 
-    String successMessage = bookingResult['message'] ?? 'Reserva procesada exitosamente';
-    Fluttertoast.showToast(msg: successMessage, backgroundColor: Colors.green);
-  } else {
-    Fluttertoast.showToast(
-        msg: bookingResult['message'] ?? 'Error al crear la reserva',
-        backgroundColor: Colors.red);
-  }
+    if (bookingResult['success']) {
+      if (useWallet && wallet != null) {
+        double usedFromWallet = total - amountToPay;
+        if (usedFromWallet > 0) {
+          wallet!.balance -= usedFromWallet;
+          wallet!.transactions.add(WalletTransaction(
+            type: 'withdrawal',
+            amount: usedFromWallet,
+            description: 'Pago de reserva',
+            date: DateTime.now(),
+          ));
+        }
+      }
+      widget.onBookingComplete?.call();
+      Navigator.pop(context,
+          true); // Solo cerrar el diálogo, dejar que el deep link navegue
+      String successMessage =
+          bookingResult['message'] ?? 'Reserva procesada exitosamente';
+      Fluttertoast.showToast(
+          msg: successMessage, backgroundColor: Colors.green);
+    } else {
+      Fluttertoast.showToast(
+          msg: bookingResult['message'] ?? 'Error al crear la reserva',
+          backgroundColor: Colors.red);
+    }
 
-  if (mounted) setState(() => isLoading = false);
-}
+    if (mounted) setState(() => isLoading = false);
+  }
 
   Future<void> _cancelBooking() async {
     if (widget.bookingId == null) return;

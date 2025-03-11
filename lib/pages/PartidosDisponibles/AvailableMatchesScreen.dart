@@ -57,6 +57,8 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
             .map((json) => MathPartido.fromJson(json))
             .whereType<MathPartido>()
             .toList();
+        print(
+            'Matches cargados: ${matches.map((m) => "${m.name} - ${m.status} - Jugadores: ${m.playerCount}").toList()}');
       } else {
         print('Error: ${response.statusCode}');
       }
@@ -86,8 +88,12 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
       return true;
     }).toList()
       ..sort((a, b) {
-        if (a.status == 'open' && b.status != 'open') return -1;
-        if (a.status != 'open' && b.status == 'open') return 1;
+        if (a.status == 'open' &&
+            a.playerCount == 0 &&
+            (b.status != 'open' || b.playerCount > 0)) return -1;
+        if ((a.status != 'open' || a.playerCount > 0) &&
+            b.status == 'open' &&
+            b.playerCount == 0) return 1;
         return a.startTime.compareTo(b.startTime);
       });
   }
@@ -194,8 +200,9 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
             itemCount: matchesForSelectedDate.length,
             itemBuilder: (context, index) {
               final match = matchesForSelectedDate[index];
+              // Deshabilitar si no está disponible o tiene jugadores
               final isDisabled =
-                  match.status == 'full' || match.status == 'cancelled';
+                  match.status != 'open' || match.playerCount > 0;
               final team1 =
                   match.teams?.isNotEmpty == true ? match.teams![0] : null;
               final team2 = match.teams?.length == 2 ? match.teams![1] : null;
@@ -218,9 +225,7 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
                 child: Card(
                   margin: const EdgeInsets.only(bottom: 16),
                   elevation: 4,
-                  color: isDisabled
-                      ? const Color.fromARGB(255, 221, 217, 217)
-                      : Colors.white,
+                  color: isDisabled ? Colors.grey[300] : Colors.white,
                   child: Padding(
                     padding: const EdgeInsets.all(12),
                     child: Column(
@@ -243,19 +248,22 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: isDisabled
-                                    ? Colors.grey
-                                    : (match.status == 'open'
-                                        ? Colors.green
-                                        : Colors.grey),
+                                color: match.status == 'open' &&
+                                        match.playerCount == 0
+                                    ? Colors.green
+                                    : Colors.grey,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
                                 match.status == 'cancelled'
                                     ? 'Cancelado'
-                                    : (match.status == 'full'
-                                        ? 'Completo'
-                                        : 'Disponible'),
+                                    : (match.status == 'reserved'
+                                        ? 'Reservado'
+                                        : (match.status == 'full'
+                                            ? 'Completo'
+                                            : (match.playerCount > 0
+                                                ? 'Con Jugadores'
+                                                : 'Disponible'))),
                                 style: const TextStyle(
                                     color: Colors.white, fontSize: 12),
                               ),
@@ -294,7 +302,6 @@ class _AvailableMatchesScreenState extends State<AvailableMatchesScreen> {
                             ),
                           ],
                         ),
-                        // Nueva sección: Nombre de la cancha
                         const SizedBox(height: 4),
                         Row(
                           children: [

@@ -17,16 +17,14 @@ class BookingService {
   Future<Field> getFieldDetails(int fieldId) async {
     try {
       final token = await storage.getToken();
-      final response = await http
-          .get(
-            Uri.parse('$baseUrl/fields/$fieldId'),
-            headers: {
-              'Authorization': 'Bearer $token',
-              'Content-Type': 'application/json',
-              'Accept': 'application/json', // Añadido para forzar JSON
-            },
-          )
-          .timeout(_timeoutDuration);
+      final response = await http.get(
+        Uri.parse('$baseUrl/fields/$fieldId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json', // Añadido para forzar JSON
+        },
+      ).timeout(_timeoutDuration);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -38,36 +36,35 @@ class BookingService {
     } catch (e) {
       debugPrint('Error getting field details: $e');
       if (e is TimeoutException) {
-        throw Exception('Tiempo de espera agotado al obtener detalles del campo');
+        throw Exception(
+            'Tiempo de espera agotado al obtener detalles del campo');
       }
       rethrow;
     }
   }
 
+  Future<Map<String, dynamic>> checkPaymentExists(String paymentId) async {
+    try {
+      final token = await storage.getToken();
+      final response = await http.get(
+        Uri.parse('$baseUrl/bookings/check-payment/$paymentId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(_timeoutDuration);
 
-Future<Map<String, dynamic>> checkPaymentExists(String paymentId) async {
-  try {
-    final token = await storage.getToken();
-    final response = await http.get(
-      Uri.parse('$baseUrl/bookings/check-payment/$paymentId'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-    ).timeout(_timeoutDuration);
+      debugPrint('Check Payment Status Code: ${response.statusCode}');
+      debugPrint('Check Payment Response: ${response.body}');
 
-    debugPrint('Check Payment Status Code: ${response.statusCode}');
-    debugPrint('Check Payment Response: ${response.body}');
-
-    final data = json.decode(response.body);
-    return data; // {exists: true/false, booking_id: id, message: "..."}
-  } catch (e) {
-    debugPrint('Error checking payment: $e');
-    return {'exists': false, 'message': 'Error al verificar reserva: $e'};
+      final data = json.decode(response.body);
+      return data; // {exists: true/false, booking_id: id, message: "..."}
+    } catch (e) {
+      debugPrint('Error checking payment: $e');
+      return {'exists': false, 'message': 'Error al verificar reserva: $e'};
+    }
   }
-}
-
 
   // Cancelar una reserva
   Future<Map<String, dynamic>> cancelReservation(String reservationId) async {
@@ -94,7 +91,8 @@ Future<Map<String, dynamic>> checkPaymentExists(String paymentId) async {
         if (response.statusCode == 200) {
           return {
             'success': true,
-            'message': responseData['message'] ?? 'Reserva cancelada exitosamente',
+            'message':
+                responseData['message'] ?? 'Reserva cancelada exitosamente',
             'refunded_amount': responseData['refunded_amount'],
             'booking': responseData['booking'],
           };
@@ -104,7 +102,8 @@ Future<Map<String, dynamic>> checkPaymentExists(String paymentId) async {
         } else {
           return {
             'success': false,
-            'message': responseData['message'] ?? 'Error al cancelar la reserva',
+            'message':
+                responseData['message'] ?? 'Error al cancelar la reserva',
           };
         }
       } catch (e) {
@@ -133,16 +132,14 @@ Future<Map<String, dynamic>> checkPaymentExists(String paymentId) async {
   Future<List<String>> getAvailableHours(int fieldId, String date) async {
     try {
       final token = await storage.getToken();
-      final response = await http
-          .get(
-            Uri.parse('$baseUrl/fields/$fieldId/available-hours?date=$date'),
-            headers: {
-              'Authorization': 'Bearer $token',
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-          )
-          .timeout(_timeoutDuration);
+      final response = await http.get(
+        Uri.parse('$baseUrl/fields/$fieldId/available-hours?date=$date'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(_timeoutDuration);
 
       debugPrint("Response status code: ${response.statusCode}");
       debugPrint("Response body: ${response.body}");
@@ -221,11 +218,13 @@ Future<Map<String, dynamic>> checkPaymentExists(String paymentId) async {
       debugPrint('Booking Response: ${response.body}');
 
       // Manejar respuesta HTML (como 302)
-      if (response.statusCode == 302 || response.body.contains('<!DOCTYPE html>')) {
+      if (response.statusCode == 302 ||
+          response.body.contains('<!DOCTYPE html>')) {
         debugPrint('Respuesta HTML detectada: posible redirección o error 302');
         return {
           'success': false,
-          'message': 'Error de autenticación o redirección en el servidor. Contacta al soporte.',
+          'message':
+              'Error de autenticación o redirección en el servidor. Contacta al soporte.',
         };
       }
 
@@ -271,20 +270,54 @@ Future<Map<String, dynamic>> checkPaymentExists(String paymentId) async {
     }
   }
 
+  Future<Map<String, dynamic>?> getDailyMatch({
+    required int fieldId,
+    required String date,
+    required String startTime,
+  }) async {
+    print('Iniciando solicitud para verificar partido...');
+    print('Field ID: $fieldId, Fecha: $date, Hora de inicio: $startTime');
+
+    final token = await storage.getToken();
+    print('Token obtenido: $token');
+
+    final url =
+        '$baseUrl/daily-matches/check?field_id=$fieldId&date=$date&start_time=$startTime';
+    print('URL de la solicitud: $url');
+
+    final response = await http.get(
+      Uri.parse(url),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    print('Respuesta recibida. Código de estado: ${response.statusCode}');
+    print('Cuerpo de la respuesta: ${response.body}');
+
+    if (response.statusCode == 200) {
+      print('Partido verificado exitosamente.');
+      return json.decode(response.body);
+    } else {
+      print('Error al verificar partido: ${response.statusCode}');
+      throw Exception('Error al verificar partido: ${response.statusCode}');
+    }
+  }
+
   // Obtener reservas activas
   Future<List<Booking>> getActiveReservations() async {
     try {
       final token = await storage.getToken();
-      final response = await http
-          .get(
-            Uri.parse('$baseUrl/active-reservations'),
-            headers: {
-              'Authorization': 'Bearer $token',
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-          )
-          .timeout(_timeoutDuration);
+      final response = await http.get(
+        Uri.parse('$baseUrl/active-reservations'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(_timeoutDuration);
 
       debugPrint(
           'Active Reservations - Código de estado: ${response.statusCode}');
@@ -316,16 +349,14 @@ Future<Map<String, dynamic>> checkPaymentExists(String paymentId) async {
   Future<List<Booking>> getReservationHistory() async {
     try {
       final token = await storage.getToken();
-      final response = await http
-          .get(
-            Uri.parse('$baseUrl/reservation-history'),
-            headers: {
-              'Authorization': 'Bearer $token',
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-          )
-          .timeout(_timeoutDuration);
+      final response = await http.get(
+        Uri.parse('$baseUrl/reservation-history'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(_timeoutDuration);
 
       debugPrint('Código de estado: ${response.statusCode}');
       debugPrint('Cuerpo de respuesta: ${response.body}');
@@ -356,16 +387,14 @@ Future<Map<String, dynamic>> checkPaymentExists(String paymentId) async {
   Future<List<Booking>> getAllReservations() async {
     try {
       final token = await storage.getToken();
-      final response = await http
-          .get(
-            Uri.parse('$baseUrl/bookings'),
-            headers: {
-              'Authorization': 'Bearer $token',
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-          )
-          .timeout(_timeoutDuration);
+      final response = await http.get(
+        Uri.parse('$baseUrl/bookings'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(_timeoutDuration);
 
       if (response.statusCode == 200) {
         List<dynamic> data = json.decode(response.body);

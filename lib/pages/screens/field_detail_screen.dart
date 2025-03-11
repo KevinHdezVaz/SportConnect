@@ -258,16 +258,19 @@ class _FieldDetailScreenState extends State<FieldDetailScreen>
                 child: Column(
                   children: [
                     Container(
-decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color.fromARGB(255, 81, 139, 190), // Color inicial
-                  Color.fromARGB(255, 234, 237, 238), // Color final
-                ],
-                begin: Alignment.center, // Punto de inicio del gradiente
-                end: Alignment.bottomCenter, // Punto final del gradiente
-              ),
-            ),                      padding: EdgeInsets.all(16),
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Color.fromARGB(255, 81, 139, 190), // Color inicial
+                            Color.fromARGB(255, 234, 237, 238), // Color final
+                          ],
+                          begin:
+                              Alignment.center, // Punto de inicio del gradiente
+                          end: Alignment
+                              .bottomCenter, // Punto final del gradiente
+                        ),
+                      ),
+                      padding: EdgeInsets.all(16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -445,10 +448,9 @@ decoration: const BoxDecoration(
                         ),
                       ),
                     ),
-                   
                   ],
                 ),
-              ), 
+              ),
 // Reemplaza el contenido de la segunda pestaña con:
               SingleChildScrollView(
                 child: Padding(
@@ -503,6 +505,19 @@ decoration: const BoxDecoration(
                         itemCount: matches.length,
                         itemBuilder: (context, index) {
                           final match = matches[index];
+
+                          // Convertir las cadenas a DateTime
+                          DateTime startTime =
+                              DateFormat('HH:mm:ss').parse(match.startTime);
+                          DateTime endTime =
+                              DateFormat('HH:mm:ss').parse(match.endTime);
+
+                          // Formatear DateTime a "HH:mm"
+                          String formattedStartTime =
+                              DateFormat('HH:mm').format(startTime);
+                          String formattedEndTime =
+                              DateFormat('HH:mm').format(endTime);
+
                           return Card(
                             margin: EdgeInsets.only(bottom: 12),
                             child: ListTile(
@@ -537,20 +552,8 @@ decoration: const BoxDecoration(
                                           size: 16, color: Colors.green),
                                       SizedBox(width: 8),
                                       Text(
-                                        '${match.startTime} - ${match.endTime}',
+                                        '$formattedStartTime - $formattedEndTime',
                                         style: TextStyle(color: Colors.green),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      Icon(Icons.people,
-                                          size: 16, color: Colors.orange),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        '${match.playerCount}/${match.maxPlayers} jugadores',
-                                        style: TextStyle(color: Colors.orange),
                                       ),
                                     ],
                                   ),
@@ -679,5 +682,3 @@ class AmenityTile extends StatelessWidget {
     );
   }
 }
-
- 

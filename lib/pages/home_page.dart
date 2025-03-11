@@ -750,7 +750,7 @@ class _HomePageState extends State<HomePage> {
                                               color: Colors.grey[400],
                                               thickness: 1),
                                           SizedBox(height: 24),
-                                          Padding(
+                                          const Padding(
                                             padding: EdgeInsets.symmetric(
                                                 horizontal: 16, vertical: 8),
                                             child: Text(
@@ -763,7 +763,7 @@ class _HomePageState extends State<HomePage> {
                                             ),
                                           ),
                                           SizedBox(
-                                            height: 180,
+                                            height: 200,
                                             child: ListView.builder(
                                               scrollDirection: Axis.horizontal,
                                               itemCount: matches.length,
@@ -827,21 +827,96 @@ class _HomePageState extends State<HomePage> {
                                                             ],
                                                           ),
                                                           SizedBox(height: 8),
-                                                          Text(
-                                                            'Horario: ${match.formattedStartTime} - ${match.formattedEndTime}',
-                                                            style: TextStyle(
-                                                                color: Colors
-                                                                    .green,
-                                                                fontSize: 14),
+                                                          RichText(
+                                                            text: TextSpan(
+                                                              children: [
+                                                                TextSpan(
+                                                                  text:
+                                                                      '📅 Fecha: ', // Emoji de calendario
+                                                                  style:
+                                                                      TextStyle(
+                                                                    color: Colors
+                                                                        .black, // "Fecha:" en negro
+                                                                    fontSize:
+                                                                        14,
+                                                                  ),
+                                                                ),
+                                                                TextSpan(
+                                                                  text: match
+                                                                      .formattedDate,
+                                                                  style:
+                                                                      TextStyle(
+                                                                    color: Colors
+                                                                        .orange, // Fecha en naranja
+                                                                    fontSize:
+                                                                        14,
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
                                                           ),
+                                                          SizedBox(
+                                                              height:
+                                                                  4), // Espacio entre los textos
+                                                          RichText(
+                                                            text: TextSpan(
+                                                              children: [
+                                                                TextSpan(
+                                                                  text:
+                                                                      '⏰ Horario: ', // Emoji de reloj
+                                                                  style:
+                                                                      TextStyle(
+                                                                    color: Colors
+                                                                        .black, // "Horario:" en negro
+                                                                    fontSize:
+                                                                        14,
+                                                                  ),
+                                                                ),
+                                                                TextSpan(
+                                                                  text:
+                                                                      '${match.formattedStartTime} - ${match.formattedEndTime}',
+                                                                  style:
+                                                                      TextStyle(
+                                                                    color: Colors
+                                                                        .green, // Horario en verde
+                                                                    fontSize:
+                                                                        14,
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                          SizedBox(height: 4),
                                                           if (match.field !=
                                                               null)
-                                                            Text(
-                                                              'Cancha: ${match.field!.name}',
-                                                              style: TextStyle(
-                                                                  color: Colors
-                                                                      .black,
-                                                                  fontSize: 14),
+                                                            RichText(
+                                                              text: TextSpan(
+                                                                children: [
+                                                                  TextSpan(
+                                                                    text:
+                                                                        '⚽ Cancha: ', // Emoji de pelota de fútbol
+                                                                    style:
+                                                                        TextStyle(
+                                                                      color: Colors
+                                                                          .black, // "Cancha:" en negro
+                                                                      fontSize:
+                                                                          14,
+                                                                    ),
+                                                                  ),
+                                                                  TextSpan(
+                                                                    text: match
+                                                                        .field!
+                                                                        .name,
+                                                                    style:
+                                                                        TextStyle(
+                                                                      color: Colors
+                                                                          .black, // Nombre de la cancha en negro
+                                                                      fontSize:
+                                                                          14,
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
                                                             ),
                                                           Spacer(),
                                                           Align(

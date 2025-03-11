@@ -3,7 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
 import 'package:user_auth_crudd10/auth/auth_service.dart';
-import 'package:user_auth_crudd10/pages/others/profile_page.dart';
+// No necesitamos importar ProfilePage si solo vamos a regresar a la pantalla anterior
 
 class UpdateProfileScreen extends StatefulWidget {
   @override
@@ -84,12 +84,8 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ProfilePage(),
-          ),
-        );
+        // Regresar a la pantalla anterior (con BottomNavigationBar)
+        Navigator.pop(context);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error al actualizar el perfil')),

@@ -24,119 +24,133 @@ class _BookingScreenState extends State<BookingScreen> {
     super.initState();
     _loadReservations();
   }
-  //pago para el sabado 08/03 a las 22:00 
 
   Future<void> _loadReservations() async {
     try {
-      setState(() => isLoading = true);
+      if (mounted) setState(() => isLoading = true); // Verificar mounted
       final active = await bookingService.getActiveReservations();
       final history = await bookingService.getReservationHistory();
-      setState(() {
-        activeReservations = active;
-        reservationHistory = history;
-        isLoading = false;
-      });
+      if (mounted) {
+        // Verificar mounted antes de actualizar el estado
+        setState(() {
+          activeReservations = active;
+          reservationHistory = history;
+          isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() => isLoading = false);
-      _showErrorSnackBar('Error al cargar las reservas: $e');
+      if (mounted) {
+        // Verificar mounted antes de mostrar error
+        setState(() => isLoading = false);
+        _showErrorSnackBar('Error al cargar las reservas: $e');
+      }
     }
   }
 
   Future<void> _handleCancelReservation(Booking reservation) async {
-  try {
-    // Verificar si se puede cancelar (menos de 5 de anticipación)
-    final now = DateTime.now();
-    if (reservation.startTime.difference(now).inHours < 5) {
-      _showErrorSnackBar('No puedes cancelar con menos de 5 horas de antelación');
-      return;
-    }
+    try {
+      final now = DateTime.now();
+      if (reservation.startTime.difference(now).inHours < 5) {
+        _showErrorSnackBar(
+            'No puedes cancelar con menos de 5 horas de antelación');
+        return;
+      }
 
-    // Solicitar confirmación al usuario
-    bool? confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmar cancelación', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),),
-        content: const Text('La reserva será cancelada y el monto se reembolsará a tu monedero. ¿Deseas continuar?', style: TextStyle(color: Colors.black),),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('No'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Sí, cancelar reserva', style: TextStyle(color: Colors.white),),
-          ),
-        ],
-      ),
-    );
+      bool? confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Confirmar cancelación',
+              style:
+                  TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          content: const Text(
+              'La reserva será cancelada y el monto se reembolsará a tu monedero. ¿Deseas continuar?',
+              style: TextStyle(color: Colors.black)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('No'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text('Sí, cancelar reserva',
+                  style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
 
-    if (confirm != true) {
-      return;
-    }
+      if (confirm != true) return;
 
-    // Procesar la cancelación
-    final result = await bookingService.cancelReservation(reservation.id.toString());
-    
-    // Si la operación fue exitosa O si la reserva ya estaba cancelada
-    if (result['success'] || (result['message'] != null && result['message'].contains('ya está cancelada'))) {
-      // Recargar las reservas en ambos casos
-      await _loadReservations();
-      
-      if (result['success']) {
-        _showSuccessSnackBar(result['message'] ?? 'Reserva cancelada exitosamente');
-        
-        // Mostrar cuánto se reembolsó si está disponible
-        if (result['refunded_amount'] != null) {
-          Fluttertoast.showToast(
-            msg: 'Monto reembolsado: \$${result['refunded_amount']}',
-            backgroundColor: Colors.blue,
-            toastLength: Toast.LENGTH_LONG,
-          );
+      final result =
+          await bookingService.cancelReservation(reservation.id.toString());
+
+      if (result['success'] ||
+          (result['message'] != null &&
+              result['message'].contains('ya está cancelada'))) {
+        await _loadReservations();
+        if (result['success']) {
+          _showSuccessSnackBar(
+              result['message'] ?? 'Reserva cancelada exitosamente');
+          if (result['refunded_amount'] != null) {
+            Fluttertoast.showToast(
+              msg: 'Monto reembolsado: \$${result['refunded_amount']}',
+              backgroundColor: Colors.blue,
+              toastLength: Toast.LENGTH_LONG,
+            );
+          }
+        } else {
+          _showInfoSnackBar(result['message']);
         }
       } else {
-        // Si la reserva ya estaba cancelada, mostrar esa información
-        _showInfoSnackBar(result['message']);
+        _showErrorSnackBar(
+            result['message'] ?? 'No se pudo cancelar la reserva');
       }
-    } else {
-      _showErrorSnackBar(result['message'] ?? 'No se pudo cancelar la reserva');
+    } catch (e) {
+      _showErrorSnackBar('Error al cancelar la reserva: $e');
     }
-  } catch (e) {
-    _showErrorSnackBar('Error al cancelar la reserva: $e');
   }
-}
 
-// Añade un nuevo método para mostrar información (no es error ni éxito)
-void _showInfoSnackBar(String message) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(message, style: const TextStyle(color: Colors.white)),
-      backgroundColor: Colors.blue[700],
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-    ),
-  );
-}
+  void _showInfoSnackBar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message, style: const TextStyle(color: Colors.white)),
+          backgroundColor: Colors.blue[700],
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
+  }
+
   void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: const TextStyle(color: Colors.white)),
-        backgroundColor: Colors.red[800],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message, style: const TextStyle(color: Colors.white)),
+          backgroundColor: Colors.red[800],
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
   }
 
   void _showSuccessSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: const TextStyle(color: Colors.white)),
-        backgroundColor: Colors.green[800],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message, style: const TextStyle(color: Colors.white)),
+          backgroundColor: Colors.green[800],
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
   }
 
   @override
@@ -147,7 +161,10 @@ void _showInfoSnackBar(String message) {
         appBar: AppBar(
           title: const Text(
             'Mis Reservas',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
+            style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87),
           ),
           centerTitle: true,
           backgroundColor: Colors.white,
@@ -176,7 +193,8 @@ void _showInfoSnackBar(String message) {
                 ),
                 child: Row(
                   children: [
-                    Expanded(child: _buildTabButton('active', 'Reservas Activas')),
+                    Expanded(
+                        child: _buildTabButton('active', 'Reservas Activas')),
                     Expanded(child: _buildTabButton('history', 'Historial')),
                   ],
                 ),
@@ -188,15 +206,18 @@ void _showInfoSnackBar(String message) {
                 child: isLoading
                     ? const Center(
                         child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.blue),
                         ),
                       )
                     : PageView(
                         controller: _pageController,
                         onPageChanged: (index) {
-                          setState(() {
-                            activeTab = index == 0 ? 'active' : 'history';
-                          });
+                          if (mounted) {
+                            setState(() {
+                              activeTab = index == 0 ? 'active' : 'history';
+                            });
+                          }
                         },
                         children: [
                           _buildReservationList(activeReservations, true),
@@ -214,12 +235,14 @@ void _showInfoSnackBar(String message) {
   Widget _buildTabButton(String tabType, String text) {
     return GestureDetector(
       onTap: () {
-        setState(() => activeTab = tabType);
-        _pageController.animateToPage(
-          tabType == 'active' ? 0 : 1,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
+        if (mounted) {
+          setState(() => activeTab = tabType);
+          _pageController.animateToPage(
+            tabType == 'active' ? 0 : 1,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        }
       },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -281,13 +304,15 @@ void _showInfoSnackBar(String message) {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => BookingDetailsScreen(booking: reservation, isActive: isActive),
+                builder: (context) => BookingDetailsScreen(
+                    booking: reservation, isActive: isActive),
               ),
-            ).then((_) => _loadReservations()); // Recargar al volver
+            ).then((_) => _loadReservations());
           },
           child: Card(
             margin: const EdgeInsets.symmetric(vertical: 10),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             elevation: 4,
             color: Colors.white,
             child: Padding(
@@ -400,7 +425,7 @@ void _showInfoSnackBar(String message) {
         return Colors.blue[800]!;
     }
   }
-  
+
   String _getStatusText(String status) {
     switch (status.toLowerCase()) {
       case 'pending':
