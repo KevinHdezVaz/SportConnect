@@ -456,7 +456,7 @@ class _HomePageState extends State<HomePage> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 20),
                               child: Text(
-                                "Banners",
+                                "Oferta e información",
                                 style: GoogleFonts.inter(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,

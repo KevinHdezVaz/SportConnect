@@ -27,7 +27,7 @@ if (flutterVersionName == null) {
 
 android {
     namespace "com.app.footconnect0"
-    compileSdkVersion 34
+    compileSdkVersion 35
     ndkVersion flutter.ndkVersion
 
     configurations {
@@ -38,7 +38,7 @@ android {
         }
     }
 
-    compileOptions {
+    compileOptions { 
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
                 coreLibraryDesugaringEnabled true
@@ -64,13 +64,24 @@ android {
         versionName flutterVersionName
     }
 
-    buildTypes {
+
+ signingConfigs {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig signingConfigs.debug
+            storeFile file('futplay-keystore.jks')  // Ruta relativa al archivo keystore.jks
+            storePassword 'Elmejor_10'  // Contraseña del keystore
+            keyAlias 'futplay'  // Alias de la clave
+            keyPassword 'Elmejor_10'  // Contraseña de la clave
         }
     }
+
+
+buildTypes {
+    release {
+        signingConfig signingConfigs.release  // Usar la configuración de firma release
+        minifyEnabled true
+        shrinkResources true
+    }
+}
 }
 
 flutter {
