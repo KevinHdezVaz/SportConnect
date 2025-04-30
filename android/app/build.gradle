@@ -65,19 +65,19 @@ android {
     }
 
 
- signingConfigs {
-        release {
-            storeFile file('futplay-keystore.jks')  // Ruta relativa al archivo keystore.jks
-            storePassword 'Elmejor_10'  // Contraseña del keystore
-            keyAlias 'futplay'  // Alias de la clave
-            keyPassword 'Elmejor_10'  // Contraseña de la clave
-        }
+signingConfigs {
+    release {
+        storeFile file('nuevo-futplay.jks') 
+        storePassword 'Elmejor_10'
+        keyAlias 'futplay'
+        keyPassword 'Elmejor_10'
     }
+}
 
 
 buildTypes {
     release {
-        signingConfig signingConfigs.release  // Usar la configuración de firma release
+        signingConfig signingConfigs.release  
         minifyEnabled true
         shrinkResources true
     }

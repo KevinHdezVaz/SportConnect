@@ -123,8 +123,8 @@ class _RegisterPageState extends State<RegisterPage> {
       showErrorSnackBar("El código postal debe tener 5 dígitos");
       return false;
     }
-    if (_phoneController.text.length != 10) {
-      showErrorSnackBar("El número de teléfono debe tener 10 dígitos");
+    if (_phoneController.text.length != 8) {
+      showErrorSnackBar("El número de teléfono debe tener 8 dígitos");
       return false;
     }
     if (_passwordController.text.length < 6) {
@@ -262,8 +262,11 @@ class _RegisterPageState extends State<RegisterPage> {
                               keyboardType: TextInputType.phone,
                               inputFormatters: [
                                 FilteringTextInputFormatter.digitsOnly,
-                                LengthLimitingTextInputFormatter(10),
+                                LengthLimitingTextInputFormatter(
+                                    8), // Changed to 9 for Uruguay local number
                               ],
+                              prefixText:
+                                  "+598 ", // Add Uruguay country code prefix
                             ),
                             const SizedBox(height: 20),
                             customTextField(
@@ -351,6 +354,7 @@ class _RegisterPageState extends State<RegisterPage> {
     bool isObscure = false,
     TextInputType keyboardType = TextInputType.text,
     List<TextInputFormatter>? inputFormatters,
+    String? prefixText, // New parameter for prefix text
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -373,6 +377,9 @@ class _RegisterPageState extends State<RegisterPage> {
           labelText: labelText,
           labelStyle: TextStyle(color: Colors.black),
           prefixIcon: prefixIcon,
+          prefixText: prefixText, // Add prefix text to decoration
+          prefixStyle:
+              TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
       ),
     );
