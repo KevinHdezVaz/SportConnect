@@ -187,53 +187,6 @@ class _FieldsScreenState extends State<FieldsScreen>
     setState(() {
       _isLocationServiceDialogShown = true;
     });
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            'Servicio de Ubicación Desactivado',
-            style: TextStyle(color: Colors.black),
-          ),
-          content: Text(
-            'Para continuar, activa el servicio de ubicación.',
-            style: TextStyle(color: const Color.fromARGB(255, 48, 47, 47)),
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                setState(() {
-                  _isLocationServiceDialogShown = false;
-                });
-              },
-              child: Text(
-                'Cancelar',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.of(context).pop();
-                openLocationSettings();
-              },
-              child: Text(
-                'Abrir Configuración',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> openLocationSettings() async {
-    await Geolocator.openLocationSettings();
-    Future.delayed(Duration(seconds: 1), () {
-      _getCurrentLocation();
-    });
   }
 
   @override
